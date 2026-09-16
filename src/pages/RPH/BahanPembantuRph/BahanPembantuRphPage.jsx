@@ -56,7 +56,7 @@ const SummaryCard = ({ title, value, subtext, icon: Icon, accentClass }) => (
   </div>
 );
 
-const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete, onBayar }) => {
+export const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete, onBayar, documentAction }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
 
@@ -67,8 +67,10 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete, onBay
 
       setMenuStyle({
         position: 'absolute',
-        left: rect.left + window.scrollX,
-        top: rect.bottom + window.scrollY + 8,
+        left: Math.max(8, Math.min(rect.left, window.innerWidth - 232)) + window.scrollX,
+        top: Math.max(8, Math.min(rect.bottom + 8, window.innerHeight - 420)) + window.scrollY,
+        maxHeight: 'calc(100vh - 16px)',
+        overflowY: 'auto',
         zIndex: 99999
       });
     };
@@ -96,9 +98,23 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete, onBay
     };
   }, [buttonRef, onClose]);
 
+  const positioned = Boolean(menuStyle);
+  useEffect(() => {
+    if (positioned) menuRef.current?.querySelector('button:not(:disabled)')?.focus();
+  }, [positioned]);
+
   if (!menuStyle) return null;
 
   const actions = [
+    {
+      label: documentAction?.loading ? 'Menyiapkan PDF...' : documentAction?.label,
+      description: 'Dokumen pencatatan, bukan bukti pembayaran',
+      icon: documentAction?.loading ? Loader2 : Download,
+      iconClass: 'text-emerald-600',
+      bgClass: 'bg-emerald-100',
+      disabled: !row.pid || documentAction?.loading,
+      onClick: () => documentAction?.download(row)
+    },
     {
       label: 'Detail',
       description: `Lihat detail ${row.notaSistem || ''}`,
@@ -137,8 +153,10 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete, onBay
   }
 
   const handleActionClick = (action) => {
+    if (action.disabled) return;
     action.onClick?.();
     onClose();
+    buttonRef.current?.focus();
   };
 
   return createPortal(
@@ -148,6 +166,21 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete, onBay
       className="w-56 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl"
       role="menu"
       aria-label="Menu aksi"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          onClose();
+          buttonRef.current?.focus();
+        } else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+          event.preventDefault();
+          const buttons = [...menuRef.current.querySelectorAll('button:not(:disabled)')];
+          const index = buttons.indexOf(document.activeElement);
+          const next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length;
+          buttons[next]?.focus();
+        } else if (event.key === 'Tab') {
+          onClose();
+          buttonRef.current?.focus();
+        }
+      }}
     >
       <div className="border-b border-gray-100 bg-gray-50 px-3 py-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Menu Aksi</p>
@@ -157,8 +190,10 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete, onBay
           <button
             key={action.label}
             type="button"
+            role="menuitem"
+            disabled={action.disabled}
             onClick={() => handleActionClick(action)}
-            className="flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-gray-50"
+            className="flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-600 disabled:opacity-50 disabled:cursor-wait"
           >
             <div className={`mt-0.5 rounded-lg p-2 ${action.bgClass}`}>
               <action.icon className={`h-4 w-4 ${action.iconClass}`} />
@@ -175,7 +210,7 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete, onBay
   );
 };
 
-const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete, onBayar }) => {
+const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete, onBayar, documentAction }) => {
   const buttonRef = useRef(null);
 
   return (
@@ -192,6 +227,7 @@ const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDele
         }`}
         aria-label="Buka menu aksi"
         aria-expanded={isOpen}
+        aria-haspopup="menu"
       >
         <MoreVertical className="h-4 w-4" />
       </button>
@@ -205,6 +241,7 @@ const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDele
           onEdit={onEdit}
           onDelete={onDelete}
           onBayar={onBayar}
+          documentAction={documentAction}
         />
       )}
     </div>
@@ -224,7 +261,8 @@ const MobileBahanPembantuCard = ({
   onDetail,
   onEdit,
   onDelete,
-  onBayar
+  onBayar,
+  documentAction
 }) => (
   <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm">
     <div className="flex items-start justify-between gap-3">
@@ -304,6 +342,7 @@ const MobileBahanPembantuCard = ({
         onEdit={onEdit}
         onDelete={onDelete}
         onBayar={onBayar}
+        documentAction={documentAction}
       />
     </div>
   </div>
@@ -324,6 +363,8 @@ const [openMenuIdMobile, setOpenMenuIdMobile] = useState(null);
 const [isExportOpen, setIsExportOpen] = useState(false);
 const [isExporting, setIsExporting] = useState(false);
 const [notification, setNotification] = useState(null);
+const downloadLock = useRef(false);
+const [documentLoading, setDocumentLoading] = useState(false);
 
 // Server-side pagination
 const [currentPage, setCurrentPage] = useState(1);
@@ -549,6 +590,36 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
     navigate(`/rph/keuangan/pengeluaran/bayar/${row.paymentPid}`);
   }, [navigate]);
 
+  const documentLabel = isBiayaTab ? `Voucher Biaya ${activeTab === 'bank' ? 'Bank' : 'Kas'} PDF` : 'Nota Pembelian Bahan Pembantu PDF';
+  const handleDocument = useCallback(async (row) => {
+    if (downloadLock.current) return;
+    downloadLock.current = true;
+    setDocumentLoading(true);
+    setNotification({ type: 'info', message: `Menyiapkan ${documentLabel}...` });
+    try {
+      const blob = isBiayaTab
+        ? await BiayaRphService.downloadDocument(row.pid, activeTab === 'bank' ? 1 : 2)
+        : await BahanPembantuRphService.downloadDocument(row.pid);
+      const link = document.createElement('a');
+      const url = window.URL.createObjectURL(blob);
+      try {
+        link.href = url;
+        link.download = `${documentLabel.replace(/ PDF$/, '').replace(/ /g, '_')}_${String(row.notaSistem || 'RPH').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 100)}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+      } finally {
+        link.remove();
+        setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+      }
+      setNotification({ type: 'success', message: `${documentLabel} berhasil diunduh.` });
+    } catch (error) {
+      setNotification({ type: 'error', message: error.message || 'Gagal mengunduh PDF.' });
+    } finally {
+      downloadLock.current = false;
+      setDocumentLoading(false);
+    }
+  }, [activeTab, isBiayaTab, documentLabel]);
+
   const handleExport = async (format, { startDate, endDate }) => {
     const isBahan = activeTab === 'pembelian_bahan_pembantu';
     setIsExporting(true);
@@ -631,6 +702,7 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
               onEdit={handleEdit}
               onDelete={handleDelete}
               onBayar={handleBayar}
+              documentAction={{ label: documentLabel, loading: documentLoading, download: handleDocument }}
             />
           </div>
         )
@@ -858,7 +930,7 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
         )
       })
     ];
-  }, [isBiayaTab, openMenuIdDesktop, currentPage, perPage, handleBayar, handleDetail, handleEdit]);
+  }, [isBiayaTab, openMenuIdDesktop, currentPage, perPage, handleBayar, handleDetail, handleEdit, documentLabel, documentLoading, handleDocument]);
 
   return (
     <>
@@ -1132,6 +1204,7 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                         onBayar={handleBayar}
+                        documentAction={{ label: documentLabel, loading: documentLoading, download: handleDocument }}
                       />
                     ))}
                   </>

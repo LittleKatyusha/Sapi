@@ -1,8 +1,8 @@
 import React, { useRef, useState, useMemo } from "react";
-import { MoreVertical } from "lucide-react";
+import { MoreVertical, Loader2 } from "lucide-react";
 import PersediaanPakanActionMenu from "./PersediaanPakanActionMenu";
 
-const PersediaanPakanActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDetail, onCopy, onBeriMakan, onRiwayatPemberian, isActive }) => {
+const PersediaanPakanActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDetail, onCopy, onBeriMakan, onRiwayatPemberian, isActive, onDownload, downloading }) => {
   const buttonRef = useRef(null);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -38,17 +38,21 @@ const PersediaanPakanActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, o
           isOpen ? "bg-emerald-50 text-emerald-600 scale-105" : ""
         } ${isAnimating ? "animate-pulse" : ""}`}
         aria-label="Menu Aksi"
+        aria-busy={downloading === `recipe:${row.pid}`}
+        aria-haspopup="menu"
         aria-expanded={isOpen}
       >
-        <MoreVertical
+        {downloading === `recipe:${row.pid}` ? <Loader2 size={16} className="animate-spin" /> : <MoreVertical
           size={16}
           className={`transition-transform duration-150 ${
             isOpen ? "rotate-90" : "group-hover:rotate-90"
           }`}
-        />
+        />}
       </button>
       {isOpen && (
         <PersediaanPakanActionMenu
+          onDownload={onDownload}
+          downloading={downloading === `recipe:${row.pid}`}
           row={row}
           onEdit={onEdit}
           onDelete={onDelete}
@@ -57,7 +61,7 @@ const PersediaanPakanActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, o
           onBeriMakan={onBeriMakan}
           onRiwayatPemberian={onRiwayatPemberian}
           buttonRef={buttonRef}
-          onClose={() => setOpenMenuId(null)}
+          onClose={() => { setOpenMenuId(null); buttonRef.current?.focus(); }}
         />
       )}
     </div>

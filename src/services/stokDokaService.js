@@ -8,6 +8,20 @@ import HttpClient from './httpClient';
 class StokDokaService {
   static API_PREFIX = '/api/rph/stokdoka';
 
+  static async downloadDocument(type, params = {}) {
+    if (!['card', 'recap'].includes(type)) throw new Error('Jenis dokumen tidak valid');
+    if (type === 'card' && (typeof params.pid !== 'string' || !params.pid.trim())) throw new Error('PID tidak ditemukan');
+    const options = { responseType: 'blob', cache: false };
+    const blob = type === 'card'
+      ? await HttpClient.post(`${this.API_PREFIX}/card-document`, { pid: params.pid }, options)
+      : await HttpClient.get(`${this.API_PREFIX}/recap-document`, { ...options, params: {
+        start_date: params.start_date || null, end_date: params.end_date || null, search: params.search || null,
+      } });
+    if (!(blob instanceof Blob) || !blob.size || (blob.type && !['application/pdf', 'application/octet-stream'].includes(blob.type.toLowerCase()))
+      || await blob.slice(0, 5).text() !== '%PDF-') throw new Error('Respons server bukan dokumen PDF yang valid');
+    return blob;
+  }
+
   static async getData({
     startDate = null,
     endDate = null,
@@ -56,6 +70,28 @@ class StokDokaService {
         data: null,
         message: error?.data?.message || error?.message || 'Failed to fetch detail',
       };
+    }
+  }
+
+  static async update(payload) {
+    try {
+      const response = await HttpClient.post(`${this.API_PREFIX}/update`, payload);
+      HttpClient.clearCache('stokdoka');
+      return { success: true, data: response.data, message: response.message || 'Data berhasil diperbarui' };
+    } catch (error) {
+      const message = error?.data?.data && typeof error.data.data === 'object'
+        ? Object.values(error.data.data).flat().join(', ')
+        : error?.data?.message || error?.message || 'Gagal memperbarui data';
+      return { success: false, data: null, message };
+    }
+  }
+
+  static async history(pid) {
+    try {
+      const response = await HttpClient.post(`${this.API_PREFIX}/history`, { pid });
+      return { success: true, data: response.data, message: 'Data retrieved successfully' };
+    } catch (error) {
+      return { success: false, data: null, message: error?.data?.message || error?.message || 'Gagal memuat riwayat' };
     }
   }
 

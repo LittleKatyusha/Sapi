@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Building2, User, Calendar, Truck, Hash, Package, Eye, Weight, DollarSign, FileText, ExternalLink } from 'lucide-react';
 import usePembelianLainLain from './hooks/usePembelianLainLain';
 import useFarmAPI from './hooks/useFarmAPI';
@@ -20,6 +20,8 @@ const shouldForwardProp = (prop) => {
 const PembelianLainLainDetailPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
+    const basePath = location.pathname.startsWith('/feedmil/') ? '/feedmil/pembelian-lain-lain' : '/ho/pembelian-lain-lain';
     const {
         getPembelianDetail,
         viewUploadedFile,
@@ -303,7 +305,7 @@ const PembelianLainLainDetailPage = () => {
     }, [pembelianData?.id_farm, pembelianData?.id_syarat_pembelian, farmData, banks, getFarmName, getBankName]);
 
     const handleBack = () => {
-        navigate('/ho/pembelian-lain-lain');
+        navigate(basePath);
     };
 
     // Handle view file

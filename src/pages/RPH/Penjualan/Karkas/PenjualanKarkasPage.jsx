@@ -7,6 +7,7 @@ import StokSapiService from '../../../../services/stokSapiService';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 import { useNotification } from '../../../../components/shared/Notification';
 import DetailKarkasModal from './modals/DetailKarkasModal';
+import useKarkasDocument from './hooks/useKarkasDocument';
 
 const money = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(n) || 0);
 const weight = (n) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 3 }).format(Number(n) || 0);
@@ -110,7 +111,7 @@ const Field = ({ label, children, className = '' }) => <label className={`block 
 const Input = (props) => <input {...props} className={`w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-red-500 focus:ring-1 focus:ring-red-500 ${props.className || ''}`} />;
 const MoneyInput = ({ value, onChange, ...props }) => <Input {...props} type="text" inputMode="decimal" value={formatNumberInput(value)} onChange={e => onChange(parseNumberInput(e.target.value))} />;
 
-const RowActionMenu = ({ row, anchorRef, onClose, onDetail, onEdit, onDelete, onPay, disabled = false }) => {
+const RowActionMenu = ({ row, anchorRef, onClose, onDetail, onEdit, onDelete, onPay, download, downloading, disabled = false }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
   const locked = disabled || row.status_transaksi === 'BATAL' || isPaidRow(row);
@@ -122,8 +123,10 @@ const RowActionMenu = ({ row, anchorRef, onClose, onDetail, onEdit, onDelete, on
       const rect = anchor.getBoundingClientRect();
       setMenuStyle({
         position: 'fixed',
-        top: rect.bottom + 8,
-        left: Math.max(12, rect.right - 192),
+        top: Math.max(8, Math.min(rect.bottom + 8, window.innerHeight - 380)),
+        left: Math.max(8, Math.min(rect.right - 192, window.innerWidth - 200)),
+        maxHeight: 'calc(100vh - 16px)',
+        overflowY: 'auto',
         zIndex: 200,
       });
     };
@@ -146,14 +149,30 @@ const RowActionMenu = ({ row, anchorRef, onClose, onDetail, onEdit, onDelete, on
     };
   }, [anchorRef, onClose]);
 
+  const positioned = Boolean(menuStyle);
+  useEffect(() => {
+    if (positioned) menuRef.current?.querySelector('button:not(:disabled)')?.focus();
+  }, [positioned]);
+  const keyboard = (event) => {
+    if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); onClose(); anchorRef.current?.focus(); }
+    if (event.key === 'Tab') onClose();
+    if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+      event.preventDefault();
+      const items = [...menuRef.current.querySelectorAll('button:not(:disabled)')];
+      const current = items.indexOf(document.activeElement);
+      const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (current + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+      items[next]?.focus();
+    }
+  };
   if (!menuStyle) return null;
 
   return createPortal(
-    <div ref={menuRef} style={menuStyle} className="w-48 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl" role="menu" aria-label="Menu aksi">
+    <div ref={menuRef} style={menuStyle} onKeyDown={keyboard} onClick={event => event.stopPropagation()} className="w-48 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl" role="menu" aria-label="Menu aksi">
       <div className="border-b border-slate-100 bg-slate-50 px-3 py-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Menu Aksi</p>
       </div>
       <div className="p-1.5">
+        {['nota', 'surat-jalan'].map(type => <button key={type} type="button" role="menuitem" disabled={disabled || Boolean(downloading) || row.status_transaksi !== 'FINAL'} aria-busy={downloading === `${type}:${row.pid}`} title={row.status_transaksi !== 'FINAL' ? 'Hanya transaksi FINAL aktif' : undefined} onClick={() => download(type, row)} className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-emerald-50 disabled:opacity-40">{downloading === `${type}:${row.pid}` ? 'Mengunduh...' : type === 'nota' ? 'Nota Penjualan PDF' : 'Surat Jalan PDF'}</button>)}
         {!isPaidRow(row) && row.status_transaksi !== 'BATAL' && (
           <button type="button" onClick={() => { onPay(row); onClose(); }} disabled={disabled} className="mt-1 flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40" role="menuitem">
             <span className="mr-3 flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600"><Wallet className="h-4 w-4" /></span>
@@ -178,7 +197,7 @@ const RowActionMenu = ({ row, anchorRef, onClose, onDetail, onEdit, onDelete, on
   );
 };
 
-const RowActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete, onPay, disabled = false }) => {
+export const RowActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete, onPay, download, downloading, disabled = false }) => {
   const buttonRef = useRef(null);
 
   return (
@@ -194,11 +213,12 @@ const RowActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onD
         className={`rounded-lg border p-2 text-slate-600 shadow-sm transition-all hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50 ${isOpen ? 'border-rose-400 bg-rose-50 text-rose-600' : 'border-slate-300 bg-white'}`}
         aria-label={`Menu aksi ${row.nama_pedagang || 'penjualan karkas'}`}
         aria-expanded={isOpen}
+        aria-haspopup="menu"
       >
         <MoreVertical className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
       </button>
       {isOpen ? (
-        <RowActionMenu row={row} anchorRef={buttonRef} onClose={onClose} onDetail={onDetail} onEdit={onEdit} onDelete={onDelete} onPay={onPay} disabled={disabled} />
+        <RowActionMenu row={row} anchorRef={buttonRef} onClose={onClose} onDetail={onDetail} onEdit={onEdit} onDelete={onDelete} onPay={onPay} download={download} downloading={downloading} disabled={disabled} />
       ) : null}
     </div>
   );
@@ -444,6 +464,7 @@ const KarkasFormModal = ({
 };
 
 export default function PenjualanKarkasPage() {
+  const docs = useKarkasDocument();
   const location = useLocation();
   const navigate = useNavigate();
   const { pid: routePid } = useParams();
@@ -502,6 +523,7 @@ export default function PenjualanKarkasPage() {
   if (isFormPage) return <KarkasFormModal fullPage form={form} saving={saving} totals={totals} pedagang={pedagang} banks={banks} pengirim={pengirim} kendaraan={kendaraan} boningOptions={boningOptions} sapi={sapi} available={available} onClose={() => navigate('/rph/penjualan-karkas')} onSubmit={save} selectPedagang={selectPedagang} selectPaymentType={selectPaymentType} selectShipping={selectShipping} setHeader={setHeader} setItem={setItem} addItem={() => setForm(f => ({ ...f, items: [...f.items, blankItem()] }))} removeItem={(i) => setForm(f => ({ ...f, items: f.items.filter((_, n) => n !== i) }))} />;
 
   return <div className="min-h-screen bg-slate-50"><div className="space-y-6 px-4 py-5 sm:px-6 lg:px-8">
+    {docs.downloadError && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{docs.downloadError}</p>}
     <div className="rounded-3xl border border-white/60 bg-white/90 p-6 shadow-xl shadow-rose-100/50">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div><h1 className="text-2xl font-bold text-slate-900">Penjualan Karkas RPH</h1><p className="mt-1 text-sm text-slate-500">Kelola transaksi penjualan karkas berdasarkan sapi aktif RPH.</p></div>
@@ -524,7 +546,7 @@ export default function PenjualanKarkasPage() {
       <div className="overflow-x-auto overflow-y-visible">
         <table className="min-w-full text-sm">
           <thead className="border-b border-slate-200 bg-white text-left text-xs font-semibold uppercase text-slate-500"><tr><th className="px-5 py-4 text-center">No</th><th className="px-5 py-4 text-center">Aksi</th><th className="px-5 py-4">No. Kwitansi</th><th className="px-5 py-4">Tanggal</th><th className="px-5 py-4">Pedagang</th><th className="px-5 py-4">Sapi</th><th className="px-5 py-4">Total Berat</th><th className="px-5 py-4">Total Tagihan</th><th className="px-5 py-4">Status</th></tr></thead>
-          <tbody className="divide-y divide-slate-100">{loading ? <tr><td colSpan="9" className="p-12 text-center text-slate-500">Memuat data penjualan karkas...</td></tr> : rows.length === 0 ? <tr><td colSpan="9" className="p-12 text-center text-slate-500">Belum ada transaksi penjualan karkas.</td></tr> : rows.map((r, index) => <tr key={r.pid} className="transition hover:bg-rose-50/40"><td className="px-5 py-4 text-center font-semibold text-slate-500">{((page - 1) * perPage) + index + 1}</td><td className="px-5 py-4"><div className="flex justify-center"><RowActionButton row={r} isOpen={openMenuId === r.pid} onToggle={(pid) => setOpenMenuId((current) => (current === pid ? null : pid))} onClose={() => setOpenMenuId(null)} onDetail={openDetail} onEdit={openEdit} onDelete={cancel} onPay={(item) => navigate(`/rph/keuangan/penerimaan/bayar/${encodeURIComponent(item.pid)}?jenis=karkas`)} disabled={Boolean(actionLoading) || saving} /></div></td><td className="px-5 py-4"><div><span className="rounded-lg bg-rose-50 px-2 py-1 font-mono text-xs text-rose-700">{r.no_kwitansi || '-'}</span><div className="mt-1 text-xs text-slate-500">{r.nama_rph || '-'}</div></div></td><td className="px-5 py-4 text-slate-700">{String(r.tanggal_penjualan || '').slice(0, 10)}</td><td className="px-5 py-4 font-semibold text-slate-800">{r.nama_pedagang || '-'}</td><td className="px-5 py-4 text-slate-700">{r.jumlah_sapi}</td><td className="px-5 py-4 font-medium text-slate-700">{Math.round(Number(r.total_berat || 0))} kg</td><td className="px-5 py-4 font-semibold text-emerald-700">{money(r.total_bayar || r.total_harga)}</td><td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${paymentStatusClass(r)}`}>{paymentStatusLabel(r)}</span></td></tr>)}</tbody>
+          <tbody className="divide-y divide-slate-100">{loading ? <tr><td colSpan="9" className="p-12 text-center text-slate-500">Memuat data penjualan karkas...</td></tr> : rows.length === 0 ? <tr><td colSpan="9" className="p-12 text-center text-slate-500">Belum ada transaksi penjualan karkas.</td></tr> : rows.map((r, index) => <tr key={r.pid} className="transition hover:bg-rose-50/40"><td className="px-5 py-4 text-center font-semibold text-slate-500">{((page - 1) * perPage) + index + 1}</td><td className="px-5 py-4"><div className="flex justify-center"><RowActionButton {...docs} row={r} isOpen={openMenuId === r.pid} onToggle={(pid) => setOpenMenuId((current) => (current === pid ? null : pid))} onClose={() => setOpenMenuId(null)} onDetail={openDetail} onEdit={openEdit} onDelete={cancel} onPay={(item) => navigate(`/rph/keuangan/penerimaan/bayar/${encodeURIComponent(item.pid)}?jenis=karkas`)} disabled={Boolean(actionLoading) || saving} /></div></td><td className="px-5 py-4"><div><span className="rounded-lg bg-rose-50 px-2 py-1 font-mono text-xs text-rose-700">{r.no_kwitansi || '-'}</span><div className="mt-1 text-xs text-slate-500">{r.nama_rph || '-'}</div></div></td><td className="px-5 py-4 text-slate-700">{String(r.tanggal_penjualan || '').slice(0, 10)}</td><td className="px-5 py-4 font-semibold text-slate-800">{r.nama_pedagang || '-'}</td><td className="px-5 py-4 text-slate-700">{r.jumlah_sapi}</td><td className="px-5 py-4 font-medium text-slate-700">{Math.round(Number(r.total_berat || 0))} kg</td><td className="px-5 py-4 font-semibold text-emerald-700">{money(r.total_bayar || r.total_harga)}</td><td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${paymentStatusClass(r)}`}>{paymentStatusLabel(r)}</span></td></tr>)}</tbody>
         </table>
       </div>
       <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 lg:flex-row lg:items-center lg:justify-between"><span className="text-sm text-slate-600">Menampilkan <strong>{total ? ((page - 1) * perPage) + 1 : 0}</strong> sampai <strong>{Math.min(page * perPage, total)}</strong> dari <strong>{total}</strong> data</span><div className="flex items-center gap-2"><button disabled={page <= 1 || loading || Boolean(actionLoading)} onClick={() => setPage(p => p - 1)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-50">Prev</button><span className="text-sm font-medium text-slate-700">{page}</span><button disabled={page * perPage >= total || loading || Boolean(actionLoading)} onClick={() => setPage(p => p + 1)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-50">Next</button></div></div>

@@ -4,6 +4,7 @@ import DataTable from 'react-data-table-component';
 import { Search, X, RefreshCw, Package, MoreVertical, Eye, AlertTriangle, TrendingUp, Boxes, ArrowUp, ArrowDown, ChevronsUpDown } from 'lucide-react';
 import usePersediaanOvk from '../hooks/usePersediaanOvk';
 import customTableStyles from '../../PersediaanHasilPotongRph/constants/tableStyles';
+import usePersediaanDocument from '../hooks/usePersediaanDocument';
 
 const STOK_MENIPIS_THRESHOLD = 5;
 
@@ -46,7 +47,7 @@ const SortIcon = ({ direction }) => {
   return <ChevronsUpDown className="inline h-3.5 w-3.5 ml-1 text-slate-300" />;
 };
 
-const ActionMenu = ({ row, buttonRef, onClose }) => {
+const ActionMenu = ({ row, buttonRef, onClose, onDownload, busy }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
 
@@ -56,9 +57,9 @@ const ActionMenu = ({ row, buttonRef, onClose }) => {
       const rect = buttonRef.current.getBoundingClientRect();
       // Skip if button is hidden (display:none) — prevents duplicate menu at (0,0)
       if (rect.width === 0 && rect.height === 0) return;
-      const menuWidth = 200;
-      const left = Math.min(rect.left + window.scrollX, window.innerWidth - menuWidth - 8);
-      setMenuStyle({ position: 'absolute', left, top: rect.bottom + window.scrollY + 6, zIndex: 99999, width: menuWidth });
+      const menuWidth = 224;
+      const left = Math.max(8, Math.min(rect.left, window.innerWidth - menuWidth - 8));
+      setMenuStyle({ position: 'fixed', left, top: Math.max(8, Math.min(rect.bottom + 6, window.innerHeight - 100)), zIndex: 99999, width: menuWidth });
     };
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target) && buttonRef.current && !buttonRef.current.contains(event.target)) onClose();
@@ -74,20 +75,26 @@ const ActionMenu = ({ row, buttonRef, onClose }) => {
     };
   }, [buttonRef, onClose]);
 
+  const positioned = menuStyle !== null;
+  useEffect(() => { if (positioned) menuRef.current?.querySelector('button')?.focus(); }, [positioned]);
+
   if (!menuStyle) return null;
 
   return createPortal(
-    <div ref={menuRef} style={menuStyle} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl" role="menu">
+    <div ref={menuRef} style={menuStyle} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl" role="menu"
+      onKeyDown={(event) => { if (event.key === 'Escape' || event.key === 'Tab') { event.stopPropagation(); onClose(); } }}>
       <div className="p-1.5">
         <button
           type="button"
-          onClick={() => { onClose(); }}
+          role="menuitem"
+          disabled={busy}
+          onClick={() => { onDownload(row); onClose(); }}
           className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-slate-50"
         >
           <div className="rounded-md p-1.5 bg-sky-100">
             <Eye className="h-4 w-4 text-sky-600" />
           </div>
-          <span className="text-sm font-semibold text-slate-700">Lihat Detail</span>
+          <span className="text-sm font-semibold text-slate-700">{busy ? 'Mengunduh PDF...' : 'Ringkasan Stok OVK PDF'}</span>
         </button>
       </div>
     </div>,
@@ -95,7 +102,7 @@ const ActionMenu = ({ row, buttonRef, onClose }) => {
   );
 };
 
-const ActionButton = ({ row, rowKey, openMenuId, onToggle, onClose }) => {
+const ActionButton = ({ row, rowKey, openMenuId, onToggle, onClose, onDownload, downloading }) => {
   const buttonRef = useRef(null);
   const isOpen = openMenuId === rowKey;
   return (
@@ -114,11 +121,13 @@ const ActionButton = ({ row, rowKey, openMenuId, onToggle, onClose }) => {
             : 'border-slate-200 text-slate-500 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-700'
         }`}
         aria-label="Menu aksi"
+        aria-busy={downloading === `stock:${rowKey}`}
+        aria-haspopup="menu"
         aria-expanded={isOpen}
       >
-        <MoreVertical className="h-4 w-4" />
+        {downloading === `stock:${rowKey}` ? <RefreshCw className="h-4 w-4 animate-spin" /> : <MoreVertical className="h-4 w-4" />}
       </button>
-      {isOpen && <ActionMenu row={row} buttonRef={buttonRef} onClose={onClose} />}
+      {isOpen && <ActionMenu row={row} buttonRef={buttonRef} onDownload={onDownload} busy={downloading === `stock:${rowKey}`} onClose={() => { onClose(); buttonRef.current?.focus(); }} />}
     </div>
   );
 };
@@ -187,6 +196,8 @@ const SummaryCard = ({ data }) => {
 };
 
 const PersediaanOvkTable = () => {
+  const { download, downloading, downloadError } = usePersediaanDocument();
+  const onDownload = (row) => download('stock', getRowKey(row), { id_produk: row.id_produk ?? row.id, id_satuan: row.id_satuan, harga: row.harga }, row.nama_produk);
   const { persediaanData, loading, error, refresh } = usePersediaanOvk();
   const [searchTerm, setSearchTerm] = useState('');
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -230,7 +241,7 @@ const PersediaanOvkTable = () => {
     );
   }, [persediaanData, searchTerm]);
 
-  const columns = useMemo(() => ([
+  const columns = [
     {
       name: 'No',
       width: '50px',
@@ -247,6 +258,8 @@ const PersediaanOvkTable = () => {
         const rowKey = getRowKey(row, index);
         return (
           <ActionButton
+            onDownload={onDownload}
+            downloading={downloading}
             row={row}
             rowKey={rowKey}
             openMenuId={openMenuId}
@@ -309,12 +322,13 @@ const PersediaanOvkTable = () => {
         );
       },
     },
-  ]), [openMenuId, persediaanData, handleToggleMenu, handleCloseMenu]);
+  ];
 
   const clearSearch = () => setSearchTerm('');
 
   return (
     <div className="space-y-3">
+      {downloadError && <p role="alert" className="text-sm text-red-700">{downloadError}</p>}
       {!error && persediaanData.length > 0 && <SummaryCard data={persediaanData} />}
 
       <div className="sticky top-0 z-20 flex flex-col sm:flex-row sm:items-center gap-2.5 bg-white/95 backdrop-blur-sm py-1">
@@ -512,6 +526,8 @@ const PersediaanOvkTable = () => {
                     <div className="font-bold text-slate-900 text-sm leading-tight">{item.nama_produk || '-'}</div>
                   </div>
                   <ActionButton
+                    onDownload={onDownload}
+                    downloading={downloading}
                     row={item}
                     rowKey={rowKey}
                     openMenuId={openMenuId}

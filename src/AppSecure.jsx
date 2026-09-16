@@ -162,6 +162,7 @@ const DetailPenawaranPage = lazy(() => import('./pages/RPH/Penawaran/DetailPenaw
 // RPH Qurban Pages - Lazy loaded
 const StokSapiQurbanPage = lazy(() => import('./pages/RPH/Qurban/StokSapiQurbanPage'));
 const StokDokaPage = lazy(() => import('./pages/RPH/Persediaan/StokDoka/StokDokaPage'));
+const EditStokDokaPage = lazy(() => import('./pages/RPH/Persediaan/StokDoka/EditStokDokaPage'));
 const TambahAnakanDokaPage = lazy(() => import('./pages/RPH/Persediaan/StokDoka/TambahAnakanDokaPage'));
 
 // RPH Perpindahan Ternak Page - Lazy loaded
@@ -555,7 +556,9 @@ function AppSecure() {
 
               {/* RPH Qurban Routes */}
               <Route path="/rph/stok-sapi-qurban" element={<StokSapiQurbanPage />} />
+              <Route path="/rph/stok-sapi-qurban/edit/:pid" element={<EditStokSapiPage entityName="Sapi Qurban" backUrl="/rph/stok-sapi-qurban" />} />
               <Route path="/rph/stok-doka" element={<StokDokaPage />} />
+              <Route path="/rph/stok-doka/edit/:pid" element={<EditStokDokaPage />} />
               <Route path="/rph/stok-doka/tambah-anakan" element={<TambahAnakanDokaPage />} />
 
               {/* RPH Perpindahan Ternak Route */}
@@ -573,6 +576,10 @@ function AppSecure() {
               <Route path="/feedmil/pembelian-ovk/add" element={<AddEditPembelianOVKPage />} />
               <Route path="/feedmil/pembelian-ovk/edit/:id" element={<AddEditPembelianOVKPage />} />
               <Route path="/feedmil/pembelian-ovk/detail/:id" element={<PembelianOVKDetailPage />} />
+              <Route path="/feedmil/pembelian-lain-lain" element={<PembelianLainLainPage />} />
+              <Route path="/feedmil/pembelian-lain-lain/add" element={<AddEditPembelianLainLainPage />} />
+              <Route path="/feedmil/pembelian-lain-lain/edit/:id" element={<AddEditPembelianLainLainPage />} />
+              <Route path="/feedmil/pembelian-lain-lain/detail/:id" element={<PembelianLainLainDetailPage />} />
               {/* Backward compat redirects */}
               <Route path="/ho/pembelian-feedmil" element={<Navigate to="/feedmil/pembelian-feedmil" replace />} />
               <Route path="/ho/pembelian-feedmil/add" element={<Navigate to="/feedmil/pembelian-feedmil/add" replace />} />

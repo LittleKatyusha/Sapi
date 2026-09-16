@@ -48,6 +48,7 @@ const JENIS_PEMBELIAN_OPTIONS = [
   { value: '', label: 'Semua Jenis' },
   { value: 'feedmill', label: 'Feedmill' },
   { value: 'ovk', label: 'OVK' },
+  { value: 'lain_lain', label: 'Lain-Lain' },
 ];
 
 const EMPTY_FILTERS = { payment_status: '', tipe_pembayaran: '', jenis_pembelian: '', start_date: '', end_date: '' };

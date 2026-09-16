@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { Eye, Loader2, MoreVertical, Pencil, Plus, RefreshCcw, Search, Trash2, Wallet, X } from 'lucide-react';
 import PenjualanKulitService from '../../../../services/penjualanKulitService';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
+import useKulitDocument from './useKulitDocument';
 
 const money = (value) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(value || 0));
 const kg = (value) => `${Math.round(Number(value || 0))} kg`;
@@ -68,7 +69,7 @@ const STATUS_STYLE = {
   '-': 'bg-slate-100 text-slate-600',
 };
 
-function RowActionMenu({ row, anchorRef, onClose, onDetail, onEdit, onDelete, onPay }) {
+function RowActionMenu({ row, anchorRef, onClose, onDetail, onEdit, onDelete, onPay, download, downloading }) {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
   const isPaidOff = Number(row.payment_status) === 1;
@@ -80,8 +81,10 @@ function RowActionMenu({ row, anchorRef, onClose, onDetail, onEdit, onDelete, on
       const rect = anchor.getBoundingClientRect();
       setMenuStyle({
         position: 'fixed',
-        top: rect.bottom + 8,
-        left: Math.max(12, rect.right - 192),
+        top: Math.max(8, Math.min(rect.bottom + 8, window.innerHeight - 380)),
+        left: Math.max(8, Math.min(rect.right - 192, window.innerWidth - 200)),
+        maxHeight: 'calc(100vh - 16px)',
+        overflowY: 'auto',
         zIndex: 200,
       });
     };
@@ -101,14 +104,30 @@ function RowActionMenu({ row, anchorRef, onClose, onDetail, onEdit, onDelete, on
     };
   }, [anchorRef, onClose]);
 
+  const positioned = Boolean(menuStyle);
+  useEffect(() => {
+    if (positioned) menuRef.current?.querySelector('button:not(:disabled)')?.focus();
+  }, [positioned]);
+  const keyboard = (event) => {
+    if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); onClose(); anchorRef.current?.focus(); }
+    if (event.key === 'Tab') onClose();
+    if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+      event.preventDefault();
+      const items = [...menuRef.current.querySelectorAll('button:not(:disabled)')];
+      const current = items.indexOf(document.activeElement);
+      const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (current + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+      items[next]?.focus();
+    }
+  };
   if (!menuStyle) return null;
 
   return createPortal(
-    <div ref={menuRef} style={menuStyle} className="w-48 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl" role="menu" aria-label="Menu aksi">
+    <div ref={menuRef} style={menuStyle} onKeyDown={keyboard} onClick={event => event.stopPropagation()} className="w-48 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl" role="menu" aria-label="Menu aksi">
       <div className="border-b border-slate-100 bg-slate-50 px-3 py-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Menu Aksi</p>
       </div>
       <div className="p-1.5">
+        {['nota', 'surat-jalan'].map(type => <button key={type} type="button" role="menuitem" disabled={Boolean(downloading) || row.status !== 'TERPOSTING'} aria-busy={downloading === `${type}:${row.pid}`} title={row.status !== 'TERPOSTING' ? 'Hanya transaksi TERPOSTING aktif' : undefined} onClick={() => download(type, row)} className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-emerald-50 disabled:opacity-40">{downloading === `${type}:${row.pid}` ? 'Mengunduh...' : type === 'nota' ? 'Nota Penjualan PDF' : 'Surat Jalan PDF'}</button>)}
         {!isPaidOff && (
           <button type="button" onClick={() => { onPay(row); onClose(); }} className="mt-1 flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 transition hover:bg-emerald-50" role="menuitem">
             <span className="mr-3 flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600"><Wallet className="h-4 w-4" /></span>
@@ -147,7 +166,7 @@ function RowActionMenu({ row, anchorRef, onClose, onDetail, onEdit, onDelete, on
   );
 }
 
-function RowActionButton({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete, onPay }) {
+export function RowActionButton({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete, onPay, download, downloading }) {
   const buttonRef = useRef(null);
   return (
     <div className="relative">
@@ -161,10 +180,11 @@ function RowActionButton({ row, isOpen, onToggle, onClose, onDetail, onEdit, onD
         className={`rounded-lg border p-2 text-slate-600 shadow-sm transition-all hover:bg-emerald-50 hover:text-emerald-600 ${isOpen ? 'border-emerald-400 bg-emerald-50 text-emerald-600' : 'border-slate-300 bg-white'}`}
         aria-label={`Menu aksi ${row.nama_pedagang || 'penjualan kulit'}`}
         aria-expanded={isOpen}
+        aria-haspopup="menu"
       >
         <MoreVertical className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
       </button>
-      {isOpen ? <RowActionMenu row={row} anchorRef={buttonRef} onClose={onClose} onDetail={onDetail} onEdit={onEdit} onDelete={onDelete} onPay={onPay} /> : null}
+      {isOpen ? <RowActionMenu row={row} anchorRef={buttonRef} onClose={onClose} onDetail={onDetail} onEdit={onEdit} onDelete={onDelete} onPay={onPay} download={download} downloading={downloading} /> : null}
     </div>
   );
 }
@@ -377,6 +397,7 @@ function PenjualanKulitForm({ open, mode, initialData, master, saving, onClose, 
 }
 
 export default function PenjualanKulitPage() {
+  const docs = useKulitDocument();
   const location = useLocation();
   const navigate = useNavigate();
   const { pid: routePid } = useParams();
@@ -469,6 +490,7 @@ export default function PenjualanKulitPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+      {docs.downloadError && <p role="alert" className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{docs.downloadError}</p>}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div><h1 className="text-2xl font-bold text-slate-900">Penjualan Kulit</h1><p className="text-sm text-slate-500">Pencatatan penjualan dan kontrol stok kulit RPH.</p></div>
         <button className="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700" onClick={() => navigate('/rph/penjualan-kulit/add')}><Plus className="mr-2 h-4 w-4" />Tambah</button>
@@ -487,7 +509,7 @@ export default function PenjualanKulitPage() {
             {loading ? <tr><td colSpan={10} className="px-4 py-10 text-center text-slate-500"><Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />Memuat data...</td></tr> : rows.map((row, index) => (
               <tr key={row.pid} className="hover:bg-slate-50">
                 <td className="px-4 py-3 text-center font-semibold text-slate-500">{index + 1}</td>
-                <td className="px-4 py-3"><div className="flex justify-center"><RowActionButton row={row} isOpen={openMenuId === row.pid} onToggle={(pid) => setOpenMenuId((current) => (current === pid ? null : pid))} onClose={() => setOpenMenuId(null)} onDetail={openDetail} onEdit={openEdit} onDelete={hapus} onPay={(item) => navigate(`/rph/keuangan/penerimaan/bayar/${encodeURIComponent(item.pid)}?jenis=kulit`)} /></div></td>
+                <td className="px-4 py-3"><div className="flex justify-center"><RowActionButton {...docs} row={row} isOpen={openMenuId === row.pid} onToggle={(pid) => setOpenMenuId((current) => (current === pid ? null : pid))} onClose={() => setOpenMenuId(null)} onDetail={openDetail} onEdit={openEdit} onDelete={hapus} onPay={(item) => navigate(`/rph/keuangan/penerimaan/bayar/${encodeURIComponent(item.pid)}?jenis=kulit`)} /></div></td>
                 <td className="px-4 py-3"><div className="font-semibold text-slate-900">{row.no_kwitansi}</div><div className="mt-1 text-xs text-slate-500">{row.nama_rph || '-'}</div></td><td className="px-4 py-3">{row.tanggal_penjualan?.slice(0, 10) || '-'}</td><td className="px-4 py-3">{row.nama_pedagang}</td><td className="px-4 py-3 text-right">{kg(row.total_berat)}</td><td className="px-4 py-3 text-right">{money(row.total_penjualan)}</td><td className="px-4 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${PAYMENT_STYLE[row.tipe_pembayaran] || 'bg-slate-100 text-slate-600'}`}>{row.tipe_pembayaran_label}</span></td><td className="px-4 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_STYLE[row.payment_status_label] || STATUS_STYLE['-']}`}>{row.payment_status_label || '-'}</span></td><td className="px-4 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${SHIPPING_STYLE[row.pengiriman] || 'bg-slate-100 text-slate-600'}`}>{row.pengiriman}</span></td>
               </tr>
             ))}

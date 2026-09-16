@@ -42,7 +42,7 @@ const getStatusBadge = (status) => {
     }
 };
 
-const PenjualanSapiCard = ({ data, onDetail, onDownloadOrder, onDownloadSuratJalan, index }) => {
+const PenjualanSapiCard = ({ data, onDetail, onDownloadOrder, onDownloadSuratJalan, onDownloadInvoice, index }) => {
     const status = getStatusBadge(data.status);
     const [openActionMenu, setOpenActionMenu] = useState(null);
 
@@ -69,6 +69,7 @@ const PenjualanSapiCard = ({ data, onDetail, onDownloadOrder, onDownloadSuratJal
                         onDetail={onDetail}
                         onDownloadOrder={onDownloadOrder}
                         onDownloadSuratJalan={onDownloadSuratJalan}
+                        onDownloadInvoice={onDownloadInvoice}
                         isActive={openActionMenu === (data.pid || data.pubid)}
                     />
                 </div>

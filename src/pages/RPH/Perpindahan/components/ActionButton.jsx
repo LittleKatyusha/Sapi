@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { MoreVertical } from 'lucide-react';
 import ActionMenu from './ActionMenu';
 
-const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onSuratJalan, onKwitansi, onSsth, isActive }) => {
+const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onSuratJalan, onKwitansi, onSsth, isActive, documentLoading }) => {
     const buttonRef = useRef(null);
     const [isAnimating, setIsAnimating] = useState(false);
 
@@ -34,6 +34,7 @@ const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onSura
                 } ${isAnimating ? 'animate-pulse' : ''}`}
                 aria-label="Menu Aksi"
                 aria-expanded={openMenuId === row.pubid}
+                aria-haspopup="menu"
             >
                 <MoreVertical
                     size={16}
@@ -45,6 +46,7 @@ const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onSura
             {openMenuId === row.pubid && (
                 <ActionMenu
                     row={row}
+                    documentLoading={documentLoading}
                     onEdit={onEdit}
                     onDelete={onDelete}
                     onSuratJalan={onSuratJalan}

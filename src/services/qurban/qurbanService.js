@@ -492,7 +492,17 @@ class QurbanService {
   }
 
   static async downloadDocument(pid, type) {
-    return HttpClient.get(API_ENDPOINTS.RPH?.QURBAN?.DOCUMENT || `${this.API_BASE}/document`, { params: { pid, type }, responseType: 'blob', cache: false });
+    if (!['pesanan', 'tanda_terima', 'surat_jalan', 'kwitansi'].includes(type)) throw new Error('Jenis dokumen tidak valid');
+    if (typeof pid !== 'string' || !pid.trim()) throw new Error('PID tidak ditemukan');
+    const response = await HttpClient.get(API_ENDPOINTS.RPH?.QURBAN?.DOCUMENT || `${this.API_BASE}/document`, { params: { pid, type }, responseType: 'blob', cache: false });
+    if (!(response instanceof Blob) || !response.size) throw new Error('Dokumen PDF kosong atau tidak valid');
+    if (response.type.includes('json')) {
+      let error;
+      try { error = JSON.parse(await response.text()); } catch { /* Invalid JSON is not a PDF. */ }
+      throw new Error(typeof error?.message === 'string' ? error.message : 'Gagal mengunduh PDF');
+    }
+    if (await response.slice(0, 5).text() !== '%PDF-') throw new Error('Respons server bukan dokumen PDF');
+    return response;
   }
 
   /**

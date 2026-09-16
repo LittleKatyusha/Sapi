@@ -13,6 +13,13 @@ export const BAGIAN_KARKAS = [
 ];
 
 const PenjualanKarkasService = {
+  async downloadDocument(type, { pid } = {}) {
+    if (!['nota', 'surat-jalan'].includes(type) || typeof pid !== 'string' || !pid.trim()) throw new Error('PID atau jenis dokumen tidak valid');
+    const blob = await HttpClient.post(`${BASE}/document`, { pid, type }, { responseType: 'blob' });
+    if (!(blob instanceof Blob) || !blob.size || (blob.type && !['application/pdf', 'application/octet-stream'].includes(blob.type.toLowerCase()))
+      || await blob.slice(0, 5).text() !== '%PDF-') throw new Error('Respons server bukan dokumen PDF yang valid');
+    return blob;
+  },
   async getData(params = {}) { return HttpClient.get(`${BASE}/data`, { params, cache: false }); },
   async show(pid) { return HttpClient.post(`${BASE}/show`, { pid }); },
   async store(payload) { return HttpClient.post(`${BASE}/store`, payload); },

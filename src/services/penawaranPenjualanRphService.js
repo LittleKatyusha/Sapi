@@ -9,6 +9,14 @@ import { API_ENDPOINTS } from '../config/api';
 class PenawaranPenjualanRphService {
   static API_BASE = API_ENDPOINTS.RPH?.PENAWARAN?.BASE || '/api/rph/penawaran';
 
+  static async downloadDocument(type, { pid } = {}) {
+    if (type !== 'dispensasi' || typeof pid !== 'string' || !pid.trim()) throw new Error('PID atau jenis dokumen tidak valid');
+    const blob = await HttpClient.post(`${this.API_BASE}/document`, { pid }, { responseType: 'blob' });
+    if (!(blob instanceof Blob) || !blob.size || (blob.type && !['application/pdf', 'application/octet-stream'].includes(blob.type.toLowerCase()))
+      || await blob.slice(0, 5).text() !== '%PDF-') throw new Error('Respons server bukan dokumen PDF yang valid');
+    return blob;
+  }
+
   /**
    * Get list of penawaran with DataTable support
    */

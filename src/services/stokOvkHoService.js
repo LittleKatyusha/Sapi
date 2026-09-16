@@ -19,7 +19,7 @@ class StokOvkHoService {
         per_page: String(perPage),
         low_stock: String(lowStock),
       }).toString();
-      const response = await HttpClient.get(`${API_ENDPOINTS.HO.STOK_OVK.DATA}?${query}`);
+      const response = await HttpClient.get(`${API_ENDPOINTS.HO.STOK_OVK.DATA}?${query}`, { cache: false });
       return response;
     } catch (error) {
       throw error;

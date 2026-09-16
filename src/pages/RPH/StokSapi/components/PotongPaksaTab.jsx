@@ -3,8 +3,10 @@ import { AlertCircle, Loader2, RefreshCw, Scale, Filter, Search, RotateCcw } fro
 import StokSapiService from '../../../../services/stokSapiService';
 import PotongPaksaModal from '../modals/PotongPaksaModal';
 import ActionButton from './ActionButton';
+import useStokSapiDocument from '../useStokSapiDocument';
 
 const PotongPaksaTab = () => {
+  const { download, downloading, downloadError } = useStokSapiDocument();
   const [openMenuId, setOpenMenuId] = useState(null);
 
   const [data, setData] = useState([]);
@@ -125,6 +127,7 @@ const PotongPaksaTab = () => {
 
   return (
     <div className="space-y-3">
+      {downloadError && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{downloadError}</p>}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <h3 className="text-base font-semibold text-slate-800">Riwayat Potong Paksa</h3>
         <button
@@ -238,7 +241,10 @@ const PotongPaksaTab = () => {
                   <td className="px-3 py-2 text-center border-gray-100 whitespace-nowrap">
                     <div className="flex items-center justify-center">
                       <ActionButton
-                        row={{ id: item.pid || index, ...item }}
+                        row={{ ...item, id: item.pid }}
+                        onDownload={() => download('potongpaksa', item.pid, { pid: item.pid }, item.sapi)}
+                        downloadLabel="Laporan Potong Paksa PDF"
+                        downloading={downloading === `potongpaksa:${item.pid}`}
                         openMenuId={openMenuId}
                         setOpenMenuId={setOpenMenuId}
                         onEdit={() => handleEdit(item)}

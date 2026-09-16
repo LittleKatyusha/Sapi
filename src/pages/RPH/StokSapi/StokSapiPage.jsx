@@ -172,7 +172,7 @@ const StokSapiPage = () => {
               <PotongPaksaTab />
             )}
             {activeTab === 'sapimati' && (
-              <SapiMatiTab />
+              <SapiMatiTab animalGroup="sapi" />
             )}
           </div>
         </div>

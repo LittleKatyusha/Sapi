@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
 import {
@@ -12,6 +12,7 @@ import perpindahanTernakService from '../../../services/perpindahanTernakService
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import { useNotification } from '../../../components/shared/Notification';
 import ActionButton from './components/ActionButton';
+import downloadPdf from '../../../utils/downloadPdf';
 
 const GOLONGAN_OPTIONS = [
   { value: '1', label: 'Boning' },
@@ -98,6 +99,8 @@ const PerpindahanTernakPage = () => {
   const [filtersExpanded, setFiltersExpanded] = useState(true);
   const [statsExpanded, setStatsExpanded] = useState(true);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const pendingDocuments = useRef(new Set());
+  const [documentLoading, setDocumentLoading] = useState([]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -173,24 +176,26 @@ const PerpindahanTernakPage = () => {
   }, [fetchData, showSuccess, showError]);
 
   const handleDocument = useCallback(async (row, type, label) => {
+    const key = `${type}:${row.pubid}`;
+    if (pendingDocuments.current.has(key)) return;
+    pendingDocuments.current.add(key);
+    setDocumentLoading([...pendingDocuments.current]);
     setOpenMenuId(null);
     showInfo(`Memproses ${label}...`);
     try {
       const blob = await perpindahanTernakService.downloadDocument(row.pubid, type);
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${type}_perpindahan_${row.tanggal_perpindahan}.pdf`;
-      link.click();
-      window.URL.revokeObjectURL(url);
+      await downloadPdf(blob, `${type}_perpindahan_${row.pubid}_${row.tanggal_perpindahan}.pdf`);
       showSuccess(`${label} berhasil diunduh.`);
     } catch (error) {
-      showError(error?.message || `Gagal mengunduh ${label}.`);
+      showError(`Gagal mengunduh ${label}. Periksa akses dan coba lagi.`);
+    } finally {
+      pendingDocuments.current.delete(key);
+      setDocumentLoading([...pendingDocuments.current]);
     }
   }, [showError, showInfo, showSuccess]);
 
   const handleSuratJalan = useCallback((row) => handleDocument(row, 'surat_jalan', 'Surat Jalan'), [handleDocument]);
-  const handleKwitansi = useCallback((row) => handleDocument(row, 'kwitansi', 'Kwitansi Pengiriman'), [handleDocument]);
+  const handleKwitansi = useCallback((row) => handleDocument(row, 'kwitansi', 'Rincian Biaya Pengiriman'), [handleDocument]);
   const handleSsth = useCallback((row) => handleDocument(row, 'ssth', 'Surat Serah Terima Hewan'), [handleDocument]);
 
   const formatCurrency = (value) => {
@@ -357,11 +362,12 @@ const PerpindahanTernakPage = () => {
           onSuratJalan={handleSuratJalan}
           onKwitansi={handleKwitansi}
           onSsth={handleSsth}
+          documentLoading={documentLoading}
           isActive={openMenuId === row.pubid}
         />
       ),
     },
-  ], [handleEdit, handleDelete, handleSuratJalan, handleKwitansi, handleSsth, openMenuId]);
+  ], [handleEdit, handleDelete, handleSuratJalan, handleKwitansi, handleSsth, openMenuId, documentLoading]);
 
   const customTableStyles = {
     table: { style: { borderRadius: '16px', overflow: 'hidden' } },

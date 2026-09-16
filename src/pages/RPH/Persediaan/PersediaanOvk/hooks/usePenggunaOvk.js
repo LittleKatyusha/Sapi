@@ -3,7 +3,7 @@ import PersediaanOvkService from '../../../../../services/persediaanOvkService';
 
 const formatDate = (date) => {
   const d = new Date(date);
-  return d.toISOString().split('T')[0]; // YYYY-MM-DD
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
 const formatDisplayDate = (dateStr) => {
@@ -49,9 +49,11 @@ const usePenggunaOvk = () => {
       if (response.success) {
         setPenggunaData(response.data);
       } else {
+        setPenggunaData([]);
         setError(response.message || 'Gagal memuat data pengguna OVK');
       }
     } catch (err) {
+      setPenggunaData([]);
       setError(err.message || 'Terjadi kesalahan saat memuat data');
     } finally {
       setLoading(false);

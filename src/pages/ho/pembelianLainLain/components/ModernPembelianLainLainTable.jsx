@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Calendar,
   MapPin,
@@ -113,6 +113,8 @@ const ModernPembelianLainLainTable = ({
   onNotification
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const basePath = location.pathname.startsWith('/feedmil/') ? '/feedmil/pembelian-lain-lain' : '/ho/pembelian-lain-lain';
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [downloadLoadingId, setDownloadLoadingId] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
@@ -228,7 +230,7 @@ const ModernPembelianLainLainTable = ({
           Data pembelian lain-lain akan muncul di sini. Coba tambahkan data baru atau ubah pencarian/filter tanggal.
         </p>
         <button
-          onClick={() => navigate('/ho/pembelian-lain-lain/add')}
+          onClick={() => navigate(`${basePath}/add`)}
           className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
         >
           <PlusCircle className="w-4 h-4" />

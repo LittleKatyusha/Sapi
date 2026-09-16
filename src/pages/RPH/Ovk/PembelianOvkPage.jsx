@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
 import { PlusCircle, Search, XCircle, FileText, Boxes, Ban, Wallet, History, MoreVertical, AlertCircle, Calendar, CalendarRange, CalendarDays, TrendingUp } from 'lucide-react';
@@ -62,6 +63,35 @@ const PembelianOvkPage = () => {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const menuBtnRefs = useRef({});
+  const downloadLock = useRef(false);
+  const [downloading, setDownloading] = useState(null);
+
+  const handleDownload = async (row, type = 'purchase') => {
+    if (downloadLock.current) return;
+    downloadLock.current = true;
+    setDownloading(`${type}:${row.pid}`);
+    const label = type === 'stock' ? 'Rincian Batch Stok OVK' : 'Rincian Pembelian OVK';
+    try {
+      const blob = await pembelianOvkService.downloadDocument(row.pid, type);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      try {
+        link.href = url;
+        link.download = `${label.replace(/ /g, '_')}_${String(row.nomor_faktur || row.nama_item || 'RPH').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 100)}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+      } finally {
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+      showSuccess(`${label} berhasil diunduh`);
+    } catch (err) {
+      showError(err?.data?.message || err?.message || `Gagal mengunduh ${label}`);
+    } finally {
+      downloadLock.current = false;
+      setDownloading(null);
+    }
+  };
 
   const fetchCardData = useCallback(async () => {
     if (!idRph) return;
@@ -112,9 +142,23 @@ const PembelianOvkPage = () => {
 
   useEffect(() => {
     const onClick = () => setOpenMenuId(null);
+    const onKey = (event) => {
+      if (event.key === 'Escape') {
+        menuBtnRefs.current[openMenuId]?.focus();
+        setOpenMenuId(null);
+      }
+    };
     window.addEventListener('click', onClick);
-    return () => window.removeEventListener('click', onClick);
-  }, []);
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('resize', onClick);
+    window.addEventListener('scroll', onClick, true);
+    return () => {
+      window.removeEventListener('click', onClick);
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', onClick);
+      window.removeEventListener('scroll', onClick, true);
+    };
+  }, [openMenuId]);
 
   const handleSearch = () => {
     setCurrentPage(1);
@@ -275,26 +319,39 @@ const PembelianOvkPage = () => {
                 setOpenMenuId(null);
               } else {
                 const rect = e.currentTarget.getBoundingClientRect();
-                setMenuPos({ top: rect.bottom + 4, left: rect.right - 160 });
+                setMenuPos({ top: Math.max(8, Math.min(rect.bottom + 4, window.innerHeight - 260)), left: Math.max(8, Math.min(rect.right - 224, window.innerWidth - 232)) });
                 setOpenMenuId(row.pid);
               }
             }}
             className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500"
-            aria-label="Aksi"
+            aria-label={`Aksi pembelian ${row.nomor_faktur}`}
+            aria-expanded={openMenuId === row.pid}
           >
             <MoreVertical className="w-4 h-4" />
           </button>
-          {openMenuId === row.pid && (
+          {openMenuId === row.pid && createPortal(
             <div
-              className="fixed z-[9999] w-40 bg-white border border-gray-200 rounded-lg shadow-lg py-1"
+              role="group"
+              aria-label="Aksi pembelian OVK"
+              className="fixed z-50 w-56 max-w-[calc(100vw-16px)] max-h-[calc(100vh-16px)] overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg py-1"
               style={{ top: menuPos.top, left: menuPos.left }}
               onClick={(e) => e.stopPropagation()}
             >
               <button
+                autoFocus
                 onClick={() => { handleDetail(row); setOpenMenuId(null); }}
                 className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2"
               >
                 <FileText className="w-3.5 h-3.5" /> Detail
+              </button>
+              <button
+                onClick={() => handleDownload(row)}
+                disabled={downloading === `purchase:${row.pid}`}
+                aria-busy={downloading === `purchase:${row.pid}`}
+                className="w-full text-left px-3 py-2 text-xs text-blue-700 hover:bg-blue-50 flex items-center gap-2 disabled:opacity-50"
+              >
+                <FileText className="w-3.5 h-3.5 shrink-0" />
+                {downloading === `purchase:${row.pid}` ? 'Mengunduh PDF...' : 'Rincian Pembelian OVK PDF'}
               </button>
               {row.is_cancel === 0 && row.status_pembayaran !== 'lunas' && (
                 <button
@@ -320,7 +377,7 @@ const PembelianOvkPage = () => {
                   <Ban className="w-3.5 h-3.5" /> Batalkan
                 </button>
               )}
-            </div>
+            </div>, document.body
           )}
         </div>
       ),
@@ -364,6 +421,20 @@ const PembelianOvkPage = () => {
       selector: (row) => row.jumlah,
       right: true,
       cell: (row) => <span className="text-sm font-semibold text-emerald-700">{formatNumber(row.jumlah)}</span>,
+    },
+    {
+      name: 'Aksi',
+      cell: (row) => (
+        <button
+          onClick={() => handleDownload(row, 'stock')}
+          disabled={downloading === `stock:${row.pid}`}
+          aria-busy={downloading === `stock:${row.pid}`}
+          aria-label={`Unduh rincian batch stok ${row.nama_item} PDF`}
+          className="text-xs text-blue-700 hover:bg-blue-50 rounded px-2 py-2 disabled:opacity-50"
+        >
+          {downloading === `stock:${row.pid}` ? 'Mengunduh PDF...' : 'Rincian Batch Stok PDF'}
+        </button>
+      ),
     },
   ];
 
@@ -535,7 +606,9 @@ const PembelianOvkPage = () => {
         )}
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+          <span role="status" className="sr-only">{downloading ? 'Mengunduh dokumen OVK PDF...' : ''}</span>
           <DataTable
+            keyField="pid"
             columns={activeTab === 'histori' ? historiColumns : stokColumns}
             data={data}
             progressPending={loading}

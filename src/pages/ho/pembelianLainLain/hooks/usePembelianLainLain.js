@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS, API_BASE_URL } from '../../../../config/api';
 
-const usePembelianLainLain = () => {
+const usePembelianLainLain = (scope = null) => {
     const [pembelian, setPembelian] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -63,6 +63,7 @@ const usePembelianLainLain = () => {
                 'order[0][column]': '3', // tgl_masuk column
                 'order[0][dir]': 'desc'
             });
+            if (scope) params.append('scope', scope);
 
             // Add advanced filters
             if (activeFilters?.nota_sistem) params.append('filter_nota_sistem', activeFilters.nota_sistem);
@@ -128,7 +129,7 @@ const usePembelianLainLain = () => {
             setLoading(false);
             setIsSearching(false);
         }
-    }, [searchTerm, serverPagination.currentPage, serverPagination.perPage, advancedFilters]);
+    }, [searchTerm, serverPagination.currentPage, serverPagination.perPage, advancedFilters, scope]);
 
     // Create pembelian Lain-Lain - handle header + details array format with file upload support
     const createPembelian = useCallback(async (pembelianData) => {

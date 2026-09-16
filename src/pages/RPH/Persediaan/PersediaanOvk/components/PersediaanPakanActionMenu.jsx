@@ -1,8 +1,8 @@
-import React, { useRef, useState, useLayoutEffect } from "react";
+import React, { useRef, useState, useLayoutEffect, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Pencil, Ban, Eye, Copy, Wheat, ClipboardList } from "lucide-react";
+import { Pencil, Ban, Eye, Copy, Wheat, ClipboardList, Download } from "lucide-react";
 
-const PersediaanPakanActionMenu = ({ row, onEdit, onDelete, onDetail, onCopy, onBeriMakan, onRiwayatPemberian, onClose, buttonRef }) => {
+const PersediaanPakanActionMenu = ({ row, onEdit, onDelete, onDetail, onCopy, onBeriMakan, onRiwayatPemberian, onClose, buttonRef, onDownload, downloading }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
 
@@ -15,9 +15,11 @@ const PersediaanPakanActionMenu = ({ row, onEdit, onDelete, onDetail, onCopy, on
         // Skip if button is hidden (display:none) — prevents duplicate menu at (0,0)
         if (btnRect.width === 0 && btnRect.height === 0) return;
         setMenuStyle({
-          position: "absolute",
-          left: btnRect.left + window.scrollX,
-          top: btnRect.bottom + window.scrollY + 8,
+          position: "fixed",
+          left: Math.max(8, Math.min(btnRect.left, window.innerWidth - 232)),
+          top: Math.max(8, Math.min(btnRect.bottom + 8, window.innerHeight - 360)),
+          maxHeight: 'calc(100vh - 16px)',
+          overflowY: 'auto',
           zIndex: 9999,
         });
       }
@@ -43,7 +45,12 @@ const PersediaanPakanActionMenu = ({ row, onEdit, onDelete, onDetail, onCopy, on
     };
   }, [onClose, buttonRef]);
 
+  const positioned = menuStyle !== null;
+  useEffect(() => { if (positioned) menuRef.current?.querySelector('button:not(:disabled)')?.focus(); }, [positioned]);
+
   const actions = [
+    { label: downloading ? 'Mengunduh PDF...' : 'Formula Resep Pakan PDF', icon: Download,
+      onClick: () => onDownload(row), disabled: downloading, bg: 'bg-emerald-100', text: 'text-emerald-600' },
     {
       label: "Lihat Detail",
       icon: Eye,
@@ -96,13 +103,23 @@ const PersediaanPakanActionMenu = ({ row, onEdit, onDelete, onDetail, onCopy, on
   const menuElement = (
     <div
       ref={menuRef}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') { event.stopPropagation(); onClose(); }
+        if (event.key === 'Tab') onClose();
+        if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+          event.preventDefault();
+          const buttons = [...menuRef.current.querySelectorAll('button:not(:disabled)')];
+          const index = buttons.indexOf(document.activeElement);
+          buttons[event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length]?.focus();
+        }
+      }}
       style={{
         ...menuStyle,
         visibility: "visible",
         pointerEvents: "auto",
         zIndex: 99999,
       }}
-      className="w-44 bg-white/95 backdrop-blur-lg rounded-xl shadow-xl border border-gray-200/50 overflow-hidden transition-all duration-150 animate-in slide-in-from-top-2 fade-in-0"
+      className="w-56 bg-white rounded-xl shadow-xl border border-gray-200/50"
       role="menu"
       aria-label="Menu Aksi"
     >

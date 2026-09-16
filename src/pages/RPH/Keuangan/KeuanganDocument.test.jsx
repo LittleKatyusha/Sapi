@@ -1,0 +1,40 @@
+import React from 'react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import Menu, { useKeuanganDocument } from './KeuanganDocumentMenu';
+import { downloadKeuanganDocument } from '../../../services/keuanganDocumentService';
+jest.mock('../../../services/keuanganDocumentService', () => ({ downloadKeuanganDocument: jest.fn() }));
+function Fixture({ arah, history }) {
+  const documents = useKeuanganDocument(arah);
+  return <>{['one', 'two'].map((id, i) => <Menu key={id} row={{ pid: `parent-${id}`, payment_detail_pid: id, document_jenis: i ? 'kulit' : 'sapi', no_transaksi: '../SAME' }} arah={arah} history={history} documents={documents} />)}{documents.downloadError && <p role="alert">{documents.downloadError}</p>}</>;
+}
+beforeEach(() => { jest.clearAllMocks(); URL.createObjectURL = jest.fn(() => 'blob:fixture'); URL.revokeObjectURL = jest.fn(); });
+test.each([['penerimaan', true, 'Bukti Penerimaan Pembayaran PDF'], ['pengeluaran', true, 'Bukti Pembayaran Pengeluaran PDF'], ['penerimaan', false, 'Rincian Tagihan Penjualan PDF'], ['pengeluaran', false, 'Rincian Tagihan Pengeluaran PDF']])('same-label identities, lock, focus, errors %s %s', async (arah, history, label) => {
+  const click = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  let resolve;
+  downloadKeuanganDocument.mockImplementation(() => new Promise(done => { resolve = done; }));
+  render(<Fixture arah={arah} history={history} />);
+  const triggers = screen.getAllByRole('button', { name: 'Menu dokumen dan aksi' });
+  fireEvent.click(triggers[0]);
+  expect(screen.getByRole('button', { name: label })).toHaveFocus();
+  fireEvent.keyDown(document, { key: 'Escape' });
+  expect(triggers[0]).toHaveFocus();
+  fireEvent.click(triggers[0]);
+  fireEvent.click(screen.getByRole('button', { name: label }));
+  expect(downloadKeuanganDocument).toHaveBeenCalledWith(arah, 'sapi', history ? 'payment' : 'tagihan', history ? 'one' : 'parent-one');
+  fireEvent.click(triggers[1]);
+  expect(screen.getByRole('button', { name: label })).toBeDisabled();
+  fireEvent.click(screen.getByRole('button', { name: label }));
+  expect(downloadKeuanganDocument).toHaveBeenCalledTimes(1);
+  jest.useFakeTimers();
+  await act(async () => resolve(new Blob(['%PDF-'])));
+  expect(click.mock.instances[0].download).not.toMatch(/[\\/]/);
+  act(() => jest.advanceTimersByTime(1000));
+  expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:fixture');
+  jest.useRealTimers();
+  downloadKeuanganDocument.mockRejectedValue(new Error('Rekonsiliasi tagihan'));
+  fireEvent.click(screen.getByRole('button', { name: label }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Rekonsiliasi tagihan');
+  expect(downloadKeuanganDocument).toHaveBeenLastCalledWith(arah, 'kulit', history ? 'payment' : 'tagihan', history ? 'two' : 'parent-two');
+  click.mockRestore();
+});

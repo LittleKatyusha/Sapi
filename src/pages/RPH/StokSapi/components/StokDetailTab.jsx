@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { Filter, Search, RotateCcw, RefreshCw, AlertCircle, Home, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
 import ActionButton from './ActionButton';
+import useStokSapiDocument from '../useStokSapiDocument';
 import StokDetailModal from './StokDetailModal';
 import BulkAssignKandangModal from '../modals/BulkAssignKandangModal';
 import HistoryPakanKonsentratModal from '../modals/HistoryPakanKonsentratModal';
@@ -11,6 +12,7 @@ import { Notification } from '../../../../components/shared/NotificationComponen
 
 const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, refreshTrigger = 0 }) => {
   const navigate = useNavigate();
+  const { download, downloading, downloadError } = useStokSapiDocument();
   const [openMenuId, setOpenMenuId] = useState(null);
   const [detailRow, setDetailRow] = useState(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -213,6 +215,7 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
 
   return (
     <div className="space-y-4">
+      {downloadError && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{downloadError}</p>}
       <style>{`
         @keyframes shimmer {
           0% { transform: translateX(-100%); }
@@ -585,7 +588,10 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                 >
                   <div className="flex items-center justify-center">
                     <ActionButton
-                       row={{ id: row.pid || row.no_urut, ...row }}
+                       row={{ ...row, id: row.pid }}
+                       onDownload={() => download('card', row.pid, { pid: row.pid }, row.eartag)}
+                       downloadLabel="Kartu Ternak PDF"
+                       downloading={downloading === `card:${row.pid}`}
                        openMenuId={openMenuId}
                        setOpenMenuId={setOpenMenuId}
                        onDetail={() => handleDetail(row)}

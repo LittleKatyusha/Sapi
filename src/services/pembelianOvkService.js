@@ -3,6 +3,16 @@ import httpClient from './httpClient';
 const API_BASE = '/api/rph/pembelian-ovk';
 
 const pembelianOvkService = {
+  downloadDocument: async (pid, type = 'purchase') => {
+    if (typeof pid !== 'string' || !pid.trim()) throw new Error('PID tidak ditemukan');
+    if (!['purchase', 'stock'].includes(type)) throw new Error('Jenis dokumen tidak valid');
+    const blob = await httpClient.get(`${API_BASE}/document`, { params: { pid, type }, responseType: 'blob', cache: false });
+    if (!(blob instanceof Blob) || !blob.size || await blob.slice(0, 5).text() !== '%PDF-') {
+      throw new Error('Respons server bukan dokumen PDF yang valid');
+    }
+    return blob;
+  },
+
   getData: async (params = {}) => {
     try {
       const response = await httpClient.get(`${API_BASE}/data`, { params, cache: false });

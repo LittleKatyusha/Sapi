@@ -1,8 +1,8 @@
-import React, { useRef, useState, useLayoutEffect } from 'react';
+import React, { useRef, useState, useLayoutEffect, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, Edit, Trash2, Package, Scissors, AlertTriangle, Beef } from 'lucide-react';
+import { Eye, Edit, Trash2, Package, Scissors, AlertTriangle, Beef, Download, Loader2 } from 'lucide-react';
 
-const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, onClose, buttonRef }) => {
+const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, deathLabel = 'Sapi Mati', onClose, buttonRef, onDownload, downloadLabel, downloading }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
 
@@ -11,31 +11,31 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onP
       if (buttonRef?.current) {
         const btnRect = buttonRef.current.getBoundingClientRect();
         const menuWidth = 224;
-        const menuHeight = 240;
+        const menuHeight = menuRef.current?.offsetHeight || 240;
         const gap = 8;
 
         // Default position below the button, left-aligned
-        let left = btnRect.left + window.scrollX;
-        let top = btnRect.bottom + window.scrollY + gap;
+        let left = btnRect.left;
+        let top = btnRect.bottom + gap;
 
         // Keep inside horizontal viewport
-        if (left + menuWidth > window.innerWidth + window.scrollX) {
-          left = btnRect.right + window.scrollX - menuWidth;
+        if (left + menuWidth > window.innerWidth) {
+          left = btnRect.right - menuWidth;
         }
-        if (left < window.scrollX) {
-          left = window.scrollX + gap;
+        if (left < gap) {
+          left = gap;
         }
 
         // Keep inside vertical viewport; flip above if needed
-        if (top + menuHeight > window.innerHeight + window.scrollY) {
-          top = btnRect.top + window.scrollY - menuHeight - gap;
+        if (top + menuHeight > window.innerHeight) {
+          top = Math.max(gap, btnRect.top - menuHeight - gap);
         }
 
         setMenuStyle({
-          position: 'absolute',
+          position: 'fixed',
           left,
           top,
-          zIndex: 99999
+          maxHeight: 'calc(100vh - 16px)', overflowY: 'auto', zIndex: 50
         });
       }
     }
@@ -60,7 +60,20 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onP
     };
   }, [onClose, buttonRef]);
 
+  const positioned = Boolean(menuStyle);
+  useEffect(() => {
+    if (positioned) menuRef.current?.querySelector('button:not(:disabled)')?.focus();
+  }, [positioned]);
+
   const actions = [
+    ...(onDownload ? [{
+      label: downloading ? 'Mengunduh PDF...' : downloadLabel,
+      icon: downloading ? Loader2 : Download,
+      disabled: downloading,
+      onClick: () => onDownload(row),
+      className: 'text-emerald-700', bg: 'bg-emerald-100',
+      hoverBg: 'group-hover:bg-emerald-200', text: 'text-emerald-600',
+    }] : []),
     ...(onDetail ? [
       {
         label: 'Lihat Detail',
@@ -133,7 +146,7 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onP
     ] : []),
     ...(onSapiMati ? [
       {
-        label: 'Sapi Mati',
+        label: deathLabel,
         icon: AlertTriangle,
         onClick: () => {
           onSapiMati(row);
@@ -162,21 +175,34 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onP
     ] : []),
   ];
 
-  // Render menu hanya jika posisi sudah didapat
-  if (!menuStyle) return null;
-
   const menuElement = (
     <div
       ref={menuRef}
       style={{
         ...menuStyle,
-        visibility: 'visible',
+        position: 'fixed',
+        visibility: menuStyle ? 'visible' : 'hidden',
         pointerEvents: 'auto',
-        zIndex: 99999
+        zIndex: 50
       }}
       className={`w-56 bg-white/95 backdrop-blur-lg rounded-lg shadow-xl border border-gray-200/50 overflow-hidden transition-all duration-150 animate-in slide-in-from-top-2 fade-in-0`}
       role="menu"
       aria-label="Menu Aksi"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          onClose();
+          buttonRef.current?.focus();
+        } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+          event.preventDefault();
+          const buttons = [...menuRef.current.querySelectorAll('button:not(:disabled)')];
+          const index = buttons.indexOf(document.activeElement);
+          buttons[(index + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length]?.focus();
+        } else if (event.key === 'Tab') {
+          onClose();
+          buttonRef.current?.focus();
+        }
+      }}
     >
       <div className="px-3 py-2 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200/50">
         <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Menu Aksi</p>
@@ -187,6 +213,8 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onP
             <div key={idx} className="border-t border-gray-200/50 my-1"></div>
           ) : (
             <button
+              type="button"
+              disabled={action.disabled}
               key={action.label}
               onClick={action.onClick}
               className={`w-full text-left flex items-center px-3 py-2 text-sm hover:bg-gradient-to-r transition-all duration-150 rounded-md group mt-0.5 ${action.className}`}

@@ -1,64 +1,101 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
-import { Beef, Search, Loader2, AlertCircle, FileText, ChevronDown, ChevronUp, SlidersHorizontal, RotateCcw, Tag, Calendar, Weight, CircleDollarSign, Hash, CheckCircle2, RotateCcw as RotateCcwIcon, Undo2, MoreVertical, Info, Scissors, Skull, X, Home, Wheat, Package } from 'lucide-react';
+import { Beef, Search, Loader2, AlertCircle, FileText, ChevronDown, ChevronUp, SlidersHorizontal, RotateCcw, Tag, Calendar, Weight, CircleDollarSign, Hash, CheckCircle2, RotateCcw as RotateCcwIcon, Undo2, MoreVertical, Info, Scissors, Skull, X, Home, Wheat, Package, Pencil } from 'lucide-react';
 import HttpClient from '../../../services/httpClient';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import BulkAssignKandangModal from '../StokSapi/modals/BulkAssignKandangModal';
 import BeriPakanKonsentratModal from '../StokSapi/modals/BeriPakanKonsentratModal';
 import HistoryPakanKonsentratModal from '../StokSapi/modals/HistoryPakanKonsentratModal';
 import BeriOvkQurbanModal from './modals/BeriOvkQurbanModal';
+import useStokSapiDocument from '../StokSapi/useStokSapiDocument';
+import StokQurbanDocumentService from '../../../services/stokQurbanDocumentService';
 
 const initialAdvanced = { eartag: '', eartag_supplier: '', nota_qurban: '', status: '' };
 
-const ActionMenuCell = ({ row, menuOpen, setMenuOpen, menuPos, setMenuPos, menuButtonRefs, setRestoreTarget, setPotongPaksaTarget, setSapiMatiTarget, setBeriOvkTarget }) => {
+export const ActionMenuCell = ({ row, menuOpen, setMenuOpen, menuPos, setMenuPos, menuButtonRefs, setRestoreTarget, setPotongPaksaTarget, setSapiMatiTarget, setBeriOvkTarget, onEdit, documentType = 'card', download, downloading }) => {
+  const key = `${documentType}:${row.pid}`;
+  const documentLabel = documentType === 'card' ? 'Kartu Sapi Qurban PDF' : documentType === 'potong-paksa' ? 'Laporan Potong Paksa PDF' : 'Laporan Kematian PDF';
+  const menuRef = useRef(null);
+  const close = () => { setMenuOpen(null); menuButtonRefs.current[key]?.focus(); };
+  useEffect(() => {
+    if (menuOpen === key) menuRef.current?.querySelector('button')?.focus();
+  }, [menuOpen, key]);
   const status = Number(row.status);
   const isReturn = status === 2;
   const isTersedia = status === 0;
   const isTerjual = status === 1;
   // Show menu for all statuses (0, 1, 2) — potong paksa available for all
-  const hasMenu = isTersedia || isTerjual || isReturn;
+  const hasMenu = documentType !== 'card' || isTersedia || isTerjual || isReturn;
 
   const handleToggle = (e) => {
     e.stopPropagation();
     if (!hasMenu) return;
-    if (menuOpen === row.pid) {
+    if (menuOpen === key) {
       setMenuOpen(null);
       return;
     }
-    const rect = menuButtonRefs.current[row.pid]?.getBoundingClientRect();
+    const rect = menuButtonRefs.current[key]?.getBoundingClientRect();
     if (rect) {
-      setMenuPos({ top: rect.bottom + 4, left: rect.right - 180 });
+      setMenuPos({ top: Math.max(8, Math.min(rect.bottom + 4, window.innerHeight - 300)), left: Math.max(8, Math.min(rect.right - 224, window.innerWidth - 232)) });
     }
-    setMenuOpen(row.pid);
+    setMenuOpen(key);
   };
 
   if (!hasMenu) return <span className="text-xs text-gray-300">-</span>;
 
-  const open = menuOpen === row.pid;
+  const open = menuOpen === key;
 
   return (
     <div className="relative">
       <button
-        ref={(el) => { menuButtonRefs.current[row.pid] = el; }}
+        ref={(el) => { menuButtonRefs.current[key] = el; }}
+        aria-label="Menu Aksi"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-busy={downloading === key}
         onClick={handleToggle}
         className="w-7 h-7 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-500 transition"
         title="Aksi"
       >
-        <MoreVertical className="w-4 h-4" />
+        {downloading === key ? <Loader2 className="w-4 h-4 animate-spin" /> : <MoreVertical className="w-4 h-4" />}
       </button>
 
       {open && createPortal(
         <>
           <div
             className="fixed inset-0 z-[60]"
-            onClick={() => setMenuOpen(null)}
+            onClick={close}
           />
           <div
-            className="fixed z-[61] w-44 bg-white rounded-xl shadow-2xl border border-gray-100 py-1.5"
+            ref={menuRef}
+            role="menu"
+            aria-label="Aksi sapi qurban"
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') { e.preventDefault(); close(); }
+              if (e.key === 'Tab') close();
+              if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
+                e.preventDefault();
+                const buttons = Array.from(menuRef.current.querySelectorAll('button:not(:disabled)'));
+                const index = buttons.indexOf(document.activeElement);
+                buttons[e.key === 'Home' ? 0 : e.key === 'End' ? buttons.length - 1 : (index + (e.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length]?.focus();
+              }
+            }}
+            className="fixed z-[61] w-56 max-h-[calc(100vh-16px)] overflow-y-auto bg-white rounded-xl shadow-2xl border border-gray-100 py-1.5"
             style={{ top: menuPos.top, left: menuPos.left }}
             onClick={(e) => e.stopPropagation()}
           >
+            {documentType === 'card' && row.pid_sapi && onEdit && (
+              <button role="menuitem" onClick={() => { setMenuOpen(null); onEdit(row); }} className="w-full px-3 py-2 text-left flex items-center gap-2 text-xs font-medium text-gray-700 hover:bg-gray-100 transition">
+                <Pencil className="w-3.5 h-3.5" /> Edit
+              </button>
+            )}
+            <button role="menuitem" disabled={downloading === key} onClick={() => download(documentType, row.pid, { pid: row.pid }, row.eartag)}
+              className="w-full px-3 py-2 text-left flex items-center gap-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 focus-visible:outline focus-visible:outline-emerald-600">
+              <FileText className="w-3.5 h-3.5" />{documentLabel}
+            </button>
+            {documentType === 'card' && <>
             {isTersedia && (
               <>
                 <button
@@ -108,6 +145,7 @@ const ActionMenuCell = ({ row, menuOpen, setMenuOpen, menuPos, setMenuPos, menuB
                 </button>
               </>
             )}
+            </>}
           </div>
         </>,
         document.body
@@ -117,6 +155,8 @@ const ActionMenuCell = ({ row, menuOpen, setMenuOpen, menuPos, setMenuPos, menuB
 };
 
 const StokSapiQurbanPage = () => {
+  const navigate = useNavigate();
+  const { download, downloading, downloadError } = useStokSapiDocument(StokQurbanDocumentService);
   const [tableData, setTableData] = useState([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -124,7 +164,7 @@ const StokSapiQurbanPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [restoreTarget, setRestoreTarget] = useState(null);
-  const [menuOpen, setMenuOpen] = useState(null); // row.pid that has menu open
+  const [menuOpen, setMenuOpen] = useState(null); // type:pid of the open menu
   const menuButtonRefs = useRef({});
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const [restoring, setRestoring] = useState(false);
@@ -344,6 +384,29 @@ const StokSapiQurbanPage = () => {
 
   const columns = [
     {
+      name: 'Aksi',
+      sortable: false,
+      width: '60px',
+      center: true,
+      cell: (row) => (
+        <ActionMenuCell
+          row={row}
+          onEdit={(item) => navigate(`/rph/stok-sapi-qurban/edit/${encodeURIComponent(item.pid_sapi)}`)}
+          download={download}
+          downloading={downloading}
+          menuOpen={menuOpen}
+          setMenuOpen={setMenuOpen}
+          menuPos={menuPos}
+          setMenuPos={setMenuPos}
+          menuButtonRefs={menuButtonRefs}
+          setRestoreTarget={setRestoreTarget}
+          setPotongPaksaTarget={setPotongPaksaTarget}
+          setSapiMatiTarget={setSapiMatiTarget}
+          setBeriOvkTarget={setBeriOvkTarget}
+        />
+      ),
+    },
+    {
       name: 'No.',
       width: '52px',
       center: true,
@@ -487,26 +550,6 @@ const StokSapiQurbanPage = () => {
             )}
           </div>
         </button>
-      ),
-    },
-    {
-      name: 'Aksi',
-      sortable: false,
-      width: '60px',
-      center: true,
-      cell: (row) => (
-        <ActionMenuCell
-          row={row}
-          menuOpen={menuOpen}
-          setMenuOpen={setMenuOpen}
-          menuPos={menuPos}
-          setMenuPos={setMenuPos}
-          menuButtonRefs={menuButtonRefs}
-          setRestoreTarget={setRestoreTarget}
-          setPotongPaksaTarget={setPotongPaksaTarget}
-          setSapiMatiTarget={setSapiMatiTarget}
-          setBeriOvkTarget={setBeriOvkTarget}
-        />
       ),
     },
   ];
@@ -705,6 +748,11 @@ const StokSapiQurbanPage = () => {
               Stok Sapi Qurban
             </h1>
             <p className="text-gray-500 text-sm mt-1">Daftar sapi qurban per ekor</p>
+            {viewMode === 'stok' && <button disabled={downloading === 'recap:stock'}
+              onClick={() => download('recap', 'stock', appliedFilters, 'Stok_Sapi_Qurban')}
+              className="mt-3 inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-200 text-sm text-emerald-700 hover:bg-emerald-50 disabled:opacity-50">
+              {downloading === 'recap:stock' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}Rekap Stok PDF
+            </button>}
           </div>
           <div className="flex items-center gap-2">
             <div className="px-3 py-1.5 bg-emerald-50 rounded-lg text-xs font-medium text-emerald-700 border border-emerald-100 flex items-center gap-1.5">
@@ -722,6 +770,7 @@ const StokSapiQurbanPage = () => {
         </div>
       </div>
 
+      {downloadError && <div role="alert" className="p-3 rounded-lg bg-red-50 text-red-700 text-sm">{downloadError}</div>}
       {/* Tab Switcher */}
       <div className="flex gap-1 bg-white rounded-xl shadow-sm border border-gray-100 p-1 w-fit">
         <button
@@ -1096,12 +1145,14 @@ const StokSapiQurbanPage = () => {
                   <tr className="text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">
                     <th className="px-4 py-3">Eartag</th>
                     <th className="px-4 py-3">Tgl Potong</th>
+                    <th className="px-4 py-3">Aksi</th>
                     <th className="px-4 py-3">Sebab</th>
                     <th className="px-4 py-3 text-right">Bobot Selisih</th>
                     <th className="px-4 py-3 text-right">Bobot Setelah</th>
                     <th className="px-4 py-3">Status Sapi</th>
                     <th className="px-4 py-3">Sapi Pengganti</th>
                     <th className="px-4 py-3">Mengetahui</th>
+                    <th className="px-4 py-3 text-right">Kerugian</th>
                     <th className="px-4 py-3">Keterangan</th>
                   </tr>
                 </thead>
@@ -1113,6 +1164,8 @@ const StokSapiQurbanPage = () => {
                         <div className="text-[10px] text-gray-400">{row.eartag_supplier}</div>
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-600">{row.tgl_potong_paksa || '-'}</td>
+                      <td className="px-4 py-3"><ActionMenuCell row={row} documentType="potong-paksa" download={download} downloading={downloading}
+                        {...{ menuOpen, setMenuOpen, menuPos, setMenuPos, menuButtonRefs }} /></td>
                       <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700">{row.sebab_potong_paksa || '-'}</span></td>
                       <td className="px-4 py-3 text-right font-mono text-xs">{row.bobot_selisih_potong_paksa ?? '-'} kg</td>
                       <td className="px-4 py-3 text-right font-mono text-xs">{row.bobot_setelah_potong ?? '-'} kg</td>
@@ -1128,6 +1181,7 @@ const StokSapiQurbanPage = () => {
                         )}
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-600">{row.mengetahui || '-'}</td>
+                      <td className="px-4 py-3 text-xs text-right font-semibold text-red-700">{row.kerugian ? `Rp ${Number(row.kerugian.total_kerugian).toLocaleString('id-ID')}` : '-'}</td>
                       <td className="px-4 py-3 text-xs text-gray-500 max-w-xs truncate" title={row.keterangan}>{row.keterangan || '-'}</td>
                     </tr>
                   ))}
@@ -1259,7 +1313,9 @@ const StokSapiQurbanPage = () => {
                     <th className="px-4 py-3">Sebab</th>
                     <th className="px-4 py-3">Sapi Pengganti</th>
                     <th className="px-4 py-3">Mengetahui</th>
+                    <th className="px-4 py-3 text-right">Kerugian</th>
                     <th className="px-4 py-3">Keterangan</th>
+                    <th className="px-4 py-3">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -1282,7 +1338,10 @@ const StokSapiQurbanPage = () => {
                         )}
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-600">{row.mengetahui || '-'}</td>
+                      <td className="px-4 py-3 text-xs text-right font-semibold text-red-700">{row.kerugian ? `Rp ${Number(row.kerugian.total_kerugian).toLocaleString('id-ID')}` : '-'}</td>
                       <td className="px-4 py-3 text-xs text-gray-500 max-w-xs truncate" title={row.keterangan}>{row.keterangan || '-'}</td>
+                      <td className="px-4 py-3"><ActionMenuCell row={row} documentType="sapi-mati" download={download} downloading={downloading}
+                        {...{ menuOpen, setMenuOpen, menuPos, setMenuPos, menuButtonRefs }} /></td>
                     </tr>
                   ))}
                 </tbody>

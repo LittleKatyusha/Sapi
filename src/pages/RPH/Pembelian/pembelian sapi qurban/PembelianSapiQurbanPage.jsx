@@ -75,6 +75,12 @@ const Notification = React.memo(({ notification, onClose }) => {
 });
 
 const ActionMenuPortal = ({ row, menuPos, onClose, onEdit, onDelete, onUnduhBerkas, onDetailSapi, onBayar }) => {
+    const menuRef = useRef(null);
+    useEffect(() => {
+        const trigger = document.activeElement;
+        menuRef.current?.querySelector('button')?.focus();
+        return () => trigger?.focus();
+    }, []);
     const actions = [
         { label: 'Edit', icon: Pencil, onClick: () => onEdit(row) },
         { label: 'Bayar', icon: Wallet, onClick: () => onBayar(row) },
@@ -87,6 +93,18 @@ const ActionMenuPortal = ({ row, menuPos, onClose, onEdit, onDelete, onUnduhBerk
         <>
             <div className="fixed inset-0 z-[99998]" onClick={onClose} />
             <div
+                ref={menuRef}
+                aria-label="Aksi pembelian qurban"
+                onKeyDown={e => {
+                    const buttons = [...menuRef.current.querySelectorAll('button')];
+                    const index = buttons.indexOf(document.activeElement);
+                    if (e.key === 'Escape' || e.key === 'Tab') { e.preventDefault(); onClose(); }
+                    if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
+                        e.preventDefault();
+                        const next = e.key === 'Home' ? 0 : e.key === 'End' ? buttons.length - 1 : (index + (e.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length;
+                        buttons[next]?.focus();
+                    }
+                }}
                 style={{ position: 'fixed', left: menuPos.left, top: menuPos.top, zIndex: 99999 }}
                 className="w-44 bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden"
                 role="menu"
@@ -351,13 +369,15 @@ const PembelianSapiQurbanPage = () => {
                         onClick={(e) => handleActionClick(e, row)}
                         className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
                         aria-label="Menu Aksi"
+                        aria-haspopup="menu"
+                        aria-expanded={openMenuId === rowId}
                     >
                         <MoreVertical size={16} />
                     </button>
                 );
             }
         },
-    ], [serverPagination, handleActionClick]);
+    ], [serverPagination, handleActionClick, openMenuId]);
 
     const safeStats = stats || {};
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;

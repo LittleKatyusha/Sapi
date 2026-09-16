@@ -322,6 +322,13 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
  */
 const pendingRequests = new Map();
 
+// Keep client-only options out of RequestInit; booleans control the GET cache.
+const fetchRequest = (url, { cache, params, responseType, ...options }) => {
+  if (cache === false) options.cache = 'no-store';
+  else if (cache !== true && cache !== undefined) options.cache = cache;
+  return fetch(url, options);
+};
+
 /**
  * Main HTTP client class
  */
@@ -379,11 +386,12 @@ class HttpClient {
       // Create the request promise
       const requestPromise = (async () => {
         try {
-          const response = await fetch(url, {
+          const response = await fetchRequest(url, {
             method: 'GET',
             headers: await buildHeaders(options.headers),
             credentials: 'include',
-            ...fetchOptions
+            ...fetchOptions,
+            cache
           });
           
           await handleResponseError(response);
@@ -458,9 +466,10 @@ class HttpClient {
         ...restOptions
       };
       
-      const response = await fetch(url, fetchOptions);
+      const response = await fetchRequest(url, fetchOptions);
       
       await handleResponseError(response);
+      if (options.responseType === 'blob') return response.blob();
       return response.json();
     });
   }
@@ -483,7 +492,7 @@ class HttpClient {
         body = JSON.stringify(data);
       }
       
-      const response = await fetch(url, {
+      const response = await fetchRequest(url, {
         method: 'PUT',
         headers,
         body,
@@ -508,7 +517,7 @@ class HttpClient {
       const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
       
       const { headers: customHeaders = {}, ...restOptions } = options;
-      const response = await fetch(url, {
+      const response = await fetchRequest(url, {
         method: 'DELETE',
         headers: await buildHeaders(customHeaders),
         credentials: 'include',
@@ -526,7 +535,7 @@ class HttpClient {
   static async head(endpoint, options = {}) {
     const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
     
-    const response = await fetch(url, {
+    const response = await fetchRequest(url, {
       method: 'HEAD',
       headers: await buildHeaders(options.headers),
       credentials: 'include',
@@ -554,7 +563,7 @@ class HttpClient {
       body = JSON.stringify(data);
     }
     
-    const response = await fetch(url, {
+    const response = await fetchRequest(url, {
       method: method.toUpperCase(),
       headers,
       body,

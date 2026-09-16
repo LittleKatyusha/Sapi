@@ -123,6 +123,7 @@ const PembelianSapi = () => {
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const [exportLoading, setExportLoading] = useState(false);
     const [downloadingRow, setDownloadingRow] = useState(null);
+    const downloadLock = useRef(false);
     // Removed isDetailModalOpen - using navigation instead
     const [selectedItem, setSelectedItem] = useState(null);
     const [cardData, setCardData] = useState(null);
@@ -385,45 +386,38 @@ const PembelianSapi = () => {
 
     // Download per-row PDF (Surat Jalan, Lembar Pesanan, Kwitansi)
     const handleDownloadRowPdf = async (item, reportType) => {
-        // HO report controller expects encrypted 'id' which is the row's pid
+        if (downloadLock.current) return;
         const pid = item.pid || item.encryptedPid;
         if (!pid) {
             setNotification({ type: 'error', message: 'PID tidak ditemukan' });
             return;
         }
+        downloadLock.current = true;
         setDownloadingRow({ pid, reportType });
         setNotification({ type: 'info', message: `Memproses ${reportType === 'delivery' ? 'Surat Jalan' : reportType === 'handover' ? 'Lembar Pesanan' : 'Kwitansi'}...` });
         try {
             const blob = await PoRphService.downloadRowPdf(pid, reportType);
 
-            // Check if blob is actually an error JSON response
-            if (blob && blob.type && blob.type.includes('application/json')) {
-                const text = await blob.text();
-                try {
-                    const errJson = JSON.parse(text);
-                    throw new Error(errJson.message || 'Download gagal');
-                } catch (e) {
-                    if (e.message === 'Download gagal') throw e;
-                    throw new Error(text || 'Download gagal');
-                }
-            }
-
             const labelMap = { delivery: 'Surat_Jalan', handover: 'Lembar_Pesanan', receipt: 'Kwitansi' };
-            const filename = `${labelMap[reportType] || reportType}_${item.no_po || pid}.pdf`;
+            const filename = `${labelMap[reportType]}_${String(item.no_po || 'PO').replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
+            try {
+                document.body.appendChild(a);
+                a.click();
+            } finally {
+                a.remove();
+                setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+            }
 
             setNotification({ type: 'success', message: `${labelMap[reportType]} berhasil diunduh` });
         } catch (error) {
             console.error('Download PDF error:', error);
             setNotification({ type: 'error', message: error.message || 'Gagal mengunduh PDF' });
         } finally {
+            downloadLock.current = false;
             setDownloadingRow(null);
         }
     };
@@ -666,6 +660,7 @@ const PembelianSapi = () => {
                             onDownloadSuratJalan={handleDownloadSuratJalan}
                             onDownloadLembarPesanan={handleDownloadLembarPesanan}
                             onDownloadKwitansi={handleDownloadKwitansi}
+                            downloadingRow={downloadingRow}
                         />
                     </div>
 

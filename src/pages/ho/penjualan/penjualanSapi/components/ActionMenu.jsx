@@ -2,7 +2,7 @@ import React, { useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ClipboardCheck, Download } from 'lucide-react';
 
-const ActionMenu = ({ row, onDetail, onDownloadOrder, onDownloadSuratJalan, onClose, buttonRef }) => {
+const ActionMenu = ({ row, onDetail, onDownloadOrder, onDownloadSuratJalan, onDownloadInvoice, onClose, buttonRef }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
 
@@ -41,17 +41,24 @@ const ActionMenu = ({ row, onDetail, onDownloadOrder, onDownloadSuratJalan, onCl
             icon: ClipboardCheck,
             onClick: () => { onDetail(row); onClose(); },
             className: 'text-gray-700',
-            description: 'Setujui / tolak pesanan',
             bg: 'bg-blue-100',
             hoverBg: 'group-hover:bg-blue-200',
             text: 'text-blue-600',
+        },
+        {
+            label: 'Unduh Invoice',
+            icon: Download,
+            onClick: () => { if (onDownloadInvoice) onDownloadInvoice(row); onClose(); },
+            className: 'text-gray-700',
+            bg: 'bg-amber-100',
+            hoverBg: 'group-hover:bg-amber-200',
+            text: 'text-amber-600',
         },
         {
             label: 'Unduh Surat Jalan',
             icon: Download,
             onClick: () => { if (onDownloadSuratJalan) onDownloadSuratJalan(row); onClose(); },
             className: 'text-gray-700',
-            description: 'Download file surat jalan',
             bg: 'bg-green-100',
             hoverBg: 'group-hover:bg-green-200',
             text: 'text-green-600',
@@ -61,7 +68,6 @@ const ActionMenu = ({ row, onDetail, onDownloadOrder, onDownloadSuratJalan, onCl
             icon: Download,
             onClick: () => { if (onDownloadOrder) onDownloadOrder(row); onClose(); },
             className: 'text-gray-700',
-            description: 'Download lembar pesanan',
             bg: 'bg-purple-100',
             hoverBg: 'group-hover:bg-purple-200',
             text: 'text-purple-600',
@@ -106,17 +112,14 @@ const ActionMenu = ({ row, onDetail, onDownloadOrder, onDownloadSuratJalan, onCl
                                 }
                             }}
                             disabled={action.disabled}
-                            className={`w-full text-left flex items-center px-3 py-2.5 text-sm hover:bg-gradient-to-r transition-all duration-150 rounded-lg group mt-1 ${action.className} ${action.disabled ? 'cursor-not-allowed opacity-50' : ''}`}
+                            className={`w-full text-left flex items-center px-3 py-2 text-sm hover:bg-gradient-to-r transition-all duration-150 rounded-lg group mt-1 ${action.className} ${action.disabled ? 'cursor-not-allowed opacity-50' : ''}`}
                             role="menuitem"
                             tabIndex={0}
                         >
                             <div className={`w-7 h-7 ${action.bg} rounded-lg flex items-center justify-center mr-3 ${action.hoverBg} group-hover:scale-105 transition-all duration-150`}>
                                 <action.icon size={14} className={`${action.text} ${action.isLoading ? 'animate-spin' : ''}`} />
                             </div>
-                            <div className="flex-1">
-                                <span className="font-semibold block text-xs">{action.label}</span>
-                                <p className="text-xs text-gray-500 mt-0.5">{action.description}</p>
-                            </div>
+                            <span className="font-semibold text-xs">{action.label}</span>
                         </button>
                     )
                 )}
