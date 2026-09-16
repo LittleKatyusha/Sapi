@@ -435,6 +435,7 @@ const StokDokaPage = () => {
                             openMenuId={openMenuId}
                             setOpenMenuId={setOpenMenuId}
                             onDetail={() => handleDetail(row)}
+                            onEdit={() => navigate(`/rph/stok-doka/edit/${encodeURIComponent(row.pid)}`)}
                             onOvk={() => handleOvk(row)}
                           />
                         </div>

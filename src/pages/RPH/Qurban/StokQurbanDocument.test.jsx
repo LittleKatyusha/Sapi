@@ -1,10 +1,12 @@
 import React, { useRef, useState } from 'react';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import StokSapiQurbanPage, { ActionMenuCell } from './StokSapiQurbanPage';
 import HttpClient from '../../../services/httpClient';
 import useStokSapiDocument from '../StokSapi/useStokSapiDocument';
 import service from '../../../services/stokQurbanDocumentService';
+const mockNavigate = jest.fn();
+jest.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate }), { virtual: true });
 jest.mock('../../../services/stokQurbanDocumentService', () => ({ __esModule: true, default: { downloadDocument: jest.fn() } }));
 jest.mock('../../../services/httpClient', () => ({ __esModule: true, default: { get: jest.fn() } }));
 jest.mock('../StokSapi/modals/BulkAssignKandangModal', () => () => null);
@@ -24,10 +26,11 @@ beforeEach(() => jest.clearAllMocks());
 test('identical labels distinct IDs, isolated loading, duplicate guard, portal, Escape focus and errors', async () => {
   let reject;
   service.downloadDocument.mockImplementation(() => new Promise((resolve, fail) => { reject = fail; }));
-  render(<Fixture />);
+  const { container } = render(<Fixture />);
   const buttons = screen.getAllByRole('button', { name: 'Menu Aksi' });
   fireEvent.click(buttons[0]);
-  expect(screen.getByRole('menu').parentElement).toBe(document.body);
+  expect(within(container).queryByRole('menu')).not.toBeInTheDocument();
+  expect(screen.getByRole('menu')).toBeInTheDocument();
   expect(screen.getByRole('menuitem')).toHaveFocus();
   fireEvent.click(screen.getByRole('menuitem'));
   expect(buttons[0]).toHaveAttribute('aria-busy', 'true');
@@ -55,7 +58,7 @@ test.each(['potong-paksa', 'sapi-mati'])('%s uses event PID, safe filename and U
   fireEvent.click(screen.getByRole('menuitem'));
   await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
   expect(service.downloadDocument).toHaveBeenCalledWith(type, { pid: 'two' });
-  expect(document.querySelector('a[download]')).toBeNull();
+  expect(screen.queryByRole('link', { hidden: true })).not.toBeInTheDocument();
   await waitFor(() => expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:fixture'), { timeout: 2000 });
   click.mockRestore();
 });

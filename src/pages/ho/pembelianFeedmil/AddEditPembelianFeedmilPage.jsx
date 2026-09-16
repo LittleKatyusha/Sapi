@@ -696,8 +696,8 @@ const AddEditPembelianFeedmilPage = () => {
             itemErrors.push('Nama item harus diisi');
         }
         // id_klasifikasi_feedmil is nullable according to backend rules - no validation needed
-        if (!item.harga || parseFloat(item.harga) <= 0) {
-            itemErrors.push('Harga harus diisi dan > 0');
+        if (item.harga === '' || item.harga === null || item.harga === undefined || isNaN(parseFloat(item.harga)) || parseFloat(item.harga) < 0) {
+            itemErrors.push('Harga harus diisi dan >= 0');
         }
         if (!item.id_satuan) {
             itemErrors.push('Satuan harus dipilih');
@@ -1023,8 +1023,8 @@ const AddEditPembelianFeedmilPage = () => {
                 errors.push(`Item ${index + 1}: Satuan harus dipilih`);
             }
             const harga = parseFloat(item.harga);
-            if (isNaN(harga) || harga <= 0) {
-                errors.push(`Item ${index + 1}: Harga harus lebih dari 0`);
+            if (isNaN(harga) || harga < 0) {
+                errors.push(`Item ${index + 1}: Harga harus >= 0`);
             }
             const persentase = getParsedPersentase(item.persentase);
             if (isNaN(persentase) || persentase < 0) {

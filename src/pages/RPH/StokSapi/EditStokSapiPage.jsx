@@ -35,8 +35,8 @@ const formatDateTime = (dt) => {
   }
 };
 
-const EditStokSapiPage = () => {
-  useDocumentTitle('Edit Stok Sapi');
+const EditStokSapiPage = ({ service = StokSapiService, entityName = 'Sapi', backUrl = '/rph/stok-sapi' }) => {
+  useDocumentTitle(`Edit Stok ${entityName}`);
   const navigate = useNavigate();
   const { pid } = useParams();
 
@@ -58,7 +58,7 @@ const EditStokSapiPage = () => {
     if (!pid) return;
     setHistoryLoading(true);
     try {
-      const res = await StokSapiService.history(pid);
+      const res = await service.history(pid);
       if (res.success) {
         setHistory(res.data?.rows || []);
       }
@@ -67,14 +67,14 @@ const EditStokSapiPage = () => {
     } finally {
       setHistoryLoading(false);
     }
-  }, [pid]);
+  }, [pid, service]);
 
   const fetchInitial = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const [detailRes, optionsRes] = await Promise.all([
-        StokSapiService.show(pid),
+        service.show(pid),
         StokSapiService.getFilterOptions(),
       ]);
 
@@ -99,7 +99,7 @@ const EditStokSapiPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [pid, showNotification]);
+  }, [pid, service, showNotification]);
 
   useEffect(() => {
     if (!pid) {
@@ -116,7 +116,7 @@ const EditStokSapiPage = () => {
   };
 
   const handleCancel = () => {
-    navigate('/rph/stok-sapi');
+    navigate(backUrl);
   };
 
   const handleSubmit = async (e) => {
@@ -130,10 +130,10 @@ const EditStokSapiPage = () => {
       if (form.kondisi !== '') payload.kondisi = form.kondisi;
       if (form.jenis_kelamin !== '') payload.jenis_kelamin = form.jenis_kelamin;
 
-      const result = await StokSapiService.update(payload);
+      const result = await service.update(payload);
       if (result.success) {
         showNotification('success', result.message || 'Data berhasil diperbarui');
-        fetchHistory();
+        await Promise.all([fetchInitial(), fetchHistory()]);
       } else {
         showNotification('error', result.message || 'Gagal memperbarui data');
       }
@@ -158,8 +158,8 @@ const EditStokSapiPage = () => {
               <ArrowLeft className="h-4 w-4" />
             </button>
             <div>
-              <h1 className="text-lg font-bold text-gray-900">Edit Stok Sapi</h1>
-              <p className="text-sm text-gray-500">Perbarui bobot & kondisi sapi</p>
+              <h1 className="text-lg font-bold text-gray-900">Edit Stok {entityName}</h1>
+              <p className="text-sm text-gray-500">Perbarui bobot & kondisi {entityName.toLowerCase()}</p>
             </div>
           </div>
         </div>
@@ -184,13 +184,13 @@ const EditStokSapiPage = () => {
         {!loading && !error && (
           <>
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-              {/* Info sapi */}
+                {/* Info ternak */}
               <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm lg:col-span-1">
-                <h2 className="text-sm font-semibold text-gray-700 mb-3">Informasi Sapi</h2>
+                <h2 className="text-sm font-semibold text-gray-700 mb-3">Informasi {entityName}</h2>
                 <div className="space-y-2.5">
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-xs font-medium text-gray-500">Jenis Sapi</span>
-                    <span className="text-sm text-gray-800">{meta?.jenis_sapi || '-'}</span>
+                    <span className="text-xs font-medium text-gray-500">Jenis {entityName}</span>
+                    <span className="text-sm text-gray-800">{meta?.jenis_sapi || meta?.jenis_hewan || meta?.jenis_klasifikasi || '-'}</span>
                   </div>
                   <div className="flex flex-col gap-0.5">
                     <span className="text-xs font-medium text-gray-500">Eartag</span>
@@ -202,7 +202,7 @@ const EditStokSapiPage = () => {
                   </div>
                   <div className="flex flex-col gap-0.5">
                     <span className="text-xs font-medium text-gray-500">RPH</span>
-                    <span className="text-sm text-gray-800">{meta?.nama_rph || meta?.lokasi_sapi || '-'}</span>
+                    <span className="text-sm text-gray-800">{meta?.nama_rph || meta?.lokasi_sapi || meta?.lokasi || '-'}</span>
                   </div>
                   <div className="flex flex-col gap-0.5">
                     <span className="text-xs font-medium text-gray-500">Pemasok</span>
@@ -218,7 +218,7 @@ const EditStokSapiPage = () => {
                   </div>
                   <div className="flex flex-col gap-0.5">
                     <span className="text-xs font-medium text-gray-500">Kondisi Saat Ini</span>
-                    <span className="text-sm text-gray-800">{meta?.kondisi_sapi || '-'}</span>
+                    <span className="text-sm text-gray-800">{meta?.kondisi_sapi || meta?.kondisi || '-'}</span>
                   </div>
                   <div className="flex flex-col gap-0.5">
                     <span className="text-xs font-medium text-gray-500">Jenis Kelamin Saat Ini</span>

@@ -268,6 +268,7 @@ const PenjualanSapiHOPage = () => {
 
     const handleDownloadSuratJalan = (row) => downloadReport(row, 'ho-delivery', 'Surat Jalan');
     const handleDownloadLembarPesanan = (row) => downloadReport(row, 'ho-handover', 'Lembar Pesanan');
+    const handleDownloadInvoice = (row) => downloadReport(row, 'ho-receipt', 'Invoice');
 
     const detailFetchingRef = useRef(false);
 
@@ -761,6 +762,7 @@ const PenjualanSapiHOPage = () => {
                                                                 onDetail={handleDetail}
                                                                 onDownloadOrder={handleDownloadLembarPesanan}
                                                                 onDownloadSuratJalan={handleDownloadSuratJalan}
+                                                                onDownloadInvoice={handleDownloadInvoice}
                                                                 isActive={openActionMenu === (row.pid || row.pubid)}
                                                             />
                                                         </div>
@@ -853,6 +855,7 @@ const PenjualanSapiHOPage = () => {
                                     onDetail={handleDetail}
                                     onDownloadOrder={handleDownloadLembarPesanan}
                                     onDownloadSuratJalan={handleDownloadSuratJalan}
+                                    onDownloadInvoice={handleDownloadInvoice}
                                 />
                             ))}
                             <CustomPagination

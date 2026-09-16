@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
-import { Beef, Search, Loader2, AlertCircle, FileText, ChevronDown, ChevronUp, SlidersHorizontal, RotateCcw, Tag, Calendar, Weight, CircleDollarSign, Hash, CheckCircle2, RotateCcw as RotateCcwIcon, Undo2, MoreVertical, Info, Scissors, Skull, X, Home, Wheat, Package } from 'lucide-react';
+import { Beef, Search, Loader2, AlertCircle, FileText, ChevronDown, ChevronUp, SlidersHorizontal, RotateCcw, Tag, Calendar, Weight, CircleDollarSign, Hash, CheckCircle2, RotateCcw as RotateCcwIcon, Undo2, MoreVertical, Info, Scissors, Skull, X, Home, Wheat, Package, Pencil } from 'lucide-react';
 import HttpClient from '../../../services/httpClient';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import BulkAssignKandangModal from '../StokSapi/modals/BulkAssignKandangModal';
@@ -13,7 +14,7 @@ import StokQurbanDocumentService from '../../../services/stokQurbanDocumentServi
 
 const initialAdvanced = { eartag: '', eartag_supplier: '', nota_qurban: '', status: '' };
 
-export const ActionMenuCell = ({ row, menuOpen, setMenuOpen, menuPos, setMenuPos, menuButtonRefs, setRestoreTarget, setPotongPaksaTarget, setSapiMatiTarget, setBeriOvkTarget, documentType = 'card', download, downloading }) => {
+export const ActionMenuCell = ({ row, menuOpen, setMenuOpen, menuPos, setMenuPos, menuButtonRefs, setRestoreTarget, setPotongPaksaTarget, setSapiMatiTarget, setBeriOvkTarget, onEdit, documentType = 'card', download, downloading }) => {
   const key = `${documentType}:${row.pid}`;
   const documentLabel = documentType === 'card' ? 'Kartu Sapi Qurban PDF' : documentType === 'potong-paksa' ? 'Laporan Potong Paksa PDF' : 'Laporan Kematian PDF';
   const menuRef = useRef(null);
@@ -85,6 +86,11 @@ export const ActionMenuCell = ({ row, menuOpen, setMenuOpen, menuPos, setMenuPos
             style={{ top: menuPos.top, left: menuPos.left }}
             onClick={(e) => e.stopPropagation()}
           >
+            {documentType === 'card' && row.pid_sapi && onEdit && (
+              <button role="menuitem" onClick={() => { setMenuOpen(null); onEdit(row); }} className="w-full px-3 py-2 text-left flex items-center gap-2 text-xs font-medium text-gray-700 hover:bg-gray-100 transition">
+                <Pencil className="w-3.5 h-3.5" /> Edit
+              </button>
+            )}
             <button role="menuitem" disabled={downloading === key} onClick={() => download(documentType, row.pid, { pid: row.pid }, row.eartag)}
               className="w-full px-3 py-2 text-left flex items-center gap-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 focus-visible:outline focus-visible:outline-emerald-600">
               <FileText className="w-3.5 h-3.5" />{documentLabel}
@@ -149,6 +155,7 @@ export const ActionMenuCell = ({ row, menuOpen, setMenuOpen, menuPos, setMenuPos
 };
 
 const StokSapiQurbanPage = () => {
+  const navigate = useNavigate();
   const { download, downloading, downloadError } = useStokSapiDocument(StokQurbanDocumentService);
   const [tableData, setTableData] = useState([]);
   const [totalRecords, setTotalRecords] = useState(0);
@@ -377,6 +384,29 @@ const StokSapiQurbanPage = () => {
 
   const columns = [
     {
+      name: 'Aksi',
+      sortable: false,
+      width: '60px',
+      center: true,
+      cell: (row) => (
+        <ActionMenuCell
+          row={row}
+          onEdit={(item) => navigate(`/rph/stok-sapi-qurban/edit/${encodeURIComponent(item.pid_sapi)}`)}
+          download={download}
+          downloading={downloading}
+          menuOpen={menuOpen}
+          setMenuOpen={setMenuOpen}
+          menuPos={menuPos}
+          setMenuPos={setMenuPos}
+          menuButtonRefs={menuButtonRefs}
+          setRestoreTarget={setRestoreTarget}
+          setPotongPaksaTarget={setPotongPaksaTarget}
+          setSapiMatiTarget={setSapiMatiTarget}
+          setBeriOvkTarget={setBeriOvkTarget}
+        />
+      ),
+    },
+    {
       name: 'No.',
       width: '52px',
       center: true,
@@ -520,28 +550,6 @@ const StokSapiQurbanPage = () => {
             )}
           </div>
         </button>
-      ),
-    },
-    {
-      name: 'Aksi',
-      sortable: false,
-      width: '60px',
-      center: true,
-      cell: (row) => (
-        <ActionMenuCell
-          row={row}
-          download={download}
-          downloading={downloading}
-          menuOpen={menuOpen}
-          setMenuOpen={setMenuOpen}
-          menuPos={menuPos}
-          setMenuPos={setMenuPos}
-          menuButtonRefs={menuButtonRefs}
-          setRestoreTarget={setRestoreTarget}
-          setPotongPaksaTarget={setPotongPaksaTarget}
-          setSapiMatiTarget={setSapiMatiTarget}
-          setBeriOvkTarget={setBeriOvkTarget}
-        />
       ),
     },
   ];
