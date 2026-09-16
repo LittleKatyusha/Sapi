@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -16,6 +16,7 @@ import AddEditPedagangModal from './modals/AddEditPedagangModal';
 import PedagangDetailModal from './modals/PedagangDetailModal';
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 import RekeningPedagangModal from './modals/RekeningPedagangModal';
+import downloadPdf from '../../../utils/downloadPdf';
 import TambahTabunganModal from './modals/TambahTabunganModal';
 
 const TIPE_LABELS = { 1: 'Langganan', 2: 'Umum' };
@@ -34,10 +35,28 @@ const DISPENSASI_OPTIONS = [
   { value: 0, label: 'Tidak Aktif' },
 ];
 
-const ActionMenuPortal = ({ row, menuPos, onClose, onDetail, onEdit, onRekening, onTabungan, onHutang, onHistory, onDelete }) => (
+const ActionMenuPortal = ({ row, menuPos, onClose, onDetail, onEdit, onRekening, onTabungan, onHutang, onHistory, onDelete }) => {
+  const menu = useRef(null);
+  const trigger = useRef(document.activeElement);
+  useEffect(() => { menu.current?.querySelector('button')?.focus(); }, []);
+  return (
   <>
     <div className="fixed inset-0 z-[99998]" onClick={onClose} />
     <div
+      ref={menu}
+      role="group"
+      aria-label="Aksi pedagang"
+      onClickCapture={() => trigger.current?.focus()}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') { event.preventDefault(); onClose(); trigger.current?.focus(); }
+        if (event.key === 'Tab') { onClose(); trigger.current?.focus(); }
+        const buttons = [...menu.current.querySelectorAll('button')];
+        if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+          event.preventDefault();
+          const index = buttons.indexOf(document.activeElement);
+          buttons[event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length]?.focus();
+        }
+      }}
       style={{ position: 'fixed', left: menuPos.left, top: menuPos.top, zIndex: 99999 }}
       className="w-44 bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden"
     >
@@ -86,7 +105,8 @@ const ActionMenuPortal = ({ row, menuPos, onClose, onDetail, onEdit, onRekening,
       </button>
     </div>
   </>
-);
+  );
+};
 
 const StatCard = React.memo(({ title, value, icon: Icon, accentColor, subtitle }) => (
   <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
@@ -1019,20 +1039,16 @@ const PedagangPage = () => {
             showNotification(`Memproses rekening ${nama_alias}...`, 'info');
             const result = await PedagangService.cetakRekening({ pid, bulan, tahun });
             if (result.success) {
-              const url = window.URL.createObjectURL(result.data);
-              const link = document.createElement('a');
-              link.href = url;
-              link.download = `Rekening_${nama_alias}_${tahun}-${String(bulan).padStart(2, '0')}.pdf`;
-              link.click();
-              window.URL.revokeObjectURL(url);
+              await downloadPdf(result.data, `Rekening_${nama_alias}_${tahun}-${String(bulan).padStart(2, '0')}.pdf`);
               showNotification(`Rekening ${nama_alias} periode ${bulan}/${tahun} berhasil dicetak`);
               setShowRekeningModal(false);
               setRekeningData(null);
             } else {
-              showNotification(result.message || 'Gagal mencetak rekening', 'error');
+              throw new Error('Gagal mengunduh rekening');
             }
           } catch {
             showNotification('Terjadi kesalahan saat mencetak rekening', 'error');
+            throw new Error('Gagal mengunduh rekening');
           }
         }}
       />

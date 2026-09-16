@@ -2,9 +2,13 @@ import React, { useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Edit, Trash2, FileText, Receipt, ScrollText } from 'lucide-react';
 
-const ActionMenu = ({ row, onEdit, onDelete, onSuratJalan, onKwitansi, onSsth, onClose, buttonRef }) => {
+const ActionMenu = ({ row, onEdit, onDelete, onSuratJalan, onKwitansi, onSsth, onClose, buttonRef, documentLoading = [] }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
+    const positioned = Boolean(menuStyle);
+    useLayoutEffect(() => {
+        if (positioned) menuRef.current?.querySelector('button:not(:disabled)')?.focus();
+    }, [positioned]);
 
     useLayoutEffect(() => {
         const MENU_WIDTH = 208; // w-52 = 13rem = 208px
@@ -72,6 +76,7 @@ const ActionMenu = ({ row, onEdit, onDelete, onSuratJalan, onKwitansi, onSsth, o
         },
         {
             label: 'Surat Jalan',
+            type: 'surat_jalan',
             icon: FileText,
             onClick: () => onSuratJalan(row),
             className: 'text-gray-700',
@@ -81,21 +86,23 @@ const ActionMenu = ({ row, onEdit, onDelete, onSuratJalan, onKwitansi, onSsth, o
             text: 'text-blue-600',
         },
         {
-            label: 'Kwitansi Pengiriman',
+            label: 'Rincian Biaya Pengiriman',
+            type: 'kwitansi',
             icon: Receipt,
             onClick: () => onKwitansi(row),
             className: 'text-gray-700',
-            description: 'Cetak kwitansi pengiriman',
+            description: 'Bukan bukti pembayaran',
             bg: 'bg-emerald-100',
             hoverBg: 'group-hover:bg-emerald-200',
             text: 'text-emerald-600',
         },
         {
             label: 'SSTH',
+            type: 'ssth',
             icon: ScrollText,
             onClick: () => onSsth(row),
             className: 'text-gray-700',
-            description: 'Cetak SSTH',
+            description: 'Status penerimaan sesuai PDF',
             bg: 'bg-violet-100',
             hoverBg: 'group-hover:bg-violet-200',
             text: 'text-violet-600',
@@ -129,6 +136,17 @@ const ActionMenu = ({ row, onEdit, onDelete, onSuratJalan, onKwitansi, onSsth, o
             className="w-52 bg-white/95 backdrop-blur-lg rounded-xl shadow-xl border border-gray-200/50 overflow-hidden transition-all duration-150 animate-in slide-in-from-top-2 fade-in-0"
             role="menu"
             aria-label="Menu Aksi"
+            onKeyDown={(event) => {
+                const buttons = [...menuRef.current.querySelectorAll('button:not(:disabled)')];
+                const index = buttons.indexOf(document.activeElement);
+                if (event.key === 'Escape') { event.preventDefault(); onClose(); buttonRef.current?.focus(); }
+                if (event.key === 'Tab') onClose();
+                if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+                    event.preventDefault();
+                    const next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length;
+                    buttons[next]?.focus();
+                }
+            }}
         >
             <div className="px-3 py-2 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200/50">
                 <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Menu Aksi</p>
@@ -140,7 +158,9 @@ const ActionMenu = ({ row, onEdit, onDelete, onSuratJalan, onKwitansi, onSsth, o
                     ) : (
                         <button
                             key={action.label}
-                            onClick={() => { action.onClick(); onClose(); }}
+                            disabled={documentLoading.includes(`${action.type}:${row.pubid}`)}
+                            aria-busy={documentLoading.includes(`${action.type}:${row.pubid}`)}
+                            onClick={() => { buttonRef.current?.focus(); action.onClick(); onClose(); }}
                             className={`w-full text-left flex items-center px-3 py-2.5 text-sm hover:bg-gradient-to-r transition-all duration-150 rounded-lg group mt-1 ${action.className}`}
                             role="menuitem"
                             tabIndex={0}
@@ -150,7 +170,7 @@ const ActionMenu = ({ row, onEdit, onDelete, onSuratJalan, onKwitansi, onSsth, o
                             </div>
                             <div className="flex-1">
                                 <span className="font-semibold block text-xs">{action.label}</span>
-                                <p className="text-xs text-gray-500 mt-0.5">{action.description}</p>
+                                <p className="text-xs text-gray-500 mt-0.5">{documentLoading.includes(`${action.type}:${row.pubid}`) ? 'Memproses...' : action.description}</p>
                             </div>
                         </button>
                     )
