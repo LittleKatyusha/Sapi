@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { createPortal } from 'react-dom';
 import {
-  Wallet, Search, Eye, Loader2, FileText, AlertCircle, CheckCircle, Banknote, MoreVertical,
+  Wallet, Search, Loader2, FileText, AlertCircle, CheckCircle, Banknote,
   SlidersHorizontal, ChevronDown, RotateCcw, ArrowDownCircle, X
 } from 'lucide-react';
 import DataTable from 'react-data-table-component';
@@ -12,75 +11,7 @@ import PenjualanBoningService from '../../../../services/penjualanBoningService'
 import PenjualanKarkasService from '../../../../services/penjualanKarkasService';
 import PenjualanKulitService from '../../../../services/penjualanKulitService.js';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
-
-// Action menu cell with portal to escape table overflow clipping
-const ActionMenuCell = ({ row, onDetail, onBayar }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
-  const buttonRef = useRef(null);
-  const menuRef = useRef(null);
-
-  const toggleMenu = () => {
-    if (!isOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setMenuPos({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX - 140,
-      });
-    }
-    setIsOpen((prev) => !prev);
-  };
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleClickOutside = (e) => {
-      const isInsideButton = buttonRef.current && buttonRef.current.contains(e.target);
-      const isInsideMenu = menuRef.current && menuRef.current.contains(e.target);
-      if (!isInsideButton && !isInsideMenu) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [isOpen]);
-
-  const menuContent = (
-    <div
-      ref={menuRef}
-      className="fixed bg-white rounded-xl shadow-2xl border border-gray-200 py-1 w-40 z-[99999]"
-      style={{ top: menuPos.top, left: menuPos.left }}
-    >
-      <button
-        onClick={() => { setIsOpen(false); onDetail(row); }}
-        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 flex items-center gap-2 transition"
-      >
-        <Eye className="w-4 h-4 text-blue-500" /> Detail
-      </button>
-      {(row.sisa_pembayaran || 0) > 0 && (
-        <button
-          onClick={() => { setIsOpen(false); onBayar(row); }}
-          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50 flex items-center gap-2 transition"
-        >
-          <Banknote className="w-4 h-4 text-emerald-500" /> Bayar
-        </button>
-      )}
-    </div>
-  );
-
-  return (
-    <div className="relative">
-      <button
-        ref={buttonRef}
-        onClick={toggleMenu}
-        className={`p-2 rounded-lg transition ${isOpen ? 'bg-gray-100 text-gray-800' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}`}
-        title="Menu"
-      >
-        <MoreVertical className="w-5 h-5" />
-      </button>
-      {isOpen && createPortal(menuContent, document.body)}
-    </div>
-  );
-};
+import KeuanganDocumentMenu, { useKeuanganDocument } from '../KeuanganDocumentMenu';
 
 const JENIS_PENJUALAN_OPTIONS = [
   { value: 'sapi_qurban_utuh', label: 'Sapi Qurban / Utuh' },
@@ -211,6 +142,7 @@ const normalizeKulitRow = (row) => {
 
 const normalizeHistoryRow = (row, jenisValue) => ({
   ...row,
+  document_jenis: jenisValue,
   purchase_type_label: row.purchase_type_label || (jenisValue === 'boning' ? 'Penjualan Boning' : (jenisValue === 'karkas' ? 'Penjualan Karkas' : (jenisValue === 'kulit' ? 'Penjualan Kulit' : 'Sapi Qurban / Utuh'))),
 });
 
@@ -237,6 +169,7 @@ const SummaryCard = ({ label, value, icon: Icon, color }) => {
 const PenerimaanRphPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const documents = useKeuanganDocument('penerimaan');
   const hutangCtx = location.state?.mode === 'bayar_hutang' ? location.state?.pedagang : null;
   const [activeTab, setActiveTab] = useState('transaksi');
   const [jenisValue, setJenisValue] = useState('sapi_qurban_utuh');
@@ -321,13 +254,16 @@ const PenerimaanRphPage = () => {
       });
 
     if (result.success && result.data) {
-      setTableData((result.data || []).map((row) => (
+      setTableData((result.data || []).map((source) => {
+        const row = { ...source, document_jenis: jenisValue };
+        return (
         jenisValue === 'boning'
           ? normalizeBoningRow(row)
           : (jenisValue === 'karkas'
           ? normalizeKarkasRow(row)
           : (jenisValue === 'kulit' ? normalizeKulitRow(row) : normalizeSapiRow(row)))
-      )));
+        );
+      }));
     } else {
       setTableError(result.message || 'Gagal memuat data penerimaan');
     }
@@ -386,6 +322,7 @@ const PenerimaanRphPage = () => {
 
   // History DataTable columns
   const historyColumns = [
+    { name: 'Aksi', width: '72px', cell: row => <KeuanganDocumentMenu row={row} arah="penerimaan" history documents={documents} /> },
     {
       name: 'Tgl Bayar',
       selector: (row) => row.payment_date,
@@ -581,7 +518,9 @@ const PenerimaanRphPage = () => {
       center: true,
       width: '52px',
       cell: (row) => (
-        <ActionMenuCell
+        <KeuanganDocumentMenu
+          arah="penerimaan"
+          documents={documents}
           row={row}
           onDetail={(r) => navigate(
             jenisValue === 'boning'
@@ -620,7 +559,7 @@ const PenerimaanRphPage = () => {
       });
     }
     return baseCols;
-  }, [navigate, jenisValue, hutangCtx]);
+  }, [navigate, jenisValue, hutangCtx, documents]);
 
   const customStyles = {
     headRow: { style: { backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0', minHeight: '44px' } },
@@ -633,6 +572,7 @@ const PenerimaanRphPage = () => {
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
       <div className="max-w-[1800px] mx-auto space-y-4">
+        {documents.downloadError && <p role="alert" className="p-3 bg-red-50 text-red-700 rounded-lg">{documents.downloadError}</p>}
         {/* Header */}
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">

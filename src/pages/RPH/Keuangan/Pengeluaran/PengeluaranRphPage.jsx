@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { createPortal } from 'react-dom';
 import {
-  Wallet, Search, Eye, Loader2, Banknote, MoreVertical, ArrowUpCircle, CheckCircle, Clock,
+  Wallet, Search, Loader2, Banknote, ArrowUpCircle, CheckCircle, Clock,
   SlidersHorizontal, ChevronDown, RotateCcw, X, AlertCircle
 } from 'lucide-react';
 import DataTable from 'react-data-table-component';
 import usePengeluaranRph from '../../../../hooks/usePengeluaranRph';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
+import KeuanganDocumentMenu, { useKeuanganDocument } from '../KeuanganDocumentMenu';
 
 const JENIS_PEMBELIAN_OPTIONS = [
   { value: 'sapi', label: 'Pembelian Sapi RPH' },
@@ -21,101 +21,6 @@ const JENIS_PEMBELIAN_OPTIONS = [
   { value: 'rph_ovk_ho', label: 'Pembelian OVK RPH (dari HO)' },
   { value: 'rph_hewan', label: 'Pembelian Hewan RPH (dari Vendor)' },
 ];
-
-const ActionMenuCell = ({ row, onDetail, onBayar }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [menuPos, setMenuPos] = useState(null);
-  const buttonRef = useRef(null);
-  const menuRef = useRef(null);
-
-  const updatePosition = useCallback(() => {
-    if (!buttonRef.current) return;
-    const rect = buttonRef.current.getBoundingClientRect();
-    const menuWidth = 160;
-    const gap = 4;
-    const padding = 8;
-    // position:fixed uses viewport coords — do not add scrollY/scrollX
-    let left = rect.right - menuWidth;
-    left = Math.max(padding, Math.min(left, window.innerWidth - menuWidth - padding));
-    let top = rect.bottom + gap;
-    if (top + 120 > window.innerHeight) {
-      top = Math.max(padding, rect.top - 120 - gap);
-    }
-    setMenuPos({ top, left });
-  }, []);
-
-  const toggleMenu = (e) => {
-    e.stopPropagation();
-    if (!isOpen) {
-      updatePosition();
-      setIsOpen(true);
-    } else {
-      setIsOpen(false);
-      setMenuPos(null);
-    }
-  };
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleClickOutside = (e) => {
-      const isInsideButton = buttonRef.current && buttonRef.current.contains(e.target);
-      const isInsideMenu = menuRef.current && menuRef.current.contains(e.target);
-      if (!isInsideButton && !isInsideMenu) {
-        setIsOpen(false);
-        setMenuPos(null);
-      }
-    };
-    const onScrollOrResize = () => updatePosition();
-    document.addEventListener('mousedown', handleClickOutside);
-    window.addEventListener('scroll', onScrollOrResize, true);
-    window.addEventListener('resize', onScrollOrResize);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      window.removeEventListener('scroll', onScrollOrResize, true);
-      window.removeEventListener('resize', onScrollOrResize);
-    };
-  }, [isOpen, updatePosition]);
-
-  const menuContent = menuPos && (
-    <div
-      ref={menuRef}
-      className="fixed bg-white rounded-xl shadow-2xl border border-gray-200 py-1 w-40 z-[99999]"
-      style={{ top: menuPos.top, left: menuPos.left }}
-    >
-      <button
-        type="button"
-        onClick={() => { setIsOpen(false); setMenuPos(null); onDetail(row); }}
-        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 flex items-center gap-2 transition"
-      >
-        <Eye className="w-4 h-4 text-blue-500" /> Detail
-      </button>
-      {(row.sisa_pembayaran || 0) > 0 && (
-        <button
-          type="button"
-          onClick={() => { setIsOpen(false); setMenuPos(null); onBayar(row); }}
-          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50 flex items-center gap-2 transition"
-        >
-          <Banknote className="w-4 h-4 text-emerald-500" /> Bayar
-        </button>
-      )}
-    </div>
-  );
-
-  return (
-    <div className="relative">
-      <button
-        ref={buttonRef}
-        type="button"
-        onClick={toggleMenu}
-        className={`p-2 rounded-lg transition ${isOpen ? 'bg-gray-100 text-gray-800' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}`}
-        title="Menu"
-      >
-        <MoreVertical className="w-5 h-5" />
-      </button>
-      {isOpen && menuContent && createPortal(menuContent, document.body)}
-    </div>
-  );
-};
 
 const PAYMENT_STATUS_CONFIG = {
   2: { label: 'Belum Bayar', bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200' },
@@ -186,6 +91,7 @@ const INITIAL_ADVANCED = {
 const PengeluaranRphPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const documents = useKeuanganDocument('pengeluaran');
   const hutangCtx = location.state?.mode === 'bayar_hutang' ? location.state?.pedagang : null;
   const [activeTab, setActiveTab] = useState('transaksi');
   const [jenisValue, setJenisValue] = useState('sapi');
@@ -208,7 +114,7 @@ const PengeluaranRphPage = () => {
         tanggal_akhir: appliedFilters.tanggal_akhir || undefined,
       });
       if (result.success) {
-        setHistoryData(result.data || []);
+        setHistoryData((result.data || []).map(row => ({ ...row, document_jenis: jenisValue })));
       }
       return;
     }
@@ -221,7 +127,7 @@ const PengeluaranRphPage = () => {
       tanggal_akhir: appliedFilters.tanggal_akhir || undefined,
     });
     if (result.success) {
-      setTableData(result.data || []);
+      setTableData((result.data || []).map(row => ({ ...row, document_jenis: jenisValue })));
     }
   }, [isHistory, fetchList, fetchHistory, jenisValue, appliedFilters]);
 
@@ -279,6 +185,7 @@ const PengeluaranRphPage = () => {
   const columns = useMemo(() => {
     if (isHistory) {
       const cols = [
+        { name: 'Aksi', width: '72px', cell: row => <KeuanganDocumentMenu row={row} arah="pengeluaran" history documents={documents} /> },
         {
           name: 'No PO / Nota',
           cell: (r) => (
@@ -393,7 +300,7 @@ const PengeluaranRphPage = () => {
       {
         name: 'Aksi',
         right: true,
-        cell: (r) => <ActionMenuCell row={r} onDetail={onDetail} onBayar={onBayar} />,
+        cell: (r) => <KeuanganDocumentMenu row={r} arah="pengeluaran" documents={documents} onDetail={onDetail} onBayar={onBayar} />,
       },
     ];
     if (hutangCtx) {
@@ -410,7 +317,7 @@ const PengeluaranRphPage = () => {
       });
     }
     return cols;
-  }, [isHistory, onBayar, onDetail, hutangCtx]);
+  }, [isHistory, onBayar, onDetail, hutangCtx, documents]);
 
   const customStyles = {
     headRow: { style: { backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0', minHeight: '44px' } },
@@ -422,6 +329,7 @@ const PengeluaranRphPage = () => {
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
       <div className="max-w-[1800px] mx-auto space-y-4">
+        {documents.downloadError && <p role="alert" className="p-3 bg-red-50 text-red-700 rounded-lg">{documents.downloadError}</p>}
         {/* Header */}
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
