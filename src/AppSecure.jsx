@@ -162,6 +162,7 @@ const DetailPenawaranPage = lazy(() => import('./pages/RPH/Penawaran/DetailPenaw
 // RPH Qurban Pages - Lazy loaded
 const StokSapiQurbanPage = lazy(() => import('./pages/RPH/Qurban/StokSapiQurbanPage'));
 const StokDokaPage = lazy(() => import('./pages/RPH/Persediaan/StokDoka/StokDokaPage'));
+const EditStokDokaPage = lazy(() => import('./pages/RPH/Persediaan/StokDoka/EditStokDokaPage'));
 const TambahAnakanDokaPage = lazy(() => import('./pages/RPH/Persediaan/StokDoka/TambahAnakanDokaPage'));
 
 // RPH Perpindahan Ternak Page - Lazy loaded
@@ -556,6 +557,7 @@ function AppSecure() {
               {/* RPH Qurban Routes */}
               <Route path="/rph/stok-sapi-qurban" element={<StokSapiQurbanPage />} />
               <Route path="/rph/stok-doka" element={<StokDokaPage />} />
+              <Route path="/rph/stok-doka/edit/:pid" element={<EditStokDokaPage />} />
               <Route path="/rph/stok-doka/tambah-anakan" element={<TambahAnakanDokaPage />} />
 
               {/* RPH Perpindahan Ternak Route */}

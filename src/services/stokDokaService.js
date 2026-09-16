@@ -73,6 +73,28 @@ class StokDokaService {
     }
   }
 
+  static async update(payload) {
+    try {
+      const response = await HttpClient.post(`${this.API_PREFIX}/update`, payload);
+      HttpClient.clearCache('stokdoka');
+      return { success: true, data: response.data, message: response.message || 'Data berhasil diperbarui' };
+    } catch (error) {
+      const message = error?.data?.data && typeof error.data.data === 'object'
+        ? Object.values(error.data.data).flat().join(', ')
+        : error?.data?.message || error?.message || 'Gagal memperbarui data';
+      return { success: false, data: null, message };
+    }
+  }
+
+  static async history(pid) {
+    try {
+      const response = await HttpClient.post(`${this.API_PREFIX}/history`, { pid });
+      return { success: true, data: response.data, message: 'Data retrieved successfully' };
+    } catch (error) {
+      return { success: false, data: null, message: error?.data?.message || error?.message || 'Gagal memuat riwayat' };
+    }
+  }
+
   /**
    * Daftar klasifikasi hewan (kambing/domba) untuk dropdown form anakan.
    * Endpoint: GET /api/rph/stokdoka/klasifikasi-options
