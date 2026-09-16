@@ -80,13 +80,15 @@ test('page recap uses applied filters only, absent on event tabs', async () => {
   await waitFor(() => expect(HttpClient.get).toHaveBeenCalledWith('/api/rph/qurban/potong-paksa/data', expect.any(Object)));
 });
 
-test('sapi mati tab places actions in the last column', async () => {
+test('sapi mati tab displays loss and places actions in the last column', async () => {
   HttpClient.get.mockImplementation((url) => Promise.resolve(url.includes('/sapi-mati/data')
-    ? { data: [{ pid: 'death-one', eartag: 'SM-1', tgl_kematian: '2026-09-15' }], recordsFiltered: 1 }
+    ? { data: [{ pid: 'death-one', eartag: 'SM-1', tgl_kematian: '2026-09-15', kerugian: { total_kerugian: 1250000 } }], recordsFiltered: 1 }
     : { data: [], recordsFiltered: 0 }));
   render(<StokSapiQurbanPage />);
   fireEvent.click(screen.getByRole('button', { name: /Riwayat Sapi Mati/ }));
   const table = await screen.findByRole('table');
+  expect(within(table).getByRole('columnheader', { name: 'Kerugian' })).toBeInTheDocument();
+  expect(within(table).getByText('Rp 1.250.000')).toBeInTheDocument();
   expect(within(table).getAllByRole('columnheader').at(-1)).toHaveTextContent('Aksi');
   expect(within(within(table).getAllByRole('row')[1]).getAllByRole('cell').at(-1))
     .toContainElement(screen.getByRole('button', { name: 'Menu Aksi' }));
