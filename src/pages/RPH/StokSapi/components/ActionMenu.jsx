@@ -2,7 +2,7 @@ import React, { useRef, useState, useLayoutEffect, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, Edit, Trash2, Package, Scissors, AlertTriangle, Beef, Download, Loader2 } from 'lucide-react';
 
-const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, onClose, buttonRef, onDownload, downloadLabel, downloading }) => {
+const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, deathLabel = 'Sapi Mati', onClose, buttonRef, onDownload, downloadLabel, downloading }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
 
@@ -146,7 +146,7 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onP
     ] : []),
     ...(onSapiMati ? [
       {
-        label: 'Sapi Mati',
+        label: deathLabel,
         icon: AlertTriangle,
         onClick: () => {
           onSapiMati(row);

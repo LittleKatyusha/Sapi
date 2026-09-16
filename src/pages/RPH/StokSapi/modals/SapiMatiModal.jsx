@@ -77,7 +77,7 @@ const Field = ({ label, required = false, helperText, children }) => (
   </div>
 );
 
-const SapiMatiModal = ({ isOpen, onClose, onSuccess, cowData, editData = null }) => {
+const SapiMatiModal = ({ isOpen, onClose, onSuccess, cowData, editData = null, animalLabel = 'Sapi' }) => {
   const [tglKematian, setTglKematian] = useState(getToday());
   const [idSebabKematian, setIdSebabKematian] = useState(null);
   const [idMengetahui, setIdMengetahui] = useState(null);
@@ -192,7 +192,7 @@ const SapiMatiModal = ({ isOpen, onClose, onSuccess, cowData, editData = null })
     }
 
     setIsSubmitting(true);
-    setNotification({ type: 'info', message: 'Menyimpan data sapi mati...' });
+    setNotification({ type: 'info', message: `Menyimpan data ${animalLabel} mati...` });
 
     const payload = {
       pid: editData?.pid || cowData?.pid,
@@ -208,7 +208,7 @@ const SapiMatiModal = ({ isOpen, onClose, onSuccess, cowData, editData = null })
       : await StokSapiService.sapiMati(payload);
 
     if (response.success) {
-      setNotification({ type: 'success', message: response.message || `Data sapi mati berhasil ${editData ? 'diperbarui' : 'disimpan'}.` });
+      setNotification({ type: 'success', message: response.message || `Data ${animalLabel} mati berhasil ${editData ? 'diperbarui' : 'disimpan'}.` });
       setIsSubmitting(false);
       setTimeout(() => {
         handleClose();
@@ -217,7 +217,7 @@ const SapiMatiModal = ({ isOpen, onClose, onSuccess, cowData, editData = null })
       return;
     }
 
-    setNotification({ type: 'error', message: response.message || 'Gagal menyimpan data sapi mati.' });
+    setNotification({ type: 'error', message: response.message || `Gagal menyimpan data ${animalLabel} mati.` });
     setIsSubmitting(false);
   };
 
@@ -237,8 +237,8 @@ const SapiMatiModal = ({ isOpen, onClose, onSuccess, cowData, editData = null })
                 <AlertTriangle className="h-6 w-6" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-slate-900">Sapi Mati</h2>
-                <p className="text-sm text-slate-500">Form pencatatan sapi mati</p>
+                <h2 className="text-xl font-bold text-slate-900">{animalLabel} Mati</h2>
+                <p className="text-sm text-slate-500">Form pencatatan {animalLabel} mati</p>
               </div>
             </div>
             <button

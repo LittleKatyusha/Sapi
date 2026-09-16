@@ -8,6 +8,7 @@ jest.mock('react-router-dom', () => ({ useNavigate: () => jest.fn(), useLocation
 jest.mock('../../StokSapi/modals/BeriPakanKonsentratModal', () => () => null);
 jest.mock('../../StokSapi/modals/BulkAssignKandangModal', () => () => null);
 jest.mock('../../StokSapi/modals/HistoryPakanKonsentratModal', () => () => null);
+jest.mock('../../StokSapi/modals/SapiMatiModal', () => ({ isOpen, cowData, animalLabel }) => isOpen ? <div data-testid="death-modal">{animalLabel}:{cowData.pid}</div> : null);
 jest.mock('../../../../services/stokDokaService', () => ({ __esModule: true, default: { getData: jest.fn(), downloadDocument: jest.fn() } }));
 beforeEach(() => {
   jest.clearAllMocks();
@@ -71,4 +72,11 @@ test('recap sends applied filters, not draft filters or pagination', async () =>
     start_date: '2026-09-01', end_date: '2026-09-15', search: 'Kambing',
   }));
   expect(await screen.findByRole('alert')).toHaveTextContent('Gagal PDF');
+});
+
+test('DOKA death action opens death module with selected PID', async () => {
+  render(<StokDokaPage />);
+  fireEvent.click((await screen.findAllByRole('button', { name: 'Menu Aksi' }))[1]);
+  fireEvent.click(screen.getByText('DOKA Mati'));
+  expect(screen.getByTestId('death-modal')).toHaveTextContent('DOKA:two');
 });

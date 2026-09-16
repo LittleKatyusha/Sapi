@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { MoreVertical } from 'lucide-react';
 import ActionMenu from './ActionMenu';
 
-const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, isActive, onDownload, downloadLabel, downloading }) => {
+const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, deathLabel, isActive, onDownload, downloadLabel, downloading }) => {
   const buttonRef = useRef(null);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -59,6 +59,7 @@ const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDeta
           onPotongPaksa={onPotongPaksa}
           onPotongSapiBiasa={onPotongSapiBiasa}
           onSapiMati={onSapiMati}
+          deathLabel={deathLabel}
           onDownload={onDownload}
           downloadLabel={downloadLabel}
           downloading={downloading}

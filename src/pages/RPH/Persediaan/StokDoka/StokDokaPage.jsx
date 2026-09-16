@@ -9,6 +9,7 @@ import useStokSapiDocument from '../../StokSapi/useStokSapiDocument';
 import BeriPakanKonsentratModal from '../../StokSapi/modals/BeriPakanKonsentratModal';
 import BulkAssignKandangModal from '../../StokSapi/modals/BulkAssignKandangModal';
 import HistoryPakanKonsentratModal from '../../StokSapi/modals/HistoryPakanKonsentratModal';
+import SapiMatiModal from '../../StokSapi/modals/SapiMatiModal';
 
 const DEFAULT_PAGE_SIZE = 10;
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
@@ -42,6 +43,7 @@ const StokDokaPage = () => {
   const [bulkKandangModalOpen, setBulkKandangModalOpen] = useState(false);
   const [beriPakanModalOpen, setBeriPakanModalOpen] = useState(false);
   const [historyPakanTarget, setHistoryPakanTarget] = useState(null);
+  const [deathTarget, setDeathTarget] = useState(null);
 
   const rows = useMemo(() => data?.rows || [], [data]);
   const recordsTotal = data?.recordsTotal ?? 0;
@@ -437,6 +439,8 @@ const StokDokaPage = () => {
                             onDetail={() => handleDetail(row)}
                             onEdit={() => navigate(`/rph/stok-doka/edit/${encodeURIComponent(row.pid)}`)}
                             onOvk={() => handleOvk(row)}
+                            onSapiMati={() => setDeathTarget(row)}
+                            deathLabel="DOKA Mati"
                           />
                         </div>
                       </td>
@@ -696,6 +700,17 @@ const StokDokaPage = () => {
         isOpen={Boolean(historyPakanTarget)}
         onClose={() => setHistoryPakanTarget(null)}
         sapi={historyPakanTarget}
+      />
+
+      <SapiMatiModal
+        isOpen={Boolean(deathTarget)}
+        onClose={() => setDeathTarget(null)}
+        onSuccess={() => {
+          setDeathTarget(null);
+          setDraw((d) => d + 1);
+        }}
+        cowData={deathTarget}
+        animalLabel="DOKA"
       />
     </div>
   );
