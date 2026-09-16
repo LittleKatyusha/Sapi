@@ -27,6 +27,13 @@ const tableQuery = (params = {}) => {
 };
 
 const PenjualanKulitService = {
+  async downloadDocument(type, { pid } = {}) {
+    if (!['nota', 'surat-jalan'].includes(type) || typeof pid !== 'string' || !pid.trim()) throw new Error('PID atau jenis dokumen tidak valid');
+    const blob = await HttpClient.post('/api/rph/penjualan/kulit/document', { pid, type }, { responseType: 'blob' });
+    if (!(blob instanceof Blob) || !blob.size || (blob.type && !['application/pdf', 'application/octet-stream'].includes(blob.type.toLowerCase()))
+      || await blob.slice(0, 5).text() !== '%PDF-') throw new Error('Respons server bukan dokumen PDF yang valid');
+    return blob;
+  },
   async getData(params = {}) {
     try {
       const res = await HttpClient.get(`${EP.DATA}?${tableQuery(params).toString()}`);
