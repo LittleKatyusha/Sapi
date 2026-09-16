@@ -556,6 +556,7 @@ function AppSecure() {
 
               {/* RPH Qurban Routes */}
               <Route path="/rph/stok-sapi-qurban" element={<StokSapiQurbanPage />} />
+              <Route path="/rph/stok-sapi-qurban/edit/:pid" element={<EditStokSapiPage entityName="Sapi Qurban" backUrl="/rph/stok-sapi-qurban" />} />
               <Route path="/rph/stok-doka" element={<StokDokaPage />} />
               <Route path="/rph/stok-doka/edit/:pid" element={<EditStokDokaPage />} />
               <Route path="/rph/stok-doka/tambah-anakan" element={<TambahAnakanDokaPage />} />
