@@ -12,7 +12,7 @@ import usePenawaranPenjualan from '../../../hooks/usePenawaranPenjualan';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import usePenawaranDocument from './usePenawaranDocument';
 
-const ActionMenuPortal = ({ row, menuPos, onClose, onDetail, onEdit, onAjukan, onSetujui, onDelete, onDownload, downloading }) => {
+const ActionMenuPortal = ({ row, menuPos, onClose, onDetail, onEdit, onAjukan, onSetujui, onDelete, onDownload, downloading, showDocument = false }) => {
   const menuRef = useRef(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -52,12 +52,14 @@ const ActionMenuPortal = ({ row, menuPos, onClose, onDetail, onEdit, onAjukan, o
       >
         <Eye className="w-3.5 h-3.5 text-blue-500" /> Lihat Detail
       </button>
-      <button role="menuitem" disabled={Boolean(downloading)} aria-busy={downloading === `dispensasi:${row.pid}`}
-        onClick={() => onDownload(row)}
-        className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed">
-        {downloading === `dispensasi:${row.pid}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
-        {downloading === `dispensasi:${row.pid}` ? 'Mengunduh PDF...' : 'Unduh Surat PDF'}
-      </button>
+      {showDocument && (
+        <button role="menuitem" disabled={Boolean(downloading)} aria-busy={downloading === `dispensasi:${row.pid}`}
+          onClick={() => onDownload(row)}
+          className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed">
+          {downloading === `dispensasi:${row.pid}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
+          {downloading === `dispensasi:${row.pid}` ? 'Mengunduh PDF...' : 'Unduh Surat PDF'}
+        </button>
+      )}
       {row.status === 'draft' && (
         <button role="menuitem"
           onClick={() => onEdit(row.pid)}
@@ -116,7 +118,7 @@ const STATUS_OPTIONS = [
   { value: 'ditolak', label: 'Ditolak' },
 ];
 
-const PenawaranPage = () => {
+const PenawaranPage = ({ showDocument = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { download, downloading, downloadError } = usePenawaranDocument();
@@ -372,6 +374,7 @@ const PenawaranPage = () => {
         <ActionMenuPortal
           row={tableData.find(r => r.pid === openMenuId)}
           menuPos={menuPos}
+          showDocument={showDocument}
           onDownload={download}
           downloading={downloading}
           onClose={() => { setOpenMenuId(null); setMenuPos(null); }}
@@ -388,7 +391,7 @@ const PenawaranPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 md:p-8">
       <div className="w-full space-y-6">
-        {downloadError && <div role="alert" className="rounded-lg border border-red-200 bg-white p-4 text-sm text-red-700">{downloadError}</div>}
+        {showDocument && downloadError && <div role="alert" className="rounded-lg border border-red-200 bg-white p-4 text-sm text-red-700">{downloadError}</div>}
         {/* Notification Toast */}
         {notification && (
           <div className="fixed top-4 right-4 z-[100001] animate-slide-in-right">

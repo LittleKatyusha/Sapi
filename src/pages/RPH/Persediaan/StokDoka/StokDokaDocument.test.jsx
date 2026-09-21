@@ -20,7 +20,7 @@ beforeEach(() => {
 test('two identical labels use distinct PIDs, isolated loading, portal, guard and Escape focus', async () => {
   let reject;
   service.downloadDocument.mockImplementation(() => new Promise((resolve, fail) => { reject = fail; }));
-  render(<StokDokaPage />);
+  render(<StokDokaPage showCard />);
   const buttons = await screen.findAllByRole('button', { name: 'Menu Aksi' });
   fireEvent.click(buttons[0]);
   await waitFor(() => expect(screen.getByText('Kartu Ternak Doka PDF').closest('button')).toHaveFocus());
@@ -48,7 +48,7 @@ test('second row download sanitizes filename, cleans Blob URL and anchor', async
     expect(this.download).toBe('card_Doka____Sama.pdf');
   });
   service.downloadDocument.mockResolvedValue(new Blob(['%PDF-1.7']));
-  render(<StokDokaPage />);
+  render(<StokDokaPage showCard />);
   fireEvent.click((await screen.findAllByRole('button', { name: 'Menu Aksi' }))[1]);
   fireEvent.click(screen.getByText('Kartu Ternak Doka PDF'));
   await waitFor(() => expect(click).toHaveBeenCalledTimes(1));

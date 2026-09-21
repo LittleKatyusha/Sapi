@@ -15,7 +15,7 @@ import SapiMatiTab from '../../StokSapi/components/SapiMatiTab';
 const DEFAULT_PAGE_SIZE = 10;
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
-const StokDokaPage = () => {
+const StokDokaPage = ({ showCard = false }) => {
   useDocumentTitle('Stok DOKA RPH');
   const navigate = useNavigate();
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -452,9 +452,9 @@ const StokDokaPage = () => {
                         <div className="flex items-center justify-center">
                           <ActionButton
                             row={{ id: row.pid || row.no_urut, ...row }}
-                            downloadLabel="Kartu Ternak Doka PDF"
-                            downloading={downloading === `card:${row.pid}`}
-                            onDownload={() => download('card', row.pid, { pid: row.pid }, `Doka_${row.eartag || 'Ternak'}`)}
+                            downloadLabel={showCard ? "Kartu Ternak Doka PDF" : undefined}
+                            downloading={showCard ? downloading === `card:${row.pid}` : undefined}
+                            onDownload={showCard ? () => download('card', row.pid, { pid: row.pid }, `Doka_${row.eartag || 'Ternak'}`) : undefined}
                             openMenuId={openMenuId}
                             setOpenMenuId={setOpenMenuId}
                             onDetail={() => handleDetail(row)}

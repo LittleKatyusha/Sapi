@@ -14,7 +14,7 @@ import StokQurbanDocumentService from '../../../services/stokQurbanDocumentServi
 
 const initialAdvanced = { eartag: '', eartag_supplier: '', nota_qurban: '', status: '' };
 
-export const ActionMenuCell = ({ row, menuOpen, setMenuOpen, menuPos, setMenuPos, menuButtonRefs, setRestoreTarget, setPotongPaksaTarget, setSapiMatiTarget, setBeriOvkTarget, onEdit, documentType = 'card', download, downloading }) => {
+export const ActionMenuCell = ({ row, menuOpen, setMenuOpen, menuPos, setMenuPos, menuButtonRefs, setRestoreTarget, setPotongPaksaTarget, setSapiMatiTarget, setBeriOvkTarget, onEdit, documentType = 'card', showCard = true, download, downloading }) => {
   const key = `${documentType}:${row.pid}`;
   const documentLabel = documentType === 'card' ? 'Kartu Sapi Qurban PDF' : documentType === 'potong-paksa' ? 'Laporan Potong Paksa PDF' : 'Laporan Kematian PDF';
   const menuRef = useRef(null);
@@ -91,10 +91,12 @@ export const ActionMenuCell = ({ row, menuOpen, setMenuOpen, menuPos, setMenuPos
                 <Pencil className="w-3.5 h-3.5" /> Edit
               </button>
             )}
-            <button role="menuitem" disabled={downloading === key} onClick={() => download(documentType, row.pid, { pid: row.pid }, row.eartag)}
-              className="w-full px-3 py-2 text-left flex items-center gap-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 focus-visible:outline focus-visible:outline-emerald-600">
-              <FileText className="w-3.5 h-3.5" />{documentLabel}
-            </button>
+            {(documentType !== 'card' || showCard) && (
+              <button role="menuitem" disabled={downloading === key} onClick={() => download(documentType, row.pid, { pid: row.pid }, row.eartag)}
+                className="w-full px-3 py-2 text-left flex items-center gap-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 focus-visible:outline focus-visible:outline-emerald-600">
+                <FileText className="w-3.5 h-3.5" />{documentLabel}
+              </button>
+            )}
             {documentType === 'card' && <>
             {isTersedia && (
               <>
@@ -391,6 +393,7 @@ const StokSapiQurbanPage = () => {
       cell: (row) => (
         <ActionMenuCell
           row={row}
+          showCard={false}
           onEdit={(item) => navigate(`/rph/stok-sapi-qurban/edit/${encodeURIComponent(item.pid_sapi)}`)}
           download={download}
           downloading={downloading}

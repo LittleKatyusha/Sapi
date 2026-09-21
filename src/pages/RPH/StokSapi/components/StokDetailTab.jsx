@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Filter, Search, RotateCcw, RefreshCw, AlertCircle, Home, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Filter, Search, RotateCcw, RefreshCw, AlertCircle, Home, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle2, FileText } from 'lucide-react';
 import ActionButton from './ActionButton';
 import useStokSapiDocument from '../useStokSapiDocument';
 import StokDetailModal from './StokDetailModal';
@@ -345,6 +345,20 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
             >
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
+            <button
+              type="button"
+              onClick={() => download('stock', 'all', {
+                search: searchQueryRef.current || null,
+                kandang: kandangFilterRef.current || null,
+                start_date: startDateRef.current || null,
+                end_date: endDateRef.current || null,
+              }, 'Daftar_Stok_Sapi_Tersedia')}
+              disabled={loading || Boolean(downloading)}
+              className="inline-flex items-center gap-2 rounded-md border border-emerald-300 bg-white px-3.5 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
+            >
+              <FileText className="h-4 w-4" />
+              {downloading === 'stock:all' ? 'Mengunduh PDF...' : 'Daftar Stok Sapi PDF'}
+            </button>
           </div>
         </div>
 
@@ -588,17 +602,14 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                 >
                   <div className="flex items-center justify-center">
                     <ActionButton
-                       row={{ ...row, id: row.pid }}
-                       onDownload={() => download('card', row.pid, { pid: row.pid }, row.eartag)}
-                       downloadLabel="Kartu Ternak PDF"
-                       downloading={downloading === `card:${row.pid}`}
-                       openMenuId={openMenuId}
-                       setOpenMenuId={setOpenMenuId}
-                       onDetail={() => handleDetail(row)}
-                       onEdit={() => navigate(`/rph/stok-sapi/edit/${row.pid}`)}
-                       onDelete={() => console.log('Delete', row)}
+                        row={{ ...row, id: row.pid }}
+                        openMenuId={openMenuId}
+                        setOpenMenuId={setOpenMenuId}
+                        onDetail={() => handleDetail(row)}
+                        onEdit={() => navigate(`/rph/stok-sapi/edit/${row.pid}`)}
+                        onDelete={() => console.log('Delete', row)}
                         onOvk={() => onOvk(row)}
-                       onPotongPaksa={() => onPotongPaksa(row)}
+                        onPotongPaksa={() => onPotongPaksa(row)}
                         onPotongSapiBiasa={() => onPotongSapiBiasa(row)}
                         onSapiMati={() => onSapiMati(row)}
                     />

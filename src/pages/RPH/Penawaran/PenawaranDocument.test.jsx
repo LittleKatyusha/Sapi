@@ -25,10 +25,22 @@ beforeEach(() => {
 });
 afterEach(() => jest.restoreAllMocks());
 
+test('surat buttons are hidden by default in penawaran page and detail', async () => {
+  render(<PenawaranPage />);
+  const triggers = await screen.findAllByRole('button', { name: 'Aksi ../SPP/SAME' });
+  fireEvent.click(triggers[0]);
+  const menu = screen.getByRole('menu');
+  expect(within(menu).queryByRole('menuitem', { name: 'Unduh Surat PDF' })).not.toBeInTheDocument();
+
+  mockDetail.mockResolvedValue({ success: true, data: { ...mockRows[0], detail: [] } });
+  render(<DetailPenawaranPage />);
+  expect(screen.queryByRole('button', { name: 'Unduh Surat PDF' })).not.toBeInTheDocument();
+});
+
 test('same labels, distinct PIDs: row loading, global lock, status actions, portal keyboard and cleanup', async () => {
   let resolve;
   service.downloadDocument.mockImplementation(() => new Promise(done => { resolve = done; }));
-  render(<PenawaranPage />);
+  render(<PenawaranPage showDocument />);
   const triggers = await screen.findAllByRole('button', { name: 'Aksi ../SPP/SAME' });
   triggers[0].focus();
   fireEvent.click(triggers[0]);
@@ -74,7 +86,7 @@ test('same labels, distinct PIDs: row loading, global lock, status actions, port
 test.each(['draft', 'diajukan', 'disetujui', 'ditolak'])('detail %s downloads persisted record without printing form', async status => {
   mockDetail.mockResolvedValue({ success: true, data: { ...mockRows[0], status, detail: [] } });
   service.downloadDocument.mockRejectedValue(new Error('Respons server bukan dokumen PDF yang valid'));
-  render(<DetailPenawaranPage />);
+  render(<DetailPenawaranPage showDocument />);
   fireEvent.click(await screen.findByRole('button', { name: 'Unduh Surat PDF' }));
   await waitFor(() => expect(service.downloadDocument).toHaveBeenCalledWith('dispensasi', { pid: 'pid-one' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('bukan dokumen PDF');

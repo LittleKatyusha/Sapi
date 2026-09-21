@@ -21,7 +21,7 @@ const formatRupiah = (val) => 'Rp ' + (Number(val || 0)).toLocaleString('id-ID')
 const formatDate = (str) => str ? new Date(str).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-';
 const formatDateTime = (str) => str ? new Date(str).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '-';
 
-const DetailPenawaranPage = () => {
+const DetailPenawaranPage = ({ showDocument = false }) => {
   const { pid } = useParams();
   const navigate = useNavigate();
   const { loading, error, fetchDetail } = usePenawaranPenjualan();
@@ -71,13 +71,15 @@ const DetailPenawaranPage = () => {
 
   return (
     <div className="space-y-5">
-      {downloadError && <div role="alert" className="rounded-lg border border-red-200 bg-white p-4 text-sm text-red-700">{downloadError}</div>}
-      <button disabled={Boolean(downloading)} aria-busy={downloading === `dispensasi:${pid}`}
-        onClick={() => download({ ...data, pid })}
-        className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed">
-        {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-        {downloading ? 'Mengunduh PDF...' : 'Unduh Surat PDF'}
-      </button>
+      {showDocument && downloadError && <div role="alert" className="rounded-lg border border-red-200 bg-white p-4 text-sm text-red-700">{downloadError}</div>}
+      {showDocument && (
+        <button disabled={Boolean(downloading)} aria-busy={downloading === `dispensasi:${pid}`}
+          onClick={() => download({ ...data, pid })}
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed">
+          {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+          {downloading ? 'Mengunduh PDF...' : 'Unduh Surat PDF'}
+        </button>
+      )}
       {/* Header */}
       <div className="flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="p-2 rounded-lg text-gray-500 hover:bg-white hover:text-gray-800 transition">

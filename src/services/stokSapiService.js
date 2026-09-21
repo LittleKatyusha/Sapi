@@ -12,11 +12,12 @@ class StokSapiService {
     const urls = {
       card: `${this.API_PREFIX}/card-document`,
       recap: `${this.API_PREFIX}/recap-document`,
+      stock: `${this.API_PREFIX}/stock-document`,
       potongpaksa: '/api/rph/persediaan/potongpaksa/document',
       sapimati: '/api/rph/persediaan/sapimati/document',
     };
     if (!Object.hasOwn(urls, type)) throw new Error('Jenis dokumen tidak valid');
-    if (type !== 'recap' && (typeof params?.pid !== 'string' || !params.pid.trim())) throw new Error('PID tidak ditemukan');
+    if (!['recap', 'stock'].includes(type) && (typeof params?.pid !== 'string' || !params.pid.trim())) throw new Error('PID tidak ditemukan');
     const options = { responseType: 'blob', cache: false };
     const blob = type === 'card'
       ? await HttpClient.post(urls[type], { pid: params.pid }, options)

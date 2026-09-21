@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import DataTable from 'react-data-table-component';
 import { PlusCircle, Search, ShoppingCart, Eye, Edit2, CheckCircle, XCircle, MoreVertical, Truck, Beef, ChevronDown, ChevronUp, Banknote, Package, Calendar, User, FileText, RotateCcw, AlertTriangle, Bell, Filter, Hash, Tag } from 'lucide-react';
@@ -228,35 +228,57 @@ const ActionMenuCell = ({ row, setDeleteData, handleConfirm, handleCancel, handl
   const buttonRef = useRef(null);
   const menuRef = useRef(null);
 
-  const toggleMenu = () => {
-    if (!isOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      const menuWidth = 208; // w-52 = 13rem = 208px
-      const menuHeight = 320; // approx max height for clamping
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
+  const updatePosition = useCallback(() => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const menuEl = menuRef.current;
+    const menuWidth = 208; // w-52 = 13rem = 208px
+    const gap = 4;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
 
-      // Default: align menu's left edge to button's left edge, below button
-      let left = rect.left;
-      let top = rect.bottom + 4;
+    // Measure actual menu height if available; otherwise use modest fallback
+    const menuHeight = menuEl ? menuEl.offsetHeight : 180;
 
-      // Shift left if menu would overflow right edge
-      if (left + menuWidth > viewportWidth - 8) {
-        left = viewportWidth - menuWidth - 8;
-      }
-      // Clamp left if still too far left
-      if (left < 8) left = 8;
+    // Horizontal: align to button's left; flip if overflowing right
+    let left = rect.left;
+    if (left + menuWidth > viewportWidth - 8) {
+      left = Math.max(8, rect.right - menuWidth);
+    }
+    if (left < 8) left = 8;
 
-      // If not enough space below, open above the button
-      if (top + menuHeight > viewportHeight - 8) {
-        top = rect.top - menuHeight - 4;
-        if (top < 8) top = 8;
-      }
+    // Vertical: place below button if space permits; otherwise place immediately above button
+    const spaceBelow = viewportHeight - rect.bottom - gap;
+    const spaceAbove = rect.top - gap;
 
-      setMenuPos({ top, left });
+    let top;
+    if (spaceBelow >= menuHeight || spaceBelow >= spaceAbove) {
+      top = rect.bottom + gap;
+    } else {
+      top = Math.max(8, rect.top - menuHeight - gap);
+    }
+
+    setMenuPos({ top, left });
+  }, []);
+
+  const toggleMenu = (e) => {
+    e.stopPropagation();
+    if (!isOpen) {
+      updatePosition();
     }
     setIsOpen((prev) => !prev);
   };
+
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [isOpen, updatePosition]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -267,7 +289,7 @@ const ActionMenuCell = ({ row, setDeleteData, handleConfirm, handleCancel, handl
         setIsOpen(false);
       }
     };
-    document.addEventListener('click', handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
     const handleEscape = (event) => {
       if (event.key === 'Escape') {
         setIsOpen(false);
@@ -277,7 +299,7 @@ const ActionMenuCell = ({ row, setDeleteData, handleConfirm, handleCancel, handl
     menuRef.current?.querySelector('button')?.focus();
     document.addEventListener('keydown', handleEscape);
     return () => {
-      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
     };
   }, [isOpen]);
@@ -286,7 +308,8 @@ const ActionMenuCell = ({ row, setDeleteData, handleConfirm, handleCancel, handl
     <div
       ref={menuRef}
       className="fixed bg-white rounded-xl shadow-2xl border border-gray-200 py-1 w-52 z-[99999]"
-      style={{ top: menuPos.top, left: menuPos.left }}
+      style={{ top: `${menuPos.top}px`, left: `${menuPos.left}px` }}
+      onClick={(e) => e.stopPropagation()}
     >
       <button
         onClick={() => { setIsOpen(false); navigate(`/rph/penjualan-sapi-utuh/detail/${row.pid}`); }}
