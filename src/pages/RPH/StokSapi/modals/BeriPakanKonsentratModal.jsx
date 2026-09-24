@@ -4,6 +4,7 @@ import pemberianPakanKonsentratService from '../../../../services/pemberianPakan
 import StokSapiService from '../../../../services/stokSapiService';
 import StokDokaService from '../../../../services/stokDokaService';
 import QurbanService from '../../../../services/qurban/qurbanService';
+import { getInventoryOffice } from '../../../../services/inventoryScope';
 
 const getToday = () => {
   const d = new Date();
@@ -13,7 +14,7 @@ const getToday = () => {
 const getRphId = () => {
   try {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-    return user?.id_office || user?.office_id || null;
+    return getInventoryOffice() || user?.id_office || user?.office_id || null;
   } catch {
     return null;
   }

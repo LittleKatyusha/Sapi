@@ -60,6 +60,7 @@ const PembeliHoPage = lazy(() => import('./pages/dataMaster/PembeliHoPage'));
 const TarifDofPage = lazy(() => import('./pages/dataMaster/TarifDofPage'));
 const BoningMasterPage = lazy(() => import('./pages/dataMaster/BoningMasterPage'));
 const DagingMasterPage = lazy(() => import('./pages/dataMaster/DagingMasterPage'));
+const KarkasMasterPage = lazy(() => import('./pages/dataMaster/KarkasMasterPage'));
 const SopirPage = lazy(() => import('./pages/dataMaster/SopirPage'));
 const KendaraanPage = lazy(() => import('./pages/dataMaster/KendaraanPage'));
 const PedagangPage = lazy(() => import('./pages/RPH/pedagang'));
@@ -350,6 +351,8 @@ function AppSecure() {
             <Routes>
               {/* Dashboard Route */}
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/dashboard/ho" element={<DashboardPage />} />
+              <Route path="/dashboard/rph" element={<RphDashboardPage />} />
               
               {/* Operations Routes */}
               <Route path="/sales" element={<SalesPage />} />
@@ -374,6 +377,10 @@ function AppSecure() {
               <Route path="/warehouse/penerimaan" element={<PenerimaanWarehousePage />} />
               <Route path="/warehouse/distribusi" element={<DistribusiWarehousePage />} />
               <Route path="/reports/rph" element={<ReportRphPage />} />
+              <Route path="/report/rph/pemberian-pakan" element={<ReportRphPage key="pakan" report={{ key: 'pemberian-pakan', title: 'Laporan Pemberian Pakan', endpoint: 'getPemberianPakan' }} />} />
+              <Route path="/report/rph/laporan-dof" element={<ReportRphPage key="dof" report={{ key: 'laporan-dof', title: 'Laporan DOF', endpoint: 'getLaporanDof' }} />} />
+              <Route path="/report/rph/qurban-statistik" element={<ReportRphPage key="qurban" report={{ key: 'qurban-statistik', title: 'Statistik Qurban', endpoint: 'getQurbanStatistik' }} />} />
+              <Route path="/report/rph/biaya-operasional" element={<ReportRphPage key="biaya" report={{ key: 'biaya-operasional', title: 'Biaya Operasional RPH', endpoint: 'getBiayaOperasional' }} />} />
 
               {/* HR Routes */}
               <Route path="/hr/employees" element={<EmployeePage />} />
@@ -422,6 +429,11 @@ function AppSecure() {
               <Route path="/master-data/tarif-dof" element={<TarifDofPage />} />
               <Route path="/master-data/boning" element={<BoningMasterPage />} />
               <Route path="/master-data/daging" element={<DagingMasterPage />} />
+              <Route path="/master-data/karkas" element={<KarkasMasterPage />} />
+              <Route path="/master-data/provinsi" element={<DashboardPage />} />
+              <Route path="/master-data/kabupaten" element={<DashboardPage />} />
+              <Route path="/master-data/kecamatan" element={<DashboardPage />} />
+              <Route path="/master-data/kelurahan" element={<DashboardPage />} />
               <Route path="/sopir" element={<SopirPage />} />
               <Route path="/kendaraan" element={<KendaraanPage />} />
               <Route path="/rph/pedagang" element={<PedagangPage />} />

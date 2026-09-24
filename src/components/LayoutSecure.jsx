@@ -8,6 +8,7 @@ import SecurityNotification from './security/SecurityNotification';
 import MenuStatusPanel from './MenuStatusPanel';
 import LogoutModal from './LogoutModal';
 import TopProgressBar from './TopProgressBar';
+import InventoryScopeGate from './InventoryScopeGate';
 
 
 const LayoutSecure = ({ children, title }) => {
@@ -322,7 +323,7 @@ const LayoutSecure = ({ children, title }) => {
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">
-          {children}
+          <InventoryScopeGate>{children}</InventoryScopeGate>
         </main>
       </div>
 

@@ -10,6 +10,7 @@ const YieldBaselinePage = () => {
   useDocumentTitle('Konfigurasi Baseline Yield');
   const { showSuccess, showError } = useNotification();
   const [data, setData] = useState([]);
+  const [readOnly, setReadOnly] = useState(true);
   const [loading, setLoading] = useState(false);
   const [totalRecords, setTotalRecords] = useState(0);
   const [page, setPage] = useState(1);
@@ -53,6 +54,7 @@ const YieldBaselinePage = () => {
         draw: page, start: (page - 1) * pageSize, length: pageSize, searchValue: search,
       });
       if (res.success) {
+        setReadOnly(res.readOnly === true);
         const rows = Array.isArray(res.data) ? res.data : (res.data?.data || []);
         // Enrich with names from options
         const enriched = rows.map(r => ({
@@ -121,7 +123,7 @@ const YieldBaselinePage = () => {
         </div>
         <div className="flex gap-2">
           <button onClick={fetchData} className="bg-gray-100 px-3 py-1.5 rounded text-sm hover:bg-gray-200 flex items-center gap-1"><RefreshCw size={14} /> Segarkan</button>
-          <button onClick={openCreate} className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700 flex items-center gap-1"><Plus size={14} /> Tambah Baseline</button>
+          {!readOnly && <button onClick={openCreate} className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700 flex items-center gap-1"><Plus size={14} /> Tambah Baseline</button>}
         </div>
       </div>
 
@@ -164,8 +166,8 @@ const YieldBaselinePage = () => {
                 </td>
                 <td className="text-center px-3 py-2">
                   <div className="flex items-center justify-center gap-1">
-                    <button onClick={() => openEdit(row)} className="p-1 hover:bg-blue-100 rounded text-blue-600"><Edit2 size={14} /></button>
-                    <button onClick={() => handleDelete(row)} className="p-1 hover:bg-red-100 rounded text-red-600"><Trash2 size={14} /></button>
+                    {!readOnly && <button onClick={() => openEdit(row)} className="p-1 hover:bg-blue-100 rounded text-blue-600"><Edit2 size={14} /></button>}
+                    {!readOnly && <button onClick={() => handleDelete(row)} className="p-1 hover:bg-red-100 rounded text-red-600"><Trash2 size={14} /></button>}
                   </div>
                 </td>
               </tr>

@@ -7,6 +7,7 @@
 import { API_BASE_URL, API_ENDPOINTS } from '../config/api.js';
 import performanceMonitor from '../utils/performanceMonitor';
 import { CORS_CONFIG, generateCorsHeaders } from '../config/cors.js';
+import { resetInventoryScope, scopeInventoryRequest } from './inventoryScope';
 
 // Track failed requests to prevent infinite retry loops
 const failedRequests = new Map();
@@ -208,6 +209,8 @@ const refreshToken = async () => {
 };
 
 const handleAuthExpired = () => {
+  resetInventoryScope();
+  HttpClient.clearCache();
   localStorage.removeItem('authToken');
   localStorage.removeItem('secureAuthToken');
   localStorage.removeItem(TOKEN_KEY);
@@ -321,12 +324,14 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
  * Request deduplication for concurrent requests
  */
 const pendingRequests = new Map();
+let cacheGeneration = 0;
 
 // Keep client-only options out of RequestInit; booleans control the GET cache.
-const fetchRequest = (url, { cache, params, responseType, ...options }) => {
+const fetchRequest = (url, { cache, params, responseType, ...options }, alreadyScoped = false) => {
   if (cache === false) options.cache = 'no-store';
   else if (cache !== true && cache !== undefined) options.cache = cache;
-  return fetch(url, options);
+  const scoped = alreadyScoped ? { url, options } : scopeInventoryRequest(url, options);
+  return fetch(scoped.url, scoped.options);
 };
 
 /**
@@ -355,8 +360,12 @@ class HttpClient {
         }
       }
       
+      // Scope before cache lookup/deduplication, including document GETs.
+      url = scopeInventoryRequest(url, { method: 'GET' }).url;
+
       // Check cache first (if caching is enabled)
-      const cacheKey = `GET:${url}`;
+      const generation = cacheGeneration;
+      const cacheKey = `${generation}:GET:${options.responseType || 'json'}:${url}`;
       if (options.cache !== false) {
         const cached = requestCache.get(cacheKey);
         if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
@@ -392,8 +401,9 @@ class HttpClient {
             credentials: 'include',
             ...fetchOptions,
             cache
-          });
+          }, true);
           
+          if (generation !== cacheGeneration) throw new Error('Authentication context changed.');
           await handleResponseError(response);
           
           if (responseType === 'blob') {
@@ -409,7 +419,7 @@ class HttpClient {
           clearFailedRequest(url);
           
           // Cache the response (if caching is enabled)
-          if (options.cache !== false) {
+          if (options.cache !== false && generation === cacheGeneration) {
             requestCache.set(cacheKey, {
               data,
               timestamp: Date.now()
@@ -419,11 +429,11 @@ class HttpClient {
           return data;
         } catch (error) {
           // Record failed request for retry prevention
-          recordFailedRequest(url);
+          if (generation === cacheGeneration) recordFailedRequest(url);
           throw error;
         } finally {
           // Remove from pending requests
-          pendingRequests.delete(cacheKey);
+          if (pendingRequests.get(cacheKey) === requestPromise) pendingRequests.delete(cacheKey);
         }
       })();
       
@@ -592,7 +602,10 @@ class HttpClient {
         }
       }
     } else {
+      cacheGeneration += 1;
       requestCache.clear();
+      pendingRequests.clear();
+      failedRequests.clear();
     }
   }
   

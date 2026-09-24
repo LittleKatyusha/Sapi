@@ -26,13 +26,13 @@ const formatJson = (value) => {
   try { return JSON.stringify(value, null, 2); } catch { return String(value); }
 };
 
-export default function ReportRphPage() {
+export default function ReportRphPage({ report = null }) {
   const [idx, setIdx] = useState(0);
   const [status, setStatus] = useState('idle');
   const [notice, setNotice] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const current = REPORTS[idx];
+  const current = report || REPORTS[idx];
 
   const run = async () => {
     setLoading(true);
@@ -72,7 +72,7 @@ export default function ReportRphPage() {
         <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2"><ShieldCheck className="w-6 h-6 text-blue-600" /> Laporan RPH</h1>
-            <p className="text-sm text-gray-600 mt-1">Executor untuk seluruh endpoint laporan RPH (8 endpoint).</p>
+            <p className="text-sm text-gray-600 mt-1">{report ? report.title : 'Executor untuk seluruh endpoint laporan RPH (8 endpoint).'}</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={run} disabled={loading || !current} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
@@ -94,7 +94,7 @@ export default function ReportRphPage() {
           </div>
         )}
 
-        <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+        {!report && <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
           <h2 className="font-semibold text-gray-800 mb-4 flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-blue-600" /> Daftar Laporan RPH</h2>
           <div className="grid gap-3 md:grid-cols-2 max-h-[480px] overflow-auto pr-1">
             {REPORTS.map((item, i) => (
@@ -104,7 +104,7 @@ export default function ReportRphPage() {
               </button>
             ))}
           </div>
-        </div>
+        </div>}
 
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">

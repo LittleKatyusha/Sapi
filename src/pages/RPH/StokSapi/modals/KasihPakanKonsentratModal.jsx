@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, AlertCircle, CheckCircle2, Loader2, Save, Calendar, Wheat, Beef, Calculator } from 'lucide-react';
 import pemberianPakanKonsentratService from '../../../../services/pemberianPakanKonsentratService';
+import { getInventoryOffice } from '../../../../services/inventoryScope';
 
 const getToday = () => {
   const d = new Date();
@@ -10,7 +11,7 @@ const getToday = () => {
 const getRphId = () => {
   try {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-    return user?.id_office || user?.office_id || null;
+    return getInventoryOffice() || user?.id_office || user?.office_id || null;
   } catch {
     return null;
   }

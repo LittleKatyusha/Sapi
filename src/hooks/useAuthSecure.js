@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import HttpClient, { TokenRefresh } from '../services/httpClient';
 import { API_ENDPOINTS } from '../config/api';
+import { resetInventoryScope } from '../services/inventoryScope';
 
 export const useAuthSecure = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -68,6 +69,8 @@ export const useAuthSecure = () => {
 
   // Clear authentication data
   const clearAuthData = useCallback(async () => {
+    resetInventoryScope();
+    HttpClient.clearCache();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('isAuthenticated');
@@ -128,6 +131,8 @@ export const useAuthSecure = () => {
 
       if (result.data && result.data.success && result.data.user) {
         const { user, token } = result.data;
+        resetInventoryScope();
+        HttpClient.clearCache();
         
         // Reset state on success
         setLoginAttempts(0);

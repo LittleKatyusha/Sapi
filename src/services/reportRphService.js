@@ -7,6 +7,10 @@ const get = (url, params = {}) => {
 };
 
 class ReportRphService {
+  static getPemberianPakan(params) { return get('/api/report/rph/pemberian-pakan', params); }
+  static getLaporanDof(params) { return get('/api/report/rph/laporan-dof', params); }
+  static getQurbanStatistik(params) { return get('/api/report/rph/qurban-statistik', params); }
+  static getBiayaOperasional(params) { return get('/api/report/rph/biaya-operasional', params); }
   static getPenjualanBoning(params) { return get(API_ENDPOINTS.REPORT.RPH.PENJUALAN_BONING, params); }
   static getPenjualanKarkas(params) { return get(API_ENDPOINTS.REPORT.RPH.PENJUALAN_KARKAS, params); }
   static getPenjualanQurban(params) { return get(API_ENDPOINTS.REPORT.RPH.PENJUALAN_QURBAN, params); }

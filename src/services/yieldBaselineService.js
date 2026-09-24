@@ -21,6 +21,7 @@ class YieldBaselineService {
       const res = await HttpClient.get(`${EP.DATA}?${q.toString()}`);
       return {
         success: true,
+        readOnly: res.read_only === true,
         data: res.data || [],
         recordsTotal: res.recordsTotal || 0,
         recordsFiltered: res.recordsFiltered || 0,
