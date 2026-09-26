@@ -88,16 +88,18 @@ const useUsers = () => {
                     encryptedPid: item.pid || item.encrypted_pid || item.pubid,
                     nik: item.nik || '',
                     name: item.name || 'Nama tidak tersedia',
+                    username: item.username || '',
                     email: item.email || '',
                     address: item.alamat || '', // Map alamat to address for consistency with modal
                     alamat: item.alamat || '',
                     phone: item.kontak || '', // Map kontak to phone for consistency with modal
                     kontak: item.kontak || '',
                     pict: item.pict || '',
-                    photoUrl: item.photo_url || '',
+                    photoUrl: item.photo_url || item.pict || '',
                     position: item.position || '', // Add position mapping
-                    groupId: item.group_id || '',
-                    groupName: item.role_detail?.nama || 'N/A',
+                    groupId: item.roles_id || item.group_id || '',
+                    roles_id: item.roles_id || item.group_id || '',
+                    groupName: item.position || item.role_detail?.nama || 'N/A',
                     emailVerified: item.email_verified_at ? 'Verified' : 'Not Verified',
                     status: item.status !== undefined ? item.status : 1,
                     createdAt: item.created_at || new Date().toISOString(),

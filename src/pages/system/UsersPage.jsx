@@ -245,7 +245,7 @@ const UsersPage = () => {
                     <img className="w-8 h-8 rounded-full mr-3" src={row.photoUrl || `https://ui-avatars.com/api/?name=${row.name}&background=random`} alt={row.name} />
                     <div>
                         <div className="font-bold">{row.name}</div>
-                        <div className="text-sm text-gray-500">{row.email}</div>
+                        <div className="text-sm text-gray-500">{row.username ? `@${row.username} • ${row.email}` : row.email}</div>
                     </div>
                 </div>
             )

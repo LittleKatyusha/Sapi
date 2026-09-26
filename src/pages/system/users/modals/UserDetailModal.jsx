@@ -111,6 +111,14 @@ const UserDetailModal = ({ isOpen, onClose, user }) => {
                             </h5>
 
                             <div className="flex items-start">
+                                <User className="w-4 h-4 text-gray-500 mr-3 mt-0.5 flex-shrink-0" />
+                                <div>
+                                    <p className="text-sm font-medium text-gray-700">Username</p>
+                                    <p className="text-sm text-gray-900 font-mono">{user.username || '-'}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-start">
                                 <Building2 className="w-4 h-4 text-gray-500 mr-3 mt-0.5 flex-shrink-0" />
                                 <div>
                                     <p className="text-sm font-medium text-gray-700">Jabatan</p>

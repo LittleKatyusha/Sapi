@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, Mail, Phone, MapPin, Building2, Hash, ChevronDown } from 'lucide-react';
+import { X, Save, User, Mail, Phone, MapPin, Building2, Hash, ChevronDown, Lock, Eye, EyeOff } from 'lucide-react';
 
 const AddEditUserModal = ({ isOpen, onClose, onSave, editData, loading, roles = [] }) => {
     const [formData, setFormData] = useState({
         name: '',
         username: '',
+        password: '',
         email: '',
         nik: '',
         position: '',
@@ -12,6 +13,7 @@ const AddEditUserModal = ({ isOpen, onClose, onSave, editData, loading, roles = 
         phone: '',
         address: ''
     });
+    const [showPassword, setShowPassword] = useState(false);
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -22,19 +24,21 @@ const AddEditUserModal = ({ isOpen, onClose, onSave, editData, loading, roles = 
                 // Edit mode - populate with existing data
                 setFormData({
                     name: editData.name || '',
-                    username: editData.username || editData.email || '',
+                    username: editData.username || '',
+                    password: '',
                     email: editData.email || '',
                     nik: editData.nik || '',
                     position: editData.position || '',
-                    groupId: editData.groupId || '',
-                    phone: editData.phone || '',
-                    address: editData.address || ''
+                    groupId: editData.groupId || editData.roles_id || '',
+                    phone: editData.phone || editData.kontak || '',
+                    address: editData.address || editData.alamat || ''
                 });
             } else {
                 // Add mode - reset form
                 setFormData({
                     name: '',
                     username: '',
+                    password: '',
                     email: '',
                     nik: '',
                     position: '',
@@ -43,6 +47,7 @@ const AddEditUserModal = ({ isOpen, onClose, onSave, editData, loading, roles = 
                     address: ''
                 });
             }
+            setShowPassword(false);
             setErrors({});
             setIsSubmitting(false);
         }
@@ -76,6 +81,16 @@ const AddEditUserModal = ({ isOpen, onClose, onSave, editData, loading, roles = 
             newErrors.username = 'Username wajib diisi';
         }
 
+        if (!editData) {
+            if (!formData.password) {
+                newErrors.password = 'Password wajib diisi';
+            } else if (formData.password.length < 6) {
+                newErrors.password = 'Password minimal 6 karakter';
+            }
+        } else if (formData.password && formData.password.length < 6) {
+            newErrors.password = 'Password minimal 6 karakter';
+        }
+
         if (!formData.email.trim()) {
             newErrors.email = 'Email wajib diisi';
         } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
@@ -85,7 +100,6 @@ const AddEditUserModal = ({ isOpen, onClose, onSave, editData, loading, roles = 
         if (!formData.nik.trim()) {
             newErrors.nik = 'NIK wajib diisi';
         }
-
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -107,6 +121,7 @@ const AddEditUserModal = ({ isOpen, onClose, onSave, editData, loading, roles = 
             setFormData({
                 name: '',
                 username: '',
+                password: '',
                 email: '',
                 nik: '',
                 position: '',
@@ -192,6 +207,36 @@ const AddEditUserModal = ({ isOpen, onClose, onSave, editData, loading, roles = 
                                 {errors.username && <p className="mt-1 text-sm text-red-600">{errors.username}</p>}
                             </div>
 
+                            {/* Password */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <Lock className="w-4 h-4 inline mr-2" />
+                                    {editData ? 'Password (Opsional)' : 'Password *'}
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        name="password"
+                                        value={formData.password}
+                                        onChange={handleInputChange}
+                                        className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors pr-10 ${
+                                            errors.password ? 'border-red-500' : 'border-gray-300'
+                                        }`}
+                                        placeholder={editData ? 'Kosongkan jika tidak diubah' : 'Minimal 6 karakter'}
+                                        disabled={isSubmitting}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(prev => !prev)}
+                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                        tabIndex={-1}
+                                    >
+                                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                    </button>
+                                </div>
+                                {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
+                            </div>
+
                             {/* Email */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -243,10 +288,11 @@ const AddEditUserModal = ({ isOpen, onClose, onSave, editData, loading, roles = 
                                         name="groupId"
                                         value={formData.groupId}
                                         onChange={(e) => {
-                                            const selectedRole = roles.find(r => r.id === e.target.value);
+                                            const val = e.target.value;
+                                            const selectedRole = roles.find(r => String(r.id) === String(val));
                                             setFormData(prev => ({
                                                 ...prev,
-                                                groupId: e.target.value,
+                                                groupId: val,
                                                 position: selectedRole ? (selectedRole.nama || selectedRole.name) : ''
                                             }));
                                         }}
