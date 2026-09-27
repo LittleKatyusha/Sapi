@@ -108,7 +108,7 @@ const useEartagsAPI = () => {
         setError(null);
         try {
             const eartag = data.find((e) => e.pid === pid);
-            const actualPid = eartag?.rawPubid || eartag?.pid || pid;
+            const actualPid = eartag?.pid || eartag?.rawPubid || pid;
             const payload = {
                 pid: String(actualPid).trim(),
                 kode: String(eartagData.kode).trim(),
@@ -131,7 +131,7 @@ const useEartagsAPI = () => {
         setError(null);
         try {
             const eartag = data.find((e) => e.pid === pid);
-            const actualPid = eartag?.rawPubid || eartag?.pid || pid;
+            const actualPid = eartag?.pid || eartag?.rawPubid || pid;
             const result = await HttpClient.post(`${API_BASE}/hapus`, { pid: String(actualPid).trim() });
             return { success: true, message: result.message || 'Data berhasil dihapus' };
         } catch (err) {
