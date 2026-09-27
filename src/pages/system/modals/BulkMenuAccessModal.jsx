@@ -10,7 +10,7 @@ const flattenMenus = (items, parentId = null) => items.flatMap((item) => [
 
 const collectDescendantIds = (menu) => [
   menu.id,
-  ...collectDescendantIds(menu.children || []).flat()
+  ...(menu.children || []).flatMap(collectDescendantIds)
 ];
 
 const BulkMenuAccessModal = ({ isOpen, onClose, menuTree, roles, onSaved }) => {
