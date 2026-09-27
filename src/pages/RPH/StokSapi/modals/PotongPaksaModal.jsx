@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, AlertCircle, CheckCircle2, Loader2, Save, Calendar, Scale, FileText } from 'lucide-react';
+import { X, AlertCircle, CheckCircle2, Loader2, Save, Calendar, Scale, FileText, Trash2, Plus } from 'lucide-react';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 import StokSapiService from '../../../../services/stokSapiService';
 import HttpClient from '../../../../services/httpClient';
@@ -80,7 +80,16 @@ const Field = ({ label, required = false, helperText, children }) => (
 const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData, editData }) => {
   const [tglPotongPaksa, setTglPotongPaksa] = useState(getToday());
   const [idSebabPotongPaksa, setIdSebabPotongPaksa] = useState(null);
-  const [bobotSelisih, setBobotSelisih] = useState('');
+  const [bobotSebelum, setBobotSebelum] = useState('');
+  const [details, setDetails] = useState([]);
+  const [itemOptions, setItemOptions] = useState([]);
+  const [biayaTambahan, setBiayaTambahan] = useState('0');
+  const [modal, setModal] = useState(null);
+  const [detailReady, setDetailReady] = useState(false);
+  const totalHasil = details.reduce((sum, row) => sum + Number(row.berat || 0), 0);
+  const bobotSelisih = Math.round((Number(bobotSebelum || 0) - totalHasil) * 1000) / 1000;
+  const rupiah = value => value == null ? 'Belum tersedia' : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(value);
+  const changeDetail = (index, field, value) => setDetails(rows => rows.map((row, i) => i === index ? { ...row, [field]: value } : row));
   const [idMengetahui, setIdMengetahui] = useState(null);
   const [keterangan, setKeterangan] = useState('');
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
@@ -134,6 +143,10 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData, editData }) => 
     if (isOpen) {
       fetchSebabOptions();
       fetchMengetahuiOptions();
+      StokSapiService.getItemPotongOptions().then(response => {
+        if (response.success && Array.isArray(response.data)) setItemOptions(response.data);
+        else setNotification({ type: 'error', message: 'Gagal memuat master hasil potong.' });
+      }).catch(() => setNotification({ type: 'error', message: 'Gagal memuat master hasil potong.' }));
     }
   }, [isOpen, fetchSebabOptions, fetchMengetahuiOptions]);
 
@@ -146,21 +159,18 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData, editData }) => 
           if (response.success && response.data) {
             const data = response.data;
             
-            // Re-format date if it comes back as something else from the backend (though the backend currently formats it as "Jumat, 12 Juni 2026")
-            // Wait, if the backend formats the date in the show() method, we'll need to parse it or rely on a raw date if we add it.
-            // In the controller `show` method, it returns `Carbon::parse($row->tgl_potong_paksa)->locale('id')->translatedFormat('l, j F Y')`
-            // Let's just use `editData.tgl_potong_paksa` or try to keep the `getToday()` if it's not a valid format for `<input type="date">`
-            // Let's just set the exact values needed for editing.
-            
-            // Update fields using the detail data
+            setTglPotongPaksa(data.tgl_potong_paksa_raw || '');
+            setBobotSebelum(data.bobot_sebelum_potong ?? '');
+            setDetails((data.detail || []).map(row => ({ ...row, estimasi_harga_jual_per_kg: row.estimasi_harga_jual_per_kg ?? '' })));
+            setBiayaTambahan(data.biaya_tambahan ?? '0');
+            setModal(data.nilai_modal_snapshot ?? null);
+            setDetailReady(true);
             setIdSebabPotongPaksa(data.id_sebab_potong_paksa);
-            setBobotSelisih(data.bobot_selisih_potong_paksa || '');
             setIdMengetahui(data.id_mengetahui);
             setKeterangan(data.keterangan || '');
             
-            // To properly set tgl_potong_paksa, since the API returns a formatted string like "Jumat, 12 Juni 2026", 
-            // we should ideally add `tgl_potong_paksa_raw` to the backend. Since we cannot modify backend right now,
-            // we will let the date fall back to getToday() or what was in editData if we can't parse it.
+          } else {
+            setNotification({ type: 'error', message: 'Gagal memuat detail data.' });
           }
         } catch (err) {
           console.error('Error fetching detail:', err);
@@ -172,11 +182,9 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData, editData }) => 
     };
 
     if (isOpen && editData) {
-      // First populate with whatever we have from the table
-      // The table date is also formatted, so we'll likely just show today or the user has to reselect
-      setTglPotongPaksa(getToday());
+      setDetailReady(false);
+      setTglPotongPaksa('');
       setIdSebabPotongPaksa(editData.id_sebab_potong_paksa);
-      setBobotSelisih(editData.bobot_selisih_potong_paksa || '');
       setIdMengetahui(editData.id_mengetahui);
       setKeterangan(editData.keterangan || '');
       
@@ -185,11 +193,15 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData, editData }) => 
     } else if (isOpen) {
       setTglPotongPaksa(getToday());
       setIdSebabPotongPaksa(null);
-      setBobotSelisih('');
+      setBobotSebelum(cowData?.bobot ?? cowData?.berat ?? '');
+      setModal(cowData?.total_harga ?? null);
+      setDetails([]);
+      setBiayaTambahan('0');
+      setDetailReady(true);
       setIdMengetahui(null);
       setKeterangan('');
     }
-  }, [isOpen, editData]);
+  }, [isOpen, editData, cowData]);
 
   useEffect(() => {
     if (!notification || notification.type === 'info') return undefined;
@@ -201,7 +213,7 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData, editData }) => 
     if (isSubmitting) return;
     setTglPotongPaksa(getToday());
     setIdSebabPotongPaksa(null);
-    setBobotSelisih('');
+    setDetails([]);
     setIdMengetahui(null);
     setKeterangan('');
     setNotification(null);
@@ -210,6 +222,7 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData, editData }) => 
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (isSubmitting || isLoadingDetail || !detailReady) return;
 
     if (!tglPotongPaksa) {
       setNotification({ type: 'error', message: 'Tanggal potong paksa wajib diisi.' });
@@ -221,8 +234,14 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData, editData }) => 
       return;
     }
 
-    if (!bobotSelisih || isNaN(parseInt(bobotSelisih))) {
-      setNotification({ type: 'error', message: 'Bobot selisih wajib diisi dengan angka.' });
+    if (!Number.isFinite(Number(bobotSebelum)) || Number(bobotSebelum) <= 0 || bobotSelisih <= 0 || !details.length) {
+      setNotification({ type: 'error', message: 'Isi bobot sebelum potong dan minimal satu hasil. Total berat hasil harus kurang dari bobot sebelum potong. Bobot selisih harus lebih besar dari 0 kg.' });
+      return;
+    }
+    if (details.some(row => !row.id_item_potong || !Number.isFinite(Number(row.berat)) || Number(row.berat) <= 0)
+      || new Set(details.map(row => Number(row.id_item_potong))).size !== details.length
+      || biayaTambahan === '' || !Number.isFinite(Number(biayaTambahan)) || Number(biayaTambahan) < 0) {
+      setNotification({ type: 'error', message: 'Periksa item unik, berat positif, dan biaya tambahan nonnegatif.' });
       return;
     }
 
@@ -238,14 +257,14 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData, editData }) => 
       pid: editData ? editData.pid : cowData?.pid,
       tgl_potong_paksa: tglPotongPaksa,
       id_sebab_potong_paksa: parseInt(idSebabPotongPaksa),
-      bobot_selisih_potong_paksa: parseInt(bobotSelisih),
+      bobot_sebelum_potong: Number(bobotSebelum),
+      biaya_tambahan: Number(biayaTambahan),
+      detail: details.map(row => ({ id_jenis_potong: Number(row.id_jenis_potong), id_item_potong: Number(row.id_item_potong), berat: Number(row.berat), estimasi_harga_jual_per_kg: row.estimasi_harga_jual_per_kg === '' ? null : Number(row.estimasi_harga_jual_per_kg) })),
       id_mengetahui: parseInt(idMengetahui),
       keterangan: keterangan.trim() || null,
     };
 
-    console.log('Potong Paksa payload:', payload);
-    console.log('cowData:', cowData);
-
+    try {
     const response = editData 
       ? await StokSapiService.updatePotongPaksa(payload)
       : await StokSapiService.potongPaksa(payload);
@@ -253,15 +272,18 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData, editData }) => 
     if (response.success) {
       setNotification({ type: 'success', message: response.message || 'Data potong paksa berhasil disimpan.' });
       setIsSubmitting(false);
-      setTimeout(() => {
-        handleClose();
-        if (onSuccess) onSuccess();
-      }, 1000);
+      onClose();
+      if (onSuccess) onSuccess();
       return;
     }
 
     setNotification({ type: 'error', message: response.message || 'Gagal menyimpan data potong paksa.' });
     setIsSubmitting(false);
+    } catch (error) {
+      setNotification({ type: 'error', message: error.message || 'Gagal menyimpan data potong paksa.' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -271,7 +293,7 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData, editData }) => 
       {notification && <Toast notification={notification} onClose={() => setNotification(null)} />}
 
       <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-3xl w-full max-w-lg max-h-[90vh] overflow-hidden shadow-2xl transform transition-all">
+        <div role="dialog" aria-modal="true" aria-label="Potong Paksa Sapi" className="bg-white rounded-3xl w-full max-w-3xl max-h-[90vh] overflow-hidden shadow-2xl transform transition-all">
           <div className="h-1.5 w-full bg-gradient-to-r from-red-500 via-rose-500 to-pink-500" />
 
           <div className="flex items-center justify-between p-5 border-b border-slate-100">
@@ -294,7 +316,11 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData, editData }) => 
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-5 space-y-5 overflow-y-auto max-h-[calc(90vh-180px)]">
+          <form id="potong-paksa-form" onSubmit={handleSubmit} className="p-5 space-y-5 overflow-y-auto max-h-[calc(90vh-180px)]">
+            <p className="text-sm text-amber-800">Hasil boning dan kulit menambah stok saat disimpan. Catat hanya hasil layak dimanfaatkan. Selisih berat bukan kerugian rupiah.</p>
+            <Field label="Bobot sebelum potong (kg)" required>
+              <input aria-label="Bobot sebelum potong (kg)" type="number" min="0.001" step="0.001" required value={bobotSebelum} onChange={e => setBobotSebelum(e.target.value)} className="border rounded p-2 w-full" />
+            </Field>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Tanggal Potong Paksa" required>
                 <div className="relative">
@@ -309,15 +335,17 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData, editData }) => 
                 </div>
               </Field>
 
-              <Field label="Bobot Selisih" required helperText="Selisih bobot sebelum dan sesudah potong">
+              <Field label="Bobot selisih (kg)" helperText="Otomatis: bobot sebelum potong dikurangi boning dan kulit tercatat. Harus lebih besar dari 0 kg. Termasuk bagian lain yang belum dirinci.">
                 <div className="relative">
                   <Scale className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
                     type="number"
                     value={bobotSelisih}
-                    onChange={(e) => setBobotSelisih(e.target.value)}
+                    readOnly
+                    aria-label="Bobot selisih (kg)"
+                    step="0.001"
                     placeholder="0"
-                    min="0"
+                    min="0.001"
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-all"
                     required
                   />
@@ -347,6 +375,44 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData, editData }) => 
               />
             </Field>
 
+            <section className="space-y-3" aria-label="Hasil potong">
+              <h3 className="font-semibold">Hasil potong layak dimanfaatkan</h3>
+              {details.map((row, index) => (
+                <div key={index} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto] border rounded p-3">
+                  <Field label="Item hasil" required>
+                    <SearchableSelect
+                      aria-label={`Item hasil ${index + 1}`}
+                      options={itemOptions.filter(item => [1, 3].includes(Number(item.id_jenis_potong))).map(item => ({
+                        value: Number(item.id),
+                        label: `${Number(item.id_jenis_potong) === 3 ? 'Kulit' : 'Boning'} - ${item.name}`,
+                      }))}
+                      value={Number(row.id_item_potong) || null}
+                      onChange={value => {
+                        const item = itemOptions.find(option => Number(option.id) === value);
+                        setDetails(rows => rows.map((current, i) => i === index ? { ...current, id_item_potong: item?.id || '', id_jenis_potong: Number(item?.id_jenis_potong) } : current));
+                      }}
+                      placeholder="Pilih item hasil"
+                      isDisabled={isSubmitting || isLoadingDetail}
+                    />
+                  </Field>
+                  <label>Berat (kg)<input aria-label={`Berat hasil ${index + 1}`} type="number" min="0.001" step="0.001" required value={row.berat} onChange={e => changeDetail(index, 'berat', e.target.value)} className="border rounded p-2 w-full" /></label>
+                  <button type="button" aria-label={`Hapus hasil ${index + 1}`} title="Hapus hasil potong" onClick={() => setDetails(rows => rows.filter((_, i) => i !== index))} className="inline-flex h-10 w-10 items-center justify-center self-end justify-self-end rounded-lg text-red-600 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 transition-colors">
+                    <Trash2 className="h-5 w-5" aria-hidden="true" />
+                  </button>
+                </div>
+              ))}
+              <button type="button" disabled={isSubmitting || isLoadingDetail} onClick={() => setDetails(rows => [...rows, { id_jenis_potong: 1, id_item_potong: '', berat: '', estimasi_harga_jual_per_kg: '' }])} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Tambah hasil potong
+              </button>
+              <p>Total hasil: {totalHasil.toLocaleString('id-ID', { maximumFractionDigits: 3 })} kg</p>
+            </section>
+            <Field label="Biaya tambahan (Rp)" helperText="Hanya biaya yang belum termasuk modal sapi; jangan dihitung dua kali.">
+              <input aria-label="Biaya tambahan (Rp)" required type="number" min="0" step="0.01" value={biayaTambahan} onChange={e => setBiayaTambahan(e.target.value)} className="border rounded p-2 w-full" />
+            </Field>
+            <div className="rounded bg-slate-50 p-3 text-sm space-y-1" aria-live="polite">
+              <p>Modal sapi (total_harga): {rupiah(modal)}. Snapshot ditentukan server saat simpan.</p>
+            </div>
             <Field label="Keterangan" helperText="Opsional">
               <div className="relative">
                 <FileText className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -372,8 +438,8 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData, editData }) => 
             </button>
             <button
               type="submit"
-              onClick={handleSubmit}
-              disabled={isSubmitting}
+              form="potong-paksa-form"
+              disabled={isSubmitting || isLoadingDetail || !detailReady}
               className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-red-500 to-rose-600 rounded-xl hover:from-red-600 hover:to-rose-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
               {isSubmitting ? (

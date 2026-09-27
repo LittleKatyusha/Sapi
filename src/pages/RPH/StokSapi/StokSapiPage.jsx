@@ -182,7 +182,7 @@ const StokSapiPage = () => {
       <PotongPaksaModal
         isOpen={potongPaksaModalOpen}
         onClose={handlePotongPaksaClose}
-        onSuccess={handlePotongPaksaClose}
+        onSuccess={() => setStokDetailRefreshKey(value => value + 1)}
         cowData={selectedCowForAction}
       />
       <SapiMatiModal
