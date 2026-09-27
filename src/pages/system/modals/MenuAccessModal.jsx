@@ -8,12 +8,33 @@ const MenuAccessModal = ({ isOpen, onClose, menu, roles, onAccessUpdated }) => {
   const { getAuthHeader } = useAuthSecure();
   const [accessInfo, setAccessInfo] = useState(null);
   const [selectedRoles, setSelectedRoles] = useState([]);
+  const [internalRoles, setInternalRoles] = useState(roles || []);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [notification, setNotification] = useState({ show: false, message: '', type: '' });
   const [showAddRoleModal, setShowAddRoleModal] = useState(false);
   const [newRoleId, setNewRoleId] = useState('');
   const [newRoleName, setNewRoleName] = useState('');
+
+  // Ensure all 17 roles are available
+  useEffect(() => {
+    if (roles && roles.length >= 17) {
+      setInternalRoles(roles);
+    } else {
+      HttpClient.get(`${API_ENDPOINTS.SYSTEM.ROLES}/data?length=1000&_t=${Date.now()}`)
+        .then(result => {
+          let list = [];
+          if (result.status === 'ok' && Array.isArray(result.data)) list = result.data;
+          else if (result.status === 'ok' && Array.isArray(result.data?.data)) list = result.data.data;
+          else if (result.draw && Array.isArray(result.data)) list = result.data;
+          if (list.length > 0) setInternalRoles(list);
+          else if (roles) setInternalRoles(roles);
+        })
+        .catch(() => {
+          if (roles) setInternalRoles(roles);
+        });
+    }
+  }, [roles]);
 
   useEffect(() => {
     if (isOpen && menu) {
@@ -32,9 +53,17 @@ const MenuAccessModal = ({ isOpen, onClose, menu, roles, onAccessUpdated }) => {
         throw new Error('Token authentication tidak ditemukan.');
       }
 
+      const validPid = (menu?.pid && menu.pid !== 'undefined') ? menu.pid : null;
+      const validId = menu?.id;
+
+      if (!validPid && !validId) {
+        throw new Error('Identitas menu tidak valid.');
+      }
+
       // Add cache buster to force fresh fetch from server
       const cacheBuster = `&_t=${Date.now()}`;
-      const result = await HttpClient.get(`${API_ENDPOINTS.SYSTEM.MENU}/access-info?pid=${menu.pid}${cacheBuster}`);
+      const queryParam = validPid ? `pid=${encodeURIComponent(validPid)}` : `id=${validId}`;
+      const result = await HttpClient.get(`${API_ENDPOINTS.SYSTEM.MENU}/access-info?${queryParam}${cacheBuster}`);
 
       if (result.status === 'ok' && result.data) {
         setAccessInfo(result.data);
@@ -76,11 +105,18 @@ const MenuAccessModal = ({ isOpen, onClose, menu, roles, onAccessUpdated }) => {
         throw new Error('Token authentication tidak ditemukan.');
       }
 
-      // Sync access with selected roles
-      const result = await HttpClient.post(`${API_ENDPOINTS.SYSTEM.MENU}/sync-access`, {
-        pid: menu.pid,
+      const validPid = (menu?.pid && menu.pid !== 'undefined') ? menu.pid : null;
+      const payload = {
         role_ids: selectedRoles
-      });
+      };
+      if (validPid) {
+        payload.pid = validPid;
+      } else if (menu?.id) {
+        payload.id = menu.id;
+      }
+
+      // Sync access with selected roles
+      const result = await HttpClient.post(`${API_ENDPOINTS.SYSTEM.MENU}/sync-access`, payload);
 
       if (result.status === 'ok') {
         showNotification('Akses menu berhasil diperbarui', 'success');
@@ -222,7 +258,7 @@ const MenuAccessModal = ({ isOpen, onClose, menu, roles, onAccessUpdated }) => {
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {/* Custom roles (selected but not in roles list) */}
                   {selectedRoles
-                      .filter(roleId => !roles.some(role => Number(role.id) === roleId))
+                      .filter(roleId => !internalRoles.some(role => Number(role.id) === roleId))
                     .map(roleId => (
                       <div
                         key={`custom-${roleId}`}
@@ -252,7 +288,7 @@ const MenuAccessModal = ({ isOpen, onClose, menu, roles, onAccessUpdated }) => {
                     ))}
 
                   {/* Regular roles */}
-                  {roles.map((role) => {
+                  {internalRoles.map((role) => {
                     const roleId = Number(role.id);
                     const isSelected = selectedRoles.includes(roleId);
                     const hasCurrentAccess = accessInfo?.accessible_roles.some(r => Number(r.id) === roleId);

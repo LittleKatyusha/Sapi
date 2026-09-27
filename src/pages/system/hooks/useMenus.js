@@ -219,7 +219,7 @@ const useMenus = () => {
                 return;
             }
             
-            const result = await HttpClient.get(`${API_ENDPOINTS.SYSTEM.ROLES}/data?_t=${Date.now()}`);
+            const result = await HttpClient.get(`${API_ENDPOINTS.SYSTEM.ROLES}/data?length=1000&_t=${Date.now()}`);
             
             let rolesData = [];
             if (result.status === 'ok' && result.data && Array.isArray(result.data)) {
