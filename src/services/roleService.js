@@ -27,8 +27,10 @@ class RoleService {
       // Normalize to a consistent shape the UI expects
       return rows.map((role) => ({
         id: Number(role.id),
-        nama: role.child_role || role.parent_role || 'Unknown Role',
-        originalName: role.parent_role || 'Unknown Role', // Keep original name for permission matching
+        nama: role.child_role || role.nama || role.parent_role || 'Unknown Role',
+        child_role: role.child_role || role.nama,
+        parent_role: role.parent_role,
+        originalName: role.child_role || role.nama || role.parent_role || 'Unknown Role',
         description: role.description || '',
         pid: role.pid
       }));

@@ -55,6 +55,20 @@ class PermissionService {
   }
 
   /**
+   * Get unique permission definitions
+   * @returns {Promise<Array>} Array of distinct permission definitions
+   */
+  async getDefinitions() {
+    try {
+      const response = await HttpClient.get(API_ENDPOINTS.SYSTEM.PERMISSIONS + '/definitions');
+      return response.data || [];
+    } catch (error) {
+      console.error('Error fetching permission definitions:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get all permissions (simplified version for basic listing)
    * @returns {Promise<Array>} Array of permissions
    */
