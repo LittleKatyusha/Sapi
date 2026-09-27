@@ -102,7 +102,12 @@ const PotongSapiBiasaModal = ({
   const [loadingItemPotong, setLoadingItemPotong] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState(null);
-  const beratSapi = Number(cowData?.bobot ?? cowData?.berat ?? initialData?.header?.berat_sapi ?? 0);
+  const [beratSapi, setBeratSapi] = useState('');
+  const beratSapiValid = Number.isInteger(Number(beratSapi)) && Number(beratSapi) > 0 && Number(beratSapi) <= 2147483647;
+
+  useEffect(() => {
+    if (isOpen) setBeratSapi(String(initialData?.header?.berat_sapi ?? cowData?.bobot ?? cowData?.berat ?? ''));
+  }, [isOpen, initialData, cowData]);
 
   const fetchItemPotongOptions = useCallback(async () => {
     setLoadingItemPotong(true);
@@ -212,6 +217,11 @@ const PotongSapiBiasaModal = ({
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    if (!beratSapiValid) {
+      setNotification({ type: 'error', message: 'Berat sapi wajib diisi dengan angka bulat minimal 1 kg.' });
+      return;
+    }
+
     if (!tglPotong) {
       setNotification({ type: 'error', message: 'Tanggal potong wajib diisi.' });
       return;
@@ -284,6 +294,7 @@ const PotongSapiBiasaModal = ({
     const payload = {
       pid: mode === 'edit' ? recordPid : cowData?.pid,
       tgl_potong: tglPotong,
+      berat_sapi: Number(beratSapi),
       berat_karkas: Number(beratKarkas),
       detail: details.map(detail => ({
         id_jenis_potong: Number(detail.id_jenis_potong),
@@ -376,6 +387,21 @@ const PotongSapiBiasaModal = ({
                   </div>
                 </Field>
 
+                <Field label="Berat Sapi (KG)" required helperText="Wajib diisi sebelum detail potong. Total berat detail tidak boleh melebihi berat sapi ini.">
+                  <input
+                    aria-label="Berat Sapi (KG)"
+                    type="number"
+                    value={beratSapi}
+                    onChange={(e) => setBeratSapi(e.target.value)}
+                    min="1"
+                    max="2147483647"
+                    step="1"
+                    required
+                    disabled={isSubmitting}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none"
+                  />
+                </Field>
+
                 <Field label="Berat Karkas (KG)" required helperText="Berat karkas hasil pemotongan untuk mass-balance anti-fraud">
                   <div className="relative">
                     <Scale className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -393,7 +419,7 @@ const PotongSapiBiasaModal = ({
                   </div>
                 </Field>
 
-                <div className="space-y-3">
+                <fieldset disabled={!beratSapiValid || isSubmitting} className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <h3 className="text-sm font-semibold text-slate-700">Detail Potong</h3>
@@ -438,7 +464,7 @@ const PotongSapiBiasaModal = ({
                               value={detail.id_jenis_potong}
                               onChange={(val) => handleDetailChange(index, 'id_jenis_potong', val)}
                               placeholder="Pilih jenis potong"
-                              isDisabled={isSubmitting || detail.is_locked_boning}
+                              isDisabled={!beratSapiValid || isSubmitting || detail.is_locked_boning}
                             />
                           </Field>
 
@@ -449,7 +475,7 @@ const PotongSapiBiasaModal = ({
                               onChange={(val) => handleDetailChange(index, 'id_item_potong', val)}
                               placeholder={loadingItemPotong ? 'Memuat item potong...' : 'Pilih item potong'}
                               isLoading={loadingItemPotong}
-                              isDisabled={isSubmitting || loadingItemPotong || detail.is_locked_boning}
+                              isDisabled={!beratSapiValid || isSubmitting || loadingItemPotong || detail.is_locked_boning}
                             />
                           </Field>
 
@@ -472,7 +498,7 @@ const PotongSapiBiasaModal = ({
                       </div>
                     ))}
                   </div>
-                </div>
+                </fieldset>
               </div>
             </form>
 
