@@ -210,7 +210,8 @@ const PermissionManagementPage = () => {
         definitions = Array.from(uniqueMap.values());
       }
 
-      const options = (definitions || []).sort((a, b) => a.value.localeCompare(b.value));
+      const capability = { service_name: 'rph.inventory', function_name: 'all-rph', method: 'GET', value: 'rph.inventory.all-rph' };
+      const options = [...(definitions || []).filter(option => option.value !== capability.value), capability].sort((a, b) => a.value.localeCompare(b.value));
       setPermissionOptions(options);
 
       // Initialize all modules as expanded
@@ -846,7 +847,7 @@ const PermissionManagementPage = () => {
                                             {opt.method}
                                           </span>
                                           <span className="text-xs font-semibold text-gray-900 truncate">
-                                            {opt.function_name}
+                                            {opt.value === 'rph.inventory.all-rph' ? 'Persediaan lintas kantor (ALL RPH)' : opt.function_name}
                                           </span>
                                           {isDirty && (
                                             <span className="text-[10px] bg-amber-100 text-amber-800 px-1 rounded font-medium">
@@ -856,6 +857,7 @@ const PermissionManagementPage = () => {
                                         </div>
                                         <div className="text-[11px] font-mono text-gray-500 truncate" title={opt.value}>
                                           {opt.value}
+                                          {opt.value === 'rph.inventory.all-rph' && <p className="font-sans whitespace-normal">Tanpa izin ini: kantor sendiri. Tidak memberikan izin aksi atau modul lain. ALL hanya baca; tindakan wajib memilih RPH.</p>}
                                         </div>
                                       </div>
                                     </div>

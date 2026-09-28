@@ -3,16 +3,32 @@ import { Package, ClipboardList, Wheat } from 'lucide-react';
 import PenggunaOvkTab from './components/PenggunaOvkTab';
 import PersediaanOvkTab from './components/PersediaanOvkTab';
 import PersediaanPakanTab from './components/PersediaanPakanTab';
+import StokSapiService from '../../../../services/stokSapiService';
 
 // IA restructure: Resep Pakan first (most used), Stok OVK, Kartu Stok OVK
 const TABS = [
   { id: 'persediaan-pakan', label: 'Resep Pakan', icon: Wheat },
   { id: 'persediaan', label: 'Stok OVK', icon: Package },
   { id: 'pengguna', label: 'Kartu Stok OVK', icon: ClipboardList },
+  { id: 'sapi', label: 'Stok Sapi', icon: ClipboardList },
 ];
 
 const PersediaanOvkPage = () => {
   const [activeTab, setActiveTab] = useState('persediaan-pakan');
+  const [cattle, setCattle] = useState(null);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    if (activeTab !== 'sapi') return;
+    let active = true;
+    const date = new Date();
+    const today = new Date(date - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    StokSapiService.getStokSapiOptions(today).then(response => {
+      if (!active) return;
+      if (response.success) setCattle(response.data.rows || []);
+      else setError(response.message || 'Gagal memuat stok sapi.');
+    });
+    return () => { active = false; };
+  }, [activeTab]);
   useEffect(() => { document.title = 'Persediaan Pakan & OVK - RPH | TernaSys'; }, []);
 
   return (
@@ -71,6 +87,15 @@ const PersediaanOvkPage = () => {
             {activeTab === 'persediaan' && <PersediaanOvkTab />}
             {activeTab === 'pengguna' && <PenggunaOvkTab />}
             {activeTab === 'persediaan-pakan' && <PersediaanPakanTab />}
+            {activeTab === 'sapi' && <div className="overflow-x-auto">
+              {error ? <p role="alert">{error}</p> : cattle === null ? <p role="status">Memuat stok sapi...</p> : <>
+                <p className="mb-3 text-sm">Total: {cattle.length} sapi</p>
+                <table className="w-full text-sm text-left">
+                  <thead><tr>{['RPH', 'Code Eartag', 'Eartag', 'Klasifikasi', 'Kandang'].map(label => <th key={label} className="p-2 border-b">{label}</th>)}</tr></thead>
+                  <tbody>{cattle.map(row => <tr key={row.pid}>{[row.nama_rph, row.code_eartag, row.eartag, row.nama_klasifikasi, row.kode_kandang].map((value, index) => <td key={index} className="p-2 border-b">{value || '-'}</td>)}</tr>)}</tbody>
+                </table>
+              </>}
+            </div>}
           </div>
         </div>
       </div>

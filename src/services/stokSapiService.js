@@ -606,10 +606,11 @@ class StokSapiService {
    * Menandai sapi yang sudah tercatat menerima pakan lain pada tanggal yang sama.
    * Endpoint: GET /api/rph/pemeliharaansapi/stok-sapi-options?tgl_pemberian_pakan=YYYY-MM-DD
    */
-  static async getStokSapiOptions(tglPemberianPakan) {
+  static async getStokSapiOptions(tglPemberianPakan, idRph) {
     try {
       const queryParams = new URLSearchParams({
         tgl_pemberian_pakan: tglPemberianPakan,
+        ...(idRph ? { id_rph: idRph } : {}),
         _t: Date.now(),
       });
       const response = await HttpClient.get(`${this.API_PREFIX}/stok-sapi-options?${queryParams.toString()}`);

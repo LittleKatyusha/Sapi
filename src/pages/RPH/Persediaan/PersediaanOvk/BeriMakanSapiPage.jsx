@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
 import { Wheat, ArrowLeft, AlertCircle, Loader2, Calendar, Search, CheckSquare, Square } from 'lucide-react';
 import PersediaanPakanService from '../../../../services/persediaanPakanService';
 import StokSapiService from '../../../../services/stokSapiService';
 import KandangService from '../../../../services/kandangService';
+import { getInventoryAccess, getInventoryOffice } from '../../../../services/inventoryScope';
 
 const todayStr = (input) => {
   const d = input ? new Date(input) : new Date();
@@ -12,9 +13,17 @@ const todayStr = (input) => {
   return new Date(d - tz).toISOString().slice(0, 10);
 };
 
-const BeriMakanSapiPage = () => {
+const BeriMakanSapiPage = ({ initialItem, onClose, onSuccess }) => {
   const navigate = useNavigate();
   const { pid } = useParams();
+  const access = getInventoryAccess();
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const [office, setOffice] = useState(() => access ? getInventoryOffice() || '' : String(user.id_office || ''));
+  const [recipes, setRecipes] = useState([]);
+  const [recipePid, setRecipePid] = useState(initialItem ? '' : pid || '');
+  const generation = useRef(0);
+  const formRoot = useRef(null);
+  const close = () => onClose ? onClose() : navigate('/rph/persediaan-ovk');
 
   const [sourceItem, setSourceItem] = useState(null);
   const [isLoadingSource, setIsLoadingSource] = useState(true);
@@ -34,6 +43,23 @@ const BeriMakanSapiPage = () => {
   const [isLoadingSapi, setIsLoadingSapi] = useState(false);
   const [sapiError, setSapiError] = useState('');
 
+  useEffect(() => {
+    if (!initialItem) return;
+    const previous = document.activeElement;
+    const root = formRoot.current;
+    root?.querySelector('button, select:not(:disabled)')?.focus();
+    const trapFocus = event => {
+      if (event.key !== 'Tab') return;
+      const controls = [...root.querySelectorAll('button:not(:disabled), select:not(:disabled), input:not(:disabled), [tabindex="0"]')];
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    };
+    root?.addEventListener('keydown', trapFocus);
+    return () => { root?.removeEventListener('keydown', trapFocus); previous?.focus(); };
+  }, [initialItem]);
+
   const loadKandangOptions = useCallback(async () => {
     const response = await KandangService.getOptions();
     if (response.success) setKandangOptions(response.data || []);
@@ -43,10 +69,13 @@ const BeriMakanSapiPage = () => {
     if (!tanggal) return;
     setIsLoadingSapi(true);
     setSapiError('');
-    const response = await StokSapiService.getStokSapiOptions(tanggal);
+    const current = generation.current;
+    const response = await StokSapiService.getStokSapiOptions(tanggal, office);
+    if (current !== generation.current) return;
     if (response.success) {
       const rows = response.data?.rows || [];
       setStokSapiRows(rows);
+      if (initialItem) setKandangOptions(Array.from(new Set(rows.map(row => row.kode_kandang).filter(Boolean))).map(kode => ({ value: kode, kode, label: kode })));
       setSelectedSapiPids(new Set(rows.filter((r) => !r.sudah_diberi_pakan).map((r) => r.pid)));
     } else {
       setStokSapiRows([]);
@@ -54,18 +83,19 @@ const BeriMakanSapiPage = () => {
       setSapiError(response.message || 'Gagal memuat daftar sapi');
     }
     setIsLoadingSapi(false);
-  }, []);
+  }, [office, initialItem]);
 
   const loadSource = useCallback(async () => {
-    if (!pid) {
-      setLoadError('Resep pakan tidak ditemukan.');
+    if (!office || !recipePid) {
       setIsLoadingSource(false);
       return;
     }
     setIsLoadingSource(true);
     setLoadError('');
+    const current = generation.current;
     try {
-      const response = await PersediaanPakanService.showResep(pid);
+      const response = await PersediaanPakanService.showResep(recipePid, office);
+      if (current !== generation.current) return;
       if (response.success) {
         const item = response.data;
         if (!item) {
@@ -81,21 +111,63 @@ const BeriMakanSapiPage = () => {
         setNamaPeternak('');
         setSapiSearch('');
         setSelectedKandangPid('');
-        loadKandangOptions();
+        if (!initialItem) loadKandangOptions();
         loadStokSapi(tgl);
       } else {
         setLoadError(response.message || 'Gagal memuat resep pakan.');
       }
     } catch (err) {
+      if (current !== generation.current) return;
       setLoadError(err?.message || 'Terjadi kesalahan saat memuat resep pakan.');
     } finally {
-      setIsLoadingSource(false);
+      if (current === generation.current) setIsLoadingSource(false);
     }
-  }, [pid, loadKandangOptions, loadStokSapi]);
+  }, [recipePid, office, initialItem, loadKandangOptions, loadStokSapi]);
+
+  useEffect(() => {
+    let active = true;
+    setRecipes([]);
+    if (office && initialItem) {
+      (async () => {
+        const rows = [];
+        let total = 1;
+        while (active && rows.length < total) {
+          const response = await PersediaanPakanService.getResepData({ id_rph: office, start: rows.length, length: 100 });
+          if (!active) return;
+          if (!response.success) { setLoadError(response.message || 'Gagal memuat resep pakan.'); return; }
+          rows.push(...(response.data || []));
+          total = response.recordsFiltered ?? rows.length;
+          if (!response.data?.length) break;
+        }
+        if (active) setRecipes(rows);
+      })();
+    }
+    return () => { active = false; };
+  }, [office, initialItem]);
 
   useEffect(() => {
     loadSource();
+    return () => { generation.current += 1; };
   }, [loadSource]);
+
+  const changeOffice = event => {
+    generation.current += 1;
+    setOffice(event.target.value);
+    setRecipePid('');
+    setSourceItem(null);
+    setRecipes([]);
+    setStokSapiRows([]);
+    setSelectedSapiPids(new Set());
+    setKandangOptions([]);
+    setSelectedKandangPid('');
+    setSapiSearch('');
+    setTglPemberian('');
+    setLoadError('');
+    setSapiError('');
+    setSubmitError('');
+    setIsLoadingSapi(false);
+    setIsLoadingSource(false);
+  };
 
   const filteredSapiRows = useMemo(() => {
     let result = stokSapiRows;
@@ -255,7 +327,7 @@ const BeriMakanSapiPage = () => {
     e.preventDefault();
     setSubmitError('');
 
-    if (!sourceItem?.pid) {
+    if (!office || !sourceItem?.pid || isLoadingSource || isLoadingSapi) {
       setSubmitError('Resep pakan sumber tidak valid.');
       return;
     }
@@ -276,6 +348,7 @@ const BeriMakanSapiPage = () => {
     try {
       const payload = {
         pid: sourceItem.pid,
+        id_rph: Number(office),
         tgl_pemberian_pakan: tglPemberian,
         jam_pemberian_pakan: jamPemberian,
         selected_sapi_pids: Array.from(selectedSapiPids),
@@ -284,7 +357,7 @@ const BeriMakanSapiPage = () => {
 
       const response = await PersediaanPakanService.beriMakan(payload);
       if (response.success) {
-        navigate('/rph/persediaan-ovk');
+        if (onSuccess) onSuccess(); else close();
       } else {
         setSubmitError(response.message || 'Gagal memberi makan sapi.');
       }
@@ -295,7 +368,7 @@ const BeriMakanSapiPage = () => {
     }
   };
 
-  if (isLoadingSource) {
+  if (isLoadingSource && !initialItem) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
@@ -304,7 +377,7 @@ const BeriMakanSapiPage = () => {
     );
   }
 
-  if (loadError) {
+  if (loadError && !initialItem) {
     return (
       <div className="max-w-2xl mx-auto mt-10">
         <div className="flex items-start gap-3 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
@@ -322,12 +395,12 @@ const BeriMakanSapiPage = () => {
   }
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto px-3 py-4 space-y-3">
+    <div ref={formRoot} onKeyDown={event => { if (initialItem && event.key === 'Escape' && !isSubmitting) close(); }} className="w-full max-w-[1600px] mx-auto px-3 py-4 space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate('/rph/persediaan-ovk')}
+            onClick={close}
             disabled={isSubmitting}
             className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50"
           >
@@ -346,6 +419,30 @@ const BeriMakanSapiPage = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3">
+        {(initialItem || user.module_scope === 'rph') && <div className="grid sm:grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="feeding-office" className="block text-sm font-semibold">RPH Pemberian Pakan</label>
+            <select id="feeding-office" value={office} onChange={changeOffice} disabled={!access || isSubmitting} required className="w-full border rounded-lg p-2">
+              <option value="">Pilih RPH sebelum memberi makan</option>
+              {access ? access.offices.map(item => <option key={item.id} value={item.id}>{item.name}</option>) : <option value={office}>{user.nama_office || user.office_name || `RPH ${office}`}</option>}
+            </select>
+          </div>
+          {initialItem && <div>
+            <label htmlFor="feeding-recipe" className="block text-sm font-semibold">Resep Pakan</label>
+            <select id="feeding-recipe" value={recipePid} disabled={!office || isSubmitting} required className="w-full border rounded-lg p-2" onChange={event => {
+              generation.current += 1;
+              setRecipePid(event.target.value);
+              setSourceItem(null);
+              setStokSapiRows([]);
+              setSelectedSapiPids(new Set());
+              setLoadError('');
+            }}>
+              <option value="">Pilih resep pakan</option>
+              {recipes.map(item => <option key={item.pid} value={item.pid}>{item.name}</option>)}
+            </select>
+          </div>}
+        </div>}
+        {initialItem && loadError && <p role="alert" className="text-red-700">{loadError}</p>}
         {/* Source summary — satu baris */}
         {sourceSummary && (
           <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 flex items-center gap-2 flex-wrap">
@@ -529,10 +626,10 @@ const BeriMakanSapiPage = () => {
 
         {/* Submit */}
         <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={() => navigate('/rph/persediaan-ovk')} disabled={isSubmitting} className="px-6 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50">
+          <button type="button" onClick={close} disabled={isSubmitting} className="px-6 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50">
             Batal
           </button>
-          <button type="submit" disabled={isSubmitting} className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+          <button type="submit" disabled={isSubmitting || !office || !sourceItem || isLoadingSource || isLoadingSapi || !selectedSapiPids.size} className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
             {isSubmitting ? (<><Loader2 className="w-4 h-4 animate-spin" /> Menyimpan...</>) : (<><Wheat className="w-4 h-4" /> Beri Makan</>)}
           </button>
         </div>

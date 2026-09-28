@@ -10,6 +10,8 @@ import usePersediaanDocument from '../hooks/usePersediaanDocument';
 import CustomPagination from './CustomPagination';
 import { enhancedTableStyles } from '../constants/tableStyles';
 import PersediaanPakanService from '../../../../../services/persediaanPakanService';
+import BeriMakanSapiPage from '../BeriMakanSapiPage';
+import { getInventoryAccess } from '../../../../../services/inventoryScope';
 
 const SkeletonRows = () => (
   <>
@@ -326,6 +328,7 @@ const PersediaanPakanTab = () => {
     const [detailData, setDetailData] = useState(null);
     const [isLoadingDetail, setIsLoadingDetail] = useState(false);
     const [copyItem, setCopyItem] = useState(null);
+    const [feedingItem, setFeedingItem] = useState(null);
 
     // Advanced filter state
     const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
@@ -456,7 +459,9 @@ const PersediaanPakanTab = () => {
 
     // Handle beri makan sapi — navigate to dedicated page
     const handleBeriMakanClick = useCallback((item) => {
-        navigate(`/rph/persediaan-ovk/beri-makan/${item.pid}`);
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (getInventoryAccess() || user.module_scope === 'rph') setFeedingItem(item);
+        else navigate(`/rph/persediaan-ovk/beri-makan/${item.pid}`);
         setOpenMenuId(null);
     }, [navigate]);
 
@@ -547,6 +552,7 @@ const PersediaanPakanTab = () => {
 
     // Define columns - clean & informative
     const columns = useMemo(() => [
+        { name: 'RPH', selector: row => row.nama_rph || '-', sortable: true },
         {
             name: 'No',
             width: '48px',
@@ -985,6 +991,7 @@ const PersediaanPakanTab = () => {
                                         </span>
                                     </div>
                                     <div className="font-bold text-slate-900 text-sm leading-tight">{row.name || '-'}</div>
+                                    <div className="text-xs text-slate-500">{row.nama_rph}</div>
                                     {row.keterangan && (
                                         <div className="text-xs text-slate-400 line-clamp-1 mt-0.5">{row.keterangan}</div>
                                     )}
@@ -1035,6 +1042,11 @@ const PersediaanPakanTab = () => {
             </div>
 
             {/* Modals */}
+            {feedingItem && <div className="fixed inset-0 z-50 bg-black/50 p-3 sm:p-6 overflow-y-auto" role="dialog" aria-modal="true" aria-label="Beri Makan Sapi">
+                <div className="bg-white rounded-xl max-w-6xl mx-auto">
+                    <BeriMakanSapiPage initialItem={feedingItem} onClose={() => setFeedingItem(null)} onSuccess={() => { setFeedingItem(null); refresh(); }} />
+                </div>
+            </div>}
             <BuatResepPakanModal
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}

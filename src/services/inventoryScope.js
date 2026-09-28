@@ -37,6 +37,11 @@ export const inventoryPageRoot = pathname => inventoryPages
 
 const STORAGE_KEY = 'inventoryOffice';
 let scope = null;
+export const allInventoryReads = ['persediaan/pakan/data', 'persediaan/ovk/data', 'persediaan/ovk/datastok', 'pemeliharaansapi/stok-sapi-options'];
+export const getInventoryAccess = () => scope;
+export function setInventoryPage(pathname) {
+  if (scope) scope.pageAll = pathname === '/rph/persediaan-ovk';
+}
 
 export function resetInventoryScope() {
   scope = null;
@@ -56,12 +61,18 @@ export function configureInventoryScope(user, offices = []) {
   }
   let saved;
   try { saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY)); } catch { /* Ignore invalid persisted data. */ }
-  scope = { owner, offices, id: null };
+  const pageId = scope?.owner === owner && offices.some(office => String(office.id) === scope.pageId) ? scope.pageId : 'all';
+  scope = { owner, offices, id: null, pageAll: false, pageId };
   if (saved?.owner === owner && offices.some(office => String(office.id) === saved.id)) scope.id = saved.id;
   return scope.id;
 }
 
 export function selectInventoryOffice(id) {
+  if (scope?.pageAll) {
+    if (id !== 'all' && !scope.offices.some(office => String(office.id) === String(id))) throw new Error('Pilih RPH yang tersedia.');
+    scope.pageId = String(id);
+    return;
+  }
   if (!scope?.offices.some(office => String(office.id) === String(id))) throw new Error('Pilih RPH yang tersedia.');
   scope.id = String(id);
   try {
@@ -72,7 +83,7 @@ export function selectInventoryOffice(id) {
   }
 }
 
-export const getInventoryOffice = () => scope?.id || null;
+export const getInventoryOffice = () => scope?.pageAll ? (scope.pageId === 'all' ? null : scope.pageId) : scope?.id || null;
 
 export function scopeInventoryRequest(url, options = {}) {
   if (!scope) return { url, options };
@@ -82,16 +93,24 @@ export function scopeInventoryRequest(url, options = {}) {
   if (parsed.origin !== base.origin || !allowed.some(pattern => pattern.test(`${method} ${parsed.pathname}`))) {
     return { url, options };
   }
-  if (!scope.id) throw new Error('Pilih RPH sebelum mengakses persediaan.');
-  parsed.searchParams.set('id_rph', scope.id);
   let body = options.body;
+  const explicit = body instanceof FormData ? body.get('id_rph') : body ? JSON.parse(body).id_rph : parsed.searchParams.get('id_rph');
+  let id = scope.id;
+  if (scope.pageAll) {
+    id = explicit ?? scope.pageId;
+    if (id === 'all') {
+      if (method !== 'GET' || !allInventoryReads.some(path => parsed.pathname === `/api/rph/${path}`)) throw new Error('Pilih RPH sebelum melakukan tindakan.');
+    } else if (!scope.offices.some(office => String(office.id) === String(id))) throw new Error('Pilih RPH yang tersedia.');
+  }
+  if (!id) throw new Error('Pilih RPH sebelum mengakses persediaan.');
+  parsed.searchParams.set('id_rph', id);
   if (body instanceof FormData) {
     const copy = new FormData();
     body.forEach((value, key) => copy.append(key, value));
-    copy.set('id_rph', scope.id);
+    copy.set('id_rph', id);
     body = copy;
   } else if (body) {
-    body = JSON.stringify({ ...JSON.parse(body), id_rph: Number(scope.id) });
+    body = JSON.stringify({ ...JSON.parse(body), id_rph: Number(id) });
   }
   return { url: parsed.href, options: body === undefined ? options : { ...options, body } };
 }

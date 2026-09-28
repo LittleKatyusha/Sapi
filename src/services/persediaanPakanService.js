@@ -91,6 +91,7 @@ class PersediaanPakanService {
       });
 
       // Add date range if provided
+      if (params.id_rph) queryParams.append('id_rph', params.id_rph);
       if (params.startDate) queryParams.append('start_date', params.startDate);
       if (params.endDate) queryParams.append('end_date', params.endDate);
 
@@ -132,6 +133,7 @@ class PersediaanPakanService {
   static transformResepData(item) {
     return {
       pid: item.pid,
+      nama_rph: item.nama_rph,
       kode: item.kode || '-',
       tgl_aktif: item.tgl_aktif || '-',
       name: item.name || '-',
@@ -229,9 +231,9 @@ class PersediaanPakanService {
    * @param {string} pid - Recipe ID (encrypted)
    * @returns {Promise} API response with recipe detail including items
    */
-  static async showResep(pid) {
+  static async showResep(pid, idRph) {
     try {
-      const response = await HttpClient.post(this.API_SHOW, { pid });
+      const response = await HttpClient.post(this.API_SHOW, { pid, ...(idRph ? { id_rph: idRph } : {}) });
       return {
         success: true,
         data: response?.data ?? response,

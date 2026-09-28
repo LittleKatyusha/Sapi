@@ -1,5 +1,5 @@
 import HttpClient from './httpClient';
-import { configureInventoryScope, getInventoryOffice, inventoryEndpoints, inventoryPageRoot, resetInventoryScope, scopeInventoryRequest, selectInventoryOffice } from './inventoryScope';
+import { allInventoryReads, configureInventoryScope, getInventoryOffice, inventoryEndpoints, inventoryPageRoot, resetInventoryScope, scopeInventoryRequest, selectInventoryOffice, setInventoryPage } from './inventoryScope';
 
 jest.mock('../config/api', () => ({ API_BASE_URL: 'https://api.test', API_ENDPOINTS: {} }));
 jest.mock('../config/cors.js', () => ({ CORS_CONFIG: { defaultHeaders: {} }, generateCorsHeaders: () => ({}) }));
@@ -7,12 +7,52 @@ jest.mock('../utils/performanceMonitor', () => ({ measureApiCall: (_, callback) 
 
 const user = { id: 12, pid: 'random-encryption', inventory_scope: 'all_rph' };
 const offices = [{ id: 7, name: 'RPH A' }, { id: 8, name: 'RPH B' }];
+test('OVK defaults ALL, separates cache, honors concrete modal office, denies ALL mutations', async () => {
+  configureInventoryScope(user, offices);
+  selectInventoryOffice(8);
+  setInventoryPage('/rph/persediaan-ovk');
+  await HttpClient.get('/api/rph/persediaan/pakan/data');
+  expect(fetch.mock.calls[0][0]).toContain('id_rph=all');
+  selectInventoryOffice(7);
+  await HttpClient.get('/api/rph/persediaan/pakan/data');
+  expect(fetch.mock.calls[1][0]).toContain('id_rph=7');
+  await HttpClient.post('/api/rph/persediaan/pakan/beri-makan', { id_rph: 8 });
+  expect(JSON.parse(fetch.mock.calls[2][1].body).id_rph).toBe(8);
+  selectInventoryOffice('all');
+  expect(() => scopeInventoryRequest('https://api.test/api/rph/persediaan/pakan/store', { method: 'POST' })).toThrow('Pilih RPH');
+  expect(() => scopeInventoryRequest('https://api.test/api/rph/kandang/data')).toThrow('Pilih RPH');
+  expect(() => scopeInventoryRequest('https://api.test/api/rph/persediaan/pakan/beri-makan', { method: 'POST', body: JSON.stringify({ id_rph: 99 }) })).toThrow('Pilih RPH');
+  setInventoryPage('/rph/stok-sapi');
+  expect(getInventoryOffice()).toBe('8');
+});
 beforeEach(() => {
   resetInventoryScope();
   HttpClient.clearCache();
   global.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ data: [] }), blob: async () => new Blob(['PDF']) }));
 });
 afterEach(() => resetInventoryScope());
+
+test('ALL is confined to list allowlist; explicit modal reads and FormData retain their office', () => {
+  configureInventoryScope(user, offices);
+  setInventoryPage('/rph/persediaan-ovk');
+  for (const [prefix, actions] of Object.entries(inventoryEndpoints)) {
+    for (const action of actions) {
+      const [method, path] = action.split(' ');
+      const route = `${prefix}/${path.replace('{pid}', 'test')}`;
+      const request = () => scopeInventoryRequest(`https://api.test/api/rph/${route}`, { method });
+      if (method === 'GET' && allInventoryReads.includes(route)) {
+        expect(new URL(request().url).searchParams.get('id_rph')).toBe('all');
+      } else expect(request).toThrow('Pilih RPH');
+    }
+  }
+  selectInventoryOffice(7);
+  for (const route of ['persediaan/pakan/data', 'pemeliharaansapi/stok-sapi-options']) {
+    expect(new URL(scopeInventoryRequest(`https://api.test/api/rph/${route}?id_rph=8`).url).searchParams.get('id_rph')).toBe('8');
+  }
+  const body = new FormData();
+  body.append('id_rph', '8');
+  expect(scopeInventoryRequest('https://api.test/api/rph/persediaan/pakan/beri-makan', { method: 'POST', body }).options.body.get('id_rph')).toBe('8');
+});
 
 test('restores only eligible office for stable me identity, not randomized pid', () => {
   configureInventoryScope(user, offices);

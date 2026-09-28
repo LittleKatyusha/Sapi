@@ -17,6 +17,45 @@ beforeEach(() => {
   HttpClient.get.mockImplementation(async path => ({ data: path === '/api/auth/me' ? user : offices }));
 });
 afterEach(() => resetInventoryScope());
+test('OVK ALL mounts immediately; specific office remounts without duplicate selector', async () => {
+  mockPath = '/rph/persediaan-ovk';
+  render(<InventoryScopeGate><p>Inventory rows</p></InventoryScopeGate>);
+  expect(await screen.findByText('Inventory rows')).toBeInTheDocument();
+  expect(screen.getByLabelText('RPH Persediaan')).toHaveValue('all');
+  fireEvent.change(screen.getByLabelText('RPH Persediaan'), { target: { value: '7' } });
+  expect(screen.getByLabelText('RPH Persediaan')).toHaveValue('7');
+  expect(screen.getAllByRole('combobox')).toHaveLength(1);
+});
+test('ordinary RPH office remains visible and locked', async () => {
+  mockPath = '/rph/persediaan-ovk';
+  HttpClient.get.mockResolvedValue({ data: { id: 12, module_scope: 'rph', id_office: 7 } });
+  render(<InventoryScopeGate><p>Inventory rows</p></InventoryScopeGate>);
+  expect(await screen.findByLabelText('RPH Persediaan')).toBeDisabled();
+  expect(screen.getByLabelText('RPH Persediaan')).toHaveValue('7');
+});
+
+test('focus refresh revokes arbitrary role scope and locks own office', async () => {
+  mockPath = '/rph/persediaan-ovk';
+  render(<InventoryScopeGate><p>Inventory rows</p></InventoryScopeGate>);
+  expect(await screen.findByLabelText('RPH Persediaan')).toHaveValue('all');
+  HttpClient.get.mockResolvedValue({ data: { id: 12, inventory_scope: 'own', id_office: 7 } });
+  fireEvent.focus(window);
+  expect(await screen.findByLabelText('RPH Persediaan')).toBeDisabled();
+  expect(screen.getByLabelText('RPH Persediaan')).toHaveValue('7');
+  expect(JSON.parse(localStorage.getItem('user'))).not.toHaveProperty('inventory_scope');
+});
+
+test('focus refresh preserves selected office but clears a removed own office', async () => {
+  mockPath = '/rph/persediaan-ovk';
+  render(<InventoryScopeGate><p>Inventory rows</p></InventoryScopeGate>);
+  fireEvent.change(await screen.findByLabelText('RPH Persediaan'), { target: { value: '7' } });
+  fireEvent.focus(window);
+  expect(await screen.findByLabelText('RPH Persediaan')).toHaveValue('7');
+  HttpClient.get.mockResolvedValue({ data: { id: 12, inventory_scope: 'own', id_office: null } });
+  fireEvent.focus(window);
+  expect(await screen.findByLabelText('RPH Persediaan')).toBeDisabled();
+  expect(JSON.parse(localStorage.getItem('user')).id_office).toBeNull();
+});
 
 test('fresh me gates children; labeled selector uses eligible offices, preserves flat login shape', async () => {
   render(<InventoryScopeGate><p>Inventory rows</p></InventoryScopeGate>);
@@ -25,7 +64,7 @@ test('fresh me gates children; labeled selector uses eligible offices, preserves
   expect(screen.getByRole('option', { name: 'RPH A' })).toHaveValue('7');
   expect(screen.queryByText('Inventory rows')).not.toBeInTheDocument();
   expect(HttpClient.get).toHaveBeenCalledWith('/api/auth/me', { cache: false });
-  expect(JSON.parse(localStorage.getItem('user'))).toEqual({ pid: 'login-pid', roles_id: 3, id_office: 99, inventory_scope: 'all_rph' });
+  expect(JSON.parse(localStorage.getItem('user'))).toEqual({ pid: 'login-pid', roles_id: 3, id_office: null, inventory_scope: 'all_rph' });
 });
 
 test('validated persisted selection mounts inventory', async () => {
