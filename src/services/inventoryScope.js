@@ -37,10 +37,10 @@ export const inventoryPageRoot = pathname => inventoryPages
 
 const STORAGE_KEY = 'inventoryOffice';
 let scope = null;
-export const allInventoryReads = ['persediaan/pakan/data', 'persediaan/ovk/data', 'persediaan/ovk/datastok', 'pemeliharaansapi/stok-sapi-options'];
+export const allInventoryReads = ['persediaan/pakan/data', 'persediaan/ovk/data', 'persediaan/ovk/datastok', 'pemeliharaansapi/stok-sapi-options', 'pemeliharaansapi/stoksapi', 'pemeliharaansapi/stoksapibyjenis', 'pemeliharaansapi/stokfilteroptions', 'persediaan/potongpaksa/data', 'persediaan/sapimati/data'];
 export const getInventoryAccess = () => scope;
 export function setInventoryPage(pathname) {
-  if (scope) scope.pageAll = pathname === '/rph/persediaan-ovk';
+  if (scope) scope.pageAll = pathname === '/rph/persediaan-ovk' || pathname === '/rph/stok-sapi';
 }
 
 export function resetInventoryScope() {
@@ -71,6 +71,14 @@ export function selectInventoryOffice(id) {
   if (scope?.pageAll) {
     if (id !== 'all' && !scope.offices.some(office => String(office.id) === String(id))) throw new Error('Pilih RPH yang tersedia.');
     scope.pageId = String(id);
+    // Keep concrete action pages aligned with the visible selection, never a previous office.
+    scope.id = id === 'all' ? null : String(id);
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ owner: scope.owner, id: scope.id }));
+    } catch {
+      scope.id = null;
+      throw new Error('Pilihan RPH tidak dapat disimpan. Aktifkan penyimpanan sesi browser.');
+    }
     return;
   }
   if (!scope?.offices.some(office => String(office.id) === String(id))) throw new Error('Pilih RPH yang tersedia.');

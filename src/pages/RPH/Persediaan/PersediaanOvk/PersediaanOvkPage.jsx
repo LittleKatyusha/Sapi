@@ -4,6 +4,7 @@ import PenggunaOvkTab from './components/PenggunaOvkTab';
 import PersediaanOvkTab from './components/PersediaanOvkTab';
 import PersediaanPakanTab from './components/PersediaanPakanTab';
 import StokSapiService from '../../../../services/stokSapiService';
+import { InventoryOfficeSelector } from '../../../../components/InventoryScopeGate';
 
 // IA restructure: Resep Pakan first (most used), Stok OVK, Kartu Stok OVK
 const TABS = [
@@ -37,9 +38,9 @@ const PersediaanOvkPage = () => {
         {/* Compact Header */}
         <div className="relative overflow-hidden rounded-xl bg-white border border-slate-200 shadow-sm">
           <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/60 via-transparent to-transparent pointer-events-none" />
-          <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-500/30">
+          <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 p-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="w-11 h-11 shrink-0 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-500/30">
                 <Package className="h-5 w-5 text-white" />
               </div>
               <div>
@@ -48,12 +49,6 @@ const PersediaanOvkPage = () => {
                   <span className="hidden sm:inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">RPH</span>
                 </div>
                 <p className="text-sm text-slate-500 mt-0.5">Stok obat, vitamin, kit — riwayat pemakaian — resep pakan, semua dalam satu tempat</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-slate-500">
-              <div className="flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 font-medium text-xs">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                Tersinkron
               </div>
             </div>
           </div>
@@ -88,6 +83,9 @@ const PersediaanOvkPage = () => {
             {activeTab === 'pengguna' && <PenggunaOvkTab />}
             {activeTab === 'persediaan-pakan' && <PersediaanPakanTab />}
             {activeTab === 'sapi' && <div className="overflow-x-auto">
+              <div role="region" aria-label="Filter Stok Sapi" className="mb-3 flex flex-wrap items-center gap-3">
+                <InventoryOfficeSelector />
+              </div>
               {error ? <p role="alert">{error}</p> : cattle === null ? <p role="status">Memuat stok sapi...</p> : <>
                 <p className="mb-3 text-sm">Total: {cattle.length} sapi</p>
                 <table className="w-full text-sm text-left">

@@ -4,6 +4,7 @@ import usePenggunaOvk from '../hooks/usePenggunaOvk';
 import DateColumnPicker from './DateColumnPicker';
 import PenggunaOvkTable from './PenggunaOvkTable';
 import usePersediaanDocument from '../hooks/usePersediaanDocument';
+import { InventoryOfficeSelector } from '../../../../../components/InventoryScopeGate';
 
 const RiwayatSummaryCard = ({ data, selectedDates }) => {
   const stats = useMemo(() => {
@@ -81,11 +82,16 @@ const PenggunaOvkTab = () => {
       {downloadError && <p role="alert" className="text-sm text-red-700">{downloadError}</p>}
       {!error && penggunaData.length > 0 && <RiwayatSummaryCard data={penggunaData} selectedDates={selectedDates} />}
 
-      <DateColumnPicker
-        availableDates={availableDates}
-        selectedDates={selectedDates}
-        onDateRangeChange={handleDateRangeChange}
-      />
+      <div role="region" aria-label="Filter Kartu Stok OVK" className="flex flex-col lg:flex-row items-start gap-3">
+        <InventoryOfficeSelector />
+        <div className="w-full min-w-0 flex-1">
+          <DateColumnPicker
+            availableDates={availableDates}
+            selectedDates={selectedDates}
+            onDateRangeChange={handleDateRangeChange}
+          />
+        </div>
+      </div>
 
       {error && (
         <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3">

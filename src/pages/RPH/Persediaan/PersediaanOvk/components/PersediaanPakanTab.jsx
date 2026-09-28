@@ -12,6 +12,7 @@ import { enhancedTableStyles } from '../constants/tableStyles';
 import PersediaanPakanService from '../../../../../services/persediaanPakanService';
 import BeriMakanSapiPage from '../BeriMakanSapiPage';
 import { getInventoryAccess } from '../../../../../services/inventoryScope';
+import { InventoryOfficeSelector } from '../../../../../components/InventoryScopeGate';
 
 const SkeletonRows = () => (
   <>
@@ -708,8 +709,9 @@ const PersediaanPakanTab = () => {
             {!searchError && persediaanData && persediaanData.length > 0 && <ResepSummaryCard data={persediaanData} />}
 
             {/* Search & Action Bar */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-end">
-                <div className="flex items-center gap-2">
+            <div role="region" aria-label="Filter Resep Pakan" className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:items-center sm:justify-between">
+                <InventoryOfficeSelector />
+                <div className="flex flex-wrap items-center gap-2">
                     <button
                         onClick={() => setShowAdvancedFilter(prev => !prev)}
                         className={`inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-bold rounded-lg border-2 transition-all active:scale-95 whitespace-nowrap ${hasActiveFilters ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}

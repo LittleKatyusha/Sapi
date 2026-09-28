@@ -1,12 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Building2, LockKeyhole } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import HttpClient from '../services/httpClient';
 import { configureInventoryScope, getInventoryOffice, inventoryPageRoot, selectInventoryOffice, setInventoryPage } from '../services/inventoryScope';
 
+const InventoryOfficeContext = createContext(null);
+export function InventoryOfficeSelector() {
+  return useContext(InventoryOfficeContext);
+}
+export function useInventoryOffice() {
+  useContext(InventoryOfficeContext);
+  return getInventoryOffice();
+}
+
 export default function InventoryScopeGate({ children }) {
   const { pathname } = useLocation();
   const root = inventoryPageRoot(pathname);
-  const allPage = pathname === '/rph/persediaan-ovk';
+  const allPage = pathname === '/rph/persediaan-ovk' || pathname === '/rph/stok-sapi';
+  const stockPage = pathname === '/rph/stok-sapi';
   setInventoryPage(pathname);
   const [state, setState] = useState(null);
   const [error, setError] = useState('');
@@ -50,9 +61,8 @@ export default function InventoryScopeGate({ children }) {
       }
     };
     load();
-    const refresh = () => setAttempt(value => value + 1);
-    window.addEventListener('focus', refresh);
-    return () => { active = false; window.removeEventListener('focus', refresh); };
+    // Check access on navigation/retry, not focus: resetting the gate discards open forms.
+    return () => { active = false; };
   }, [attempt, pathname]);
 
   if (error) return <div role="alert" className="text-red-700">
@@ -60,21 +70,15 @@ export default function InventoryScopeGate({ children }) {
     <button type="button" className="mt-2 underline focus-visible:ring-2 focus-visible:ring-emerald-700" onClick={() => setAttempt(value => value + 1)}>Coba lagi</button>
   </div>;
   if (!state) return <p role="status">Memuat akses persediaan...</p>;
-  if (!state.restricted || !root) return <>
-    {allPage && !state.restricted && <div className="mb-4 max-w-sm">
-      <label htmlFor="inventory-office" className="block text-sm font-medium">RPH Persediaan</label>
-      <select id="inventory-office" disabled value={state.user.id_office || ''} className="w-full rounded-md border p-2">
-        <option value={state.user.id_office || ''}>{state.user.nama_office || state.user.office_name || `RPH ${state.user.id_office || '-'}`}</option>
-      </select>
-    </div>}
-    {children}
-  </>;
+  if (!root) return children;
 
   const changeOffice = event => {
     const id = event.target.value;
     if (allPage) {
-      selectInventoryOffice(id);
-      setState(previous => ({ ...previous, pageId: id }));
+      try {
+        selectInventoryOffice(id);
+        setState(previous => ({ ...previous, pageId: id }));
+      } catch (failure) { setError(failure.message); }
       return;
     }
     if (id === state.id || !id) return;
@@ -88,19 +92,29 @@ export default function InventoryScopeGate({ children }) {
     }
   };
 
-  return <>
-    <div className="mb-4 max-w-sm">
-      <label htmlFor="inventory-office" className="block text-sm font-medium text-gray-900 mb-1">RPH Persediaan</label>
+  const selector = <div className="w-full min-w-0 sm:w-64 sm:shrink-0">
+    <label htmlFor="inventory-office" className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-slate-600">
+      <Building2 aria-hidden="true" className="h-3.5 w-3.5" /> RPH Persediaan
+    </label>
+    {state.restricted ? <>
       <select id="inventory-office" value={allPage ? (getInventoryOffice() || 'all') : state.id || ''} onChange={changeOffice}
-        disabled={!state.offices.length} aria-describedby="inventory-office-help"
-        className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-700">
-        {allPage ? <option value="all">ALL RPH</option> : <option value="" disabled>Pilih RPH</option>}
+        disabled={!state.offices.length} aria-describedby={!state.offices.length || !allPage ? 'inventory-office-help' : undefined}
+        className="w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700 disabled:bg-slate-100">
+        {allPage ? <option value="all">Semua RPH</option> : <option value="" disabled>Pilih RPH</option>}
         {state.offices.map(office => <option key={office.id} value={office.id}>{office.name}</option>)}
       </select>
-      <p id="inventory-office-help" className="mt-1 text-sm text-gray-600">
-        {allPage ? 'ALL RPH hanya untuk melihat data. Pilih RPH untuk tindakan.' : state.offices.length ? 'Data dan tindakan berlaku untuk RPH terpilih. Mengganti RPH memuat ulang halaman.' : 'Tidak ada RPH yang tersedia. Hubungi administrator.'}
-      </p>
-    </div>
-    {allPage ? <React.Fragment key={getInventoryOffice() || 'all'}>{children}</React.Fragment> : state.id ? children : <p role="status">Pilih RPH untuk memuat persediaan.</p>}
-  </>;
+      {(!state.offices.length || !allPage) && <p id="inventory-office-help" className="mt-1 text-xs text-slate-600">
+        {!state.offices.length ? 'Tidak ada RPH tersedia. Hubungi administrator.' : 'Ganti RPH akan memuat ulang halaman.'}
+      </p>}
+    </> : <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+      <LockKeyhole aria-hidden="true" className="h-4 w-4 shrink-0" />
+      <input id="inventory-office" readOnly value={state.user.nama_office || state.user.office_name || `RPH ${state.user.id_office || '-'}`} aria-describedby="inventory-office-help" className="w-full min-w-0 bg-transparent outline-none focus-visible:ring-2 focus-visible:ring-emerald-700" />
+      <span id="inventory-office-help" className="sr-only">RPH sesuai penugasan, tidak dapat diubah.</span>
+    </div>}
+  </div>;
+
+  return <InventoryOfficeContext.Provider value={selector}>
+    {!allPage && !stockPage && state.restricted && <div className="mb-4">{selector}</div>}
+    {allPage && !stockPage ? <React.Fragment key={getInventoryOffice() || 'all'}>{children}</React.Fragment> : stockPage || !state.restricted || state.id ? children : <p role="status">Pilih RPH untuk memuat persediaan.</p>}
+  </InventoryOfficeContext.Provider>;
 }

@@ -5,7 +5,7 @@ import PotongPaksaModal from '../modals/PotongPaksaModal';
 import ActionButton from './ActionButton';
 import useStokSapiDocument from '../useStokSapiDocument';
 
-const PotongPaksaTab = () => {
+const PotongPaksaTab = ({ officeSelector }) => {
   const { download, downloading, downloadError } = useStokSapiDocument();
   const [openMenuId, setOpenMenuId] = useState(null);
 
@@ -141,8 +141,9 @@ const PotongPaksaTab = () => {
       </div>
 
       {/* Filter Card */}
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+      <div role="region" aria-label="Filter Stok Sapi" className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+          {officeSelector}
           <div className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
             <Filter className="h-4 w-4 text-red-500" />
             Filter Tanggal
@@ -263,6 +264,7 @@ const PotongPaksaTab = () => {
                   <td className="px-3 py-2 border-gray-100 whitespace-nowrap">
                     <div className="space-y-0.5">
                       <div className="text-sm font-medium text-slate-900">{item.sapi || '-'}</div>
+                      <div className="text-xs text-slate-600">RPH: {item.rph || '-'}</div>
                       <div className="text-xs text-slate-500">
                         <span className="text-slate-400">Klasifikasi:</span> {item.klasifikasi_hewan || '-'}
                       </div>

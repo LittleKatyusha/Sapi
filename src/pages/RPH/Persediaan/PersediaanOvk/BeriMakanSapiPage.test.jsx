@@ -42,8 +42,8 @@ test('ALL requires concrete office; transition clears feed/cattle and ignores la
 });
 test('ordinary RPH modal locks assigned office', async () => {
   render(<BeriMakanSapiPage initialItem={{ pid: 'old' }} onClose={jest.fn()} />);
-  expect(screen.getByLabelText('RPH Pemberian Pakan')).toBeDisabled();
-  expect(screen.getByLabelText('RPH Pemberian Pakan')).toHaveValue('7');
+  expect(screen.getByLabelText('RPH Pemberian Pakan')).toHaveAttribute('readonly');
+  expect(screen.getByLabelText('RPH Pemberian Pakan')).toHaveValue('RPH 7');
   await screen.findByRole('option', { name: 'Feed 7' });
 });
 test('office transition drops late recipe detail and selected cattle; submission uses modal office', async () => {
@@ -65,6 +65,15 @@ test('office transition drops late recipe detail and selected cattle; submission
   await screen.findByRole('option', { name: 'Feed 8' });
   fireEvent.change(screen.getByLabelText('Resep Pakan'), { target: { value: 'feed-8' } });
   await screen.findByText('Cow B');
+  fireEvent.change(screen.getByLabelText('Nama Peternak (opsional)'), { target: { value: 'Budi' } });
+  const calls = [Pakan.getResepData.mock.calls.length, Pakan.showResep.mock.calls.length, Sapi.getStokSapiOptions.mock.calls.length];
+  fireEvent.blur(window);
+  fireEvent(document, new Event('visibilitychange'));
+  fireEvent.focus(window);
+  expect(screen.getByLabelText('Nama Peternak (opsional)')).toHaveValue('Budi');
+  expect(screen.getByLabelText('RPH Pemberian Pakan')).toHaveValue('8');
+  expect(screen.getByLabelText('Resep Pakan')).toHaveValue('feed-8');
+  expect([Pakan.getResepData.mock.calls.length, Pakan.showResep.mock.calls.length, Sapi.getStokSapiOptions.mock.calls.length]).toEqual(calls);
   fireEvent.click(screen.getByRole('button', { name: 'Beri Makan' }));
   await waitFor(() => expect(Pakan.beriMakan).toHaveBeenCalledWith(expect.objectContaining({ id_rph: 8, pid: 'feed-8', selected_sapi_pids: ['cow-b'] })));
   fireEvent.change(screen.getByLabelText('RPH Pemberian Pakan'), { target: { value: '7' } });

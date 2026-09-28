@@ -1,7 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Package, ClipboardList, Scale, AlertTriangle, Wheat, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import useDocumentTitle from '../../../hooks/useDocumentTitle';
+import { InventoryOfficeSelector, useInventoryOffice } from '../../../components/InventoryScopeGate';
+import { getInventoryAccess } from '../../../services/inventoryScope';
 import StokRingkasTab from './components/StokRingkasTab';
 import StokDetailTab from './components/StokDetailTab';
 import PotongPaksaTab from './components/PotongPaksaTab';
@@ -21,6 +23,9 @@ const TABS = [
 const StokSapiPage = () => {
   useDocumentTitle('Stok Sapi RPH');
   const navigate = useNavigate();
+  const office = useInventoryOffice();
+  const needsOffice = Boolean(getInventoryAccess() && !office);
+  const officeSelector = <InventoryOfficeSelector />;
 
   const [activeTab, setActiveTab] = useState('detail');
 
@@ -30,6 +35,14 @@ const StokSapiPage = () => {
   const [beriPakanModalOpen, setBeriPakanModalOpen] = useState(false);
   const [stokDetailRefreshKey, setStokDetailRefreshKey] = useState(0);
   const [selectedCowForAction, setSelectedCowForAction] = useState(null);
+
+  useEffect(() => {
+    setPotongPaksaModalOpen(false);
+    setSapiMatiModalOpen(false);
+    setPotongSapiBiasaModalOpen(false);
+    setBeriPakanModalOpen(false);
+    setSelectedCowForAction(null);
+  }, [office]);
 
   const handlePotongPaksa = useCallback((cow) => {
     setSelectedCowForAction(cow);
@@ -99,6 +112,7 @@ const StokSapiPage = () => {
             <div className="flex items-center gap-2">
               <button
                 type="button"
+                disabled={!!needsOffice}
                 onClick={() => navigate('/rph/stok-sapi/tambah-anakan')}
                 className="inline-flex items-center gap-2 rounded-md border border-emerald-300 bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
               >
@@ -107,6 +121,7 @@ const StokSapiPage = () => {
               </button>
               <button
                 type="button"
+                disabled={!!needsOffice}
                 onClick={handleBeriPakan}
                 className="inline-flex items-center gap-2 rounded-md border border-amber-300 bg-amber-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600"
               >
@@ -115,6 +130,7 @@ const StokSapiPage = () => {
               </button>
               <button
                 type="button"
+                disabled={!!needsOffice}
                 onClick={() => navigate('/rph/pemberian-ovk-sapi')}
                 className="inline-flex items-center gap-2 rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-medium text-teal-700 hover:bg-teal-100"
               >
@@ -155,12 +171,14 @@ const StokSapiPage = () => {
           </div>
 
           {/* Tab Content */}
-          <div className="p-4">
+          <div className="p-4" key={office || 'all'}>
+            {needsOffice && <p role="status" className="mb-3 text-sm text-slate-600">Menampilkan semua RPH. Pilih satu RPH untuk tindakan, riwayat detail, atau unduhan.</p>}
             {activeTab === 'ringkas' && (
-              <StokRingkasTab />
+              <StokRingkasTab officeSelector={officeSelector} />
             )}
             {activeTab === 'detail' && (
               <StokDetailTab
+                officeSelector={officeSelector}
                 refreshTrigger={stokDetailRefreshKey}
                 onOvk={(cow) => navigate('/rph/pemberian-ovk-sapi/add', { state: { cow } })}
                 onPotongPaksa={handlePotongPaksa}
@@ -169,16 +187,17 @@ const StokSapiPage = () => {
               />
             )}
             {activeTab === 'potongpaksa' && (
-              <PotongPaksaTab />
+              <PotongPaksaTab officeSelector={officeSelector} />
             )}
             {activeTab === 'sapimati' && (
-              <SapiMatiTab animalGroup="sapi" />
+              <SapiMatiTab animalGroup="sapi" officeSelector={officeSelector} />
             )}
           </div>
         </div>
       </div>
 
       {/* Modals */}
+      {!needsOffice && <>
       <PotongPaksaModal
         isOpen={potongPaksaModalOpen}
         onClose={handlePotongPaksaClose}
@@ -202,6 +221,7 @@ const StokSapiPage = () => {
         onClose={handleBeriPakanClose}
         onSuccess={handleBeriPakanSuccess}
       />
+      </>}
     </div>
   );
 };

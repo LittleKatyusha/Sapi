@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { AlertCircle, Loader2, RefreshCw, AlertTriangle, Filter, Search, RotateCcw, Download } from 'lucide-react';
 import StokSapiService from '../../../../services/stokSapiService';
+import { getInventoryAccess, getInventoryOffice } from '../../../../services/inventoryScope';
 import SapiMatiModal from '../modals/SapiMatiModal';
 import ActionButton from './ActionButton';
 import useStokSapiDocument from '../useStokSapiDocument';
 
-const SapiMatiTab = ({ animalGroup, animalLabel = 'Sapi' }) => {
+const SapiMatiTab = ({ animalGroup, animalLabel = 'Sapi', officeSelector }) => {
   const { download, downloading, downloadError } = useStokSapiDocument();
   const [openMenuId, setOpenMenuId] = useState(null);
 
@@ -156,8 +157,9 @@ const SapiMatiTab = ({ animalGroup, animalLabel = 'Sapi' }) => {
       </div>
 
       {/* Filter Card */}
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+      <div role="region" aria-label="Filter Stok Sapi" className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+          {officeSelector}
           <div className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
             <Filter className="h-4 w-4 text-slate-500" />
             Filter Tanggal
@@ -279,6 +281,7 @@ const SapiMatiTab = ({ animalGroup, animalLabel = 'Sapi' }) => {
                   <td className="px-3 py-2 border-gray-100 whitespace-nowrap">
                     <div className="space-y-0.5">
                       <div className="text-sm font-medium text-slate-900">{item.sapi || '-'}</div>
+                      <div className="text-xs text-slate-600">RPH: {item.rph || '-'}</div>
                       <div className="text-xs text-slate-500">
                         <span className="text-slate-400">Klasifikasi:</span> {item.klasifikasi_hewan || '-'}
                       </div>
@@ -300,6 +303,7 @@ const SapiMatiTab = ({ animalGroup, animalLabel = 'Sapi' }) => {
                       <button
                         type="button"
                         onClick={() => handleDownload(item)}
+                        disabled={Boolean(getInventoryAccess() && !getInventoryOffice())}
                         className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-500/30"
                         aria-label={`Unduh bukti kematian ${item.sapi || ''}`}
                       >

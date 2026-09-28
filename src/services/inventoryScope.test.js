@@ -23,7 +23,26 @@ test('OVK defaults ALL, separates cache, honors concrete modal office, denies AL
   expect(() => scopeInventoryRequest('https://api.test/api/rph/kandang/data')).toThrow('Pilih RPH');
   expect(() => scopeInventoryRequest('https://api.test/api/rph/persediaan/pakan/beri-makan', { method: 'POST', body: JSON.stringify({ id_rph: 99 }) })).toThrow('Pilih RPH');
   setInventoryPage('/rph/stok-sapi');
-  expect(getInventoryOffice()).toBe('8');
+  expect(getInventoryOffice()).toBeNull();
+});
+test('stock defaults ALL despite old selection; concrete selection follows action navigation', async () => {
+  configureInventoryScope(user, offices);
+  selectInventoryOffice(8);
+  setInventoryPage('/rph/stok-sapi');
+  await HttpClient.get('/api/rph/pemeliharaansapi/stoksapi');
+  expect(fetch.mock.calls[0][0]).toContain('id_rph=all');
+  selectInventoryOffice(7);
+  await HttpClient.get('/api/rph/pemeliharaansapi/stoksapi');
+  expect(fetch.mock.calls[1][0]).toContain('id_rph=7');
+  setInventoryPage('/rph/stok-sapi/edit/cow');
+  expect(getInventoryOffice()).toBe('7');
+  setInventoryPage('/rph/stok-sapi');
+  selectInventoryOffice('all');
+  for (const id_rph of ['all', 0, null, 999]) {
+    expect(() => scopeInventoryRequest('https://api.test/api/rph/pemeliharaansapi/update', { method: 'POST', body: JSON.stringify({ id_rph }) })).toThrow('Pilih RPH');
+  }
+  configureInventoryScope({ id: 12, id_office: 7 });
+  expect(sessionStorage.getItem('inventoryOffice')).toBeNull();
 });
 beforeEach(() => {
   resetInventoryScope();

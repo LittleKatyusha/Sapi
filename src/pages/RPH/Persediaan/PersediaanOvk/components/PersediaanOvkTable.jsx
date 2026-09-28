@@ -5,6 +5,7 @@ import { Search, X, RefreshCw, Package, MoreVertical, Eye, AlertTriangle, Trendi
 import usePersediaanOvk from '../hooks/usePersediaanOvk';
 import customTableStyles from '../../PersediaanHasilPotongRph/constants/tableStyles';
 import usePersediaanDocument from '../hooks/usePersediaanDocument';
+import { InventoryOfficeSelector } from '../../../../../components/InventoryScopeGate';
 
 const STOK_MENIPIS_THRESHOLD = 5;
 
@@ -331,14 +332,16 @@ const PersediaanOvkTable = () => {
       {downloadError && <p role="alert" className="text-sm text-red-700">{downloadError}</p>}
       {!error && persediaanData.length > 0 && <SummaryCard data={persediaanData} />}
 
-      <div className="sticky top-0 z-20 flex flex-col sm:flex-row sm:items-center gap-2.5 bg-white/95 backdrop-blur-sm py-1">
-        <div className="relative flex-1 max-w-lg">
+      <div role="region" aria-label="Filter Stok OVK" className="sticky top-0 z-20 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2.5 bg-white/95 backdrop-blur-sm py-1">
+        <InventoryOfficeSelector />
+        <div className="relative min-w-0 sm:min-w-48 flex-1 max-w-lg">
           <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
             <Search className="w-4 h-4 text-slate-400" />
           </div>
           <input
             ref={searchInputRef}
             type="text"
+            aria-label="Cari OVK"
             placeholder="Cari produk atau satuan... (tekan /)"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}

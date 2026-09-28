@@ -7,11 +7,13 @@ import StokDetailModal from './StokDetailModal';
 import BulkAssignKandangModal from '../modals/BulkAssignKandangModal';
 import HistoryPakanKonsentratModal from '../modals/HistoryPakanKonsentratModal';
 import StokSapiService from '../../../../services/stokSapiService';
+import { getInventoryAccess, getInventoryOffice } from '../../../../services/inventoryScope';
 import { formatNumber } from '../constants/dummyData';
 import { Notification } from '../../../../components/shared/NotificationComponent';
 
-const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, refreshTrigger = 0 }) => {
+const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, refreshTrigger = 0, officeSelector }) => {
   const navigate = useNavigate();
+  const needsOffice = Boolean(getInventoryAccess() && !getInventoryOffice());
   const { download, downloading, downloadError } = useStokSapiDocument();
   const [openMenuId, setOpenMenuId] = useState(null);
   const [detailRow, setDetailRow] = useState(null);
@@ -247,7 +249,7 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
       `}</style>
 
       {/* Filter Card */}
-      <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div role="region" aria-label="Filter Stok Sapi" className="rounded-xl border border-gray-200 bg-white shadow-sm">
         {/* Header bar */}
         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2.5">
           <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
@@ -273,7 +275,8 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
         </div>
 
         {/* Main filter row */}
-        <div className="flex flex-col gap-3 p-4 lg:flex-row lg:items-end lg:gap-2">
+        <div className="flex flex-col gap-3 p-4 lg:flex-row lg:flex-wrap lg:items-end lg:gap-2">
+          {officeSelector}
           {/* Search */}
           <div className="flex flex-1 flex-col gap-1.5">
             <label className="text-xs font-medium text-gray-500">Cari</label>
@@ -353,7 +356,7 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                 start_date: startDateRef.current || null,
                 end_date: endDateRef.current || null,
               }, 'Daftar_Stok_Sapi_Tersedia')}
-              disabled={loading || Boolean(downloading)}
+              disabled={needsOffice || loading || Boolean(downloading)}
               className="inline-flex items-center gap-2 rounded-md border border-emerald-300 bg-white px-3.5 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
             >
               <FileText className="h-4 w-4" />
@@ -478,7 +481,7 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                   }}
                   onChange={toggleSelectAll}
                   className="h-4 w-4 cursor-pointer accent-emerald-600"
-                  disabled={loading || rows.length === 0}
+                  disabled={needsOffice || loading || rows.length === 0}
                 />
               </th>
               <th
@@ -584,6 +587,7 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                   <input
                     type="checkbox"
                     checked={row.pid ? selectedPids.includes(row.pid) : false}
+                    disabled={needsOffice}
                     onChange={() => row.pid && toggleSelect(row.pid)}
                     className="h-4 w-4 cursor-pointer accent-emerald-600"
                   />
@@ -674,6 +678,7 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                   <button
                     type="button"
                     onClick={() => setHistoryPakanTarget(row)}
+                    disabled={needsOffice}
                     className="block text-left space-y-0.5 rounded-lg hover:bg-amber-50/60 hover:ring-2 hover:ring-amber-100 transition cursor-pointer px-1 -mx-1"
                     title="Klik untuk lihat history pemberian pakan"
                   >

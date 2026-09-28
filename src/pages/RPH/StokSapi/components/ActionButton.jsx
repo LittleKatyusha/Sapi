@@ -1,10 +1,12 @@
 import React, { useRef, useState } from 'react';
 import { MoreVertical } from 'lucide-react';
 import ActionMenu from './ActionMenu';
+import { getInventoryAccess, getInventoryOffice } from '../../../../services/inventoryScope';
 
 const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, deathLabel, isActive, onDownload, downloadLabel, downloading }) => {
   const buttonRef = useRef(null);
   const [isAnimating, setIsAnimating] = useState(false);
+  const needsOffice = Boolean(getInventoryAccess() && !getInventoryOffice());
 
   // Handle click dan keyboard
   const handleAction = (e) => {
@@ -30,6 +32,8 @@ const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDeta
     <div className={`relative ${isActive ? 'active-row' : ''}`}>
       <button
         type="button"
+        disabled={needsOffice}
+        title={needsOffice ? 'Pilih satu RPH untuk tindakan atau unduhan.' : undefined}
         ref={buttonRef}
         onClick={handleAction}
         onKeyDown={handleKeyDown}
