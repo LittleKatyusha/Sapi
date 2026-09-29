@@ -329,6 +329,25 @@ const AddEditPembelianPage = () => {
     // Load data for edit mode - wait for parameter data to be loaded first
     // Add ref to track if edit data has been loaded to prevent re-loading
     const editDataLoadedRef = useRef(false);
+    const editDataRequestRef = useRef(null);
+    const editDataRequestIdRef = useRef(null);
+
+    // Start the detail request immediately. Master options are only needed when
+    // mapping the response into select values, not for fetching the purchase.
+    useEffect(() => {
+        if (!isEdit || !id) {
+            editDataRequestRef.current = null;
+            editDataRequestIdRef.current = null;
+            editDataLoadedRef.current = false;
+            return;
+        }
+
+        if (editDataRequestIdRef.current !== id) {
+            editDataRequestIdRef.current = id;
+            editDataLoadedRef.current = false;
+            editDataRequestRef.current = getPembelianDetail(id);
+        }
+    }, [getPembelianDetail, id, isEdit]);
     
     // Supplier caching is now handled by useParameterSelect hook
     
@@ -346,20 +365,12 @@ const AddEditPembelianPage = () => {
             return;
         }
         
-        // Skip if batchCount has been manually set by user and we're in edit mode
-        if (isEdit && batchCountManuallySetRef.current) {
-            return;
-        }
-
         // Use memoized values to prevent redundant calculations
         if (isEdit && id && isDataReady) {
             const loadEditData = async () => {
                 try {
-                    const decodedId = decodeURIComponent(id);
-                    
                     // Get both header and detail data from /show endpoint only
-                    
-                    const result = await getPembelianDetail(decodedId);
+                    const result = await editDataRequestRef.current;
                     
                     if (!result.success || !result.data || result.data.length === 0) {
                         console.log('❌ No data from /show endpoint');
