@@ -207,7 +207,6 @@ const AddEditPembelianPage = () => {
     // Get master data from centralized parameter endpoint with supplier filter
     // Hanya request groups yang dipakai form ini untuk mengurangi payload
     const {
-        parameterData,
         eartagOptions,
         supplierOptions,
         officeOptions,
@@ -334,13 +333,6 @@ const AddEditPembelianPage = () => {
     // Supplier caching is now handled by useParameterSelect hook
     
     // Memoize computed values to prevent unnecessary re-renders
-    const hasRequiredData = useMemo(() => {
-        return parameterData.eartag?.length > 0 &&
-               parameterData.klasifikasihewan?.length > 0 &&
-               parameterData.office?.length > 0 &&
-               tipePembelianOptions?.length > 0;
-    }, [parameterData.eartag, parameterData.klasifikasihewan, parameterData.office, tipePembelianOptions]);
-    
     const isDataReady = useMemo(() => {
         return !parameterLoading && !tipePembelianLoading;
     }, [parameterLoading, tipePembelianLoading]);
@@ -360,7 +352,7 @@ const AddEditPembelianPage = () => {
         }
 
         // Use memoized values to prevent redundant calculations
-        if (isEdit && id && isDataReady && hasRequiredData) {
+        if (isEdit && id && isDataReady) {
             const loadEditData = async () => {
                 try {
                     const decodedId = decodeURIComponent(id);
@@ -625,7 +617,7 @@ const AddEditPembelianPage = () => {
         // Remove automatic detail item creation for new records
         // Users will add details manually using the "Tambah Detail" button
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isEdit, id, cloneData, isDataReady, hasRequiredData, officeOptions]);
+    }, [isEdit, id, cloneData, isDataReady, officeOptions]);
 
     // Removed office mapping useEffect - now using id_office directly from backend
 
