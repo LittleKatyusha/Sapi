@@ -198,6 +198,7 @@ const BayarPengeluaranHoPage = () => {
       submitData.append('id_pembayaran', idPembayaran);
       submitData.append('amount', nominalValue);
       submitData.append('payment_date', paymentDate);
+      submitData.append('tanggal_pembayaran', paymentDate);
       submitData.append('note', note ? String(note).trim() : '');
       if (selectedFile) {
         submitData.append('file_upload', selectedFile);

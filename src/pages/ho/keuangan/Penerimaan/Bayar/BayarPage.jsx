@@ -27,6 +27,7 @@ const BayarPenerimaanHoPage = () => {
   const [pembayaran, setPembayaran] = useState(null);
   const [history, setHistory] = useState([]);
   const [nominal, setNominal] = useState('');
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [metode, setMetode] = useState('');
   const [namaPembayar, setNamaPembayar] = useState('');
   const [formErrors, setFormErrors] = useState({});
@@ -85,6 +86,7 @@ const BayarPenerimaanHoPage = () => {
 
     if (!nominalValue || nominalValue <= 0) newErrors.nominal = 'Nominal wajib diisi';
     else if (nominalValue > sisa) newErrors.nominal = `Maksimal ${formatRupiah(sisa)}`;
+    if (!paymentDate) newErrors.payment_date = 'Tanggal pembayaran wajib diisi';
     if (!metode) newErrors.metode = 'Pilih metode pembayaran';
 
     if (Object.keys(newErrors).length > 0) {
@@ -96,6 +98,8 @@ const BayarPenerimaanHoPage = () => {
     const result = await bayar({
       pid,
       nominal_pembayaran: nominalValue,
+      tanggal_pembayaran: paymentDate,
+      payment_date: paymentDate,
       metode_pembayaran: metode,
       nama_pembayar: namaPembayar || undefined,
       file: selectedFile || undefined,
@@ -105,7 +109,9 @@ const BayarPenerimaanHoPage = () => {
     if (result.success) {
       showSuccess('Pembayaran berhasil dicatat');
       setNominal('');
+      setPaymentDate(new Date().toISOString().split('T')[0]);
       setMetode('');
+      setNamaPembayar('');
       setSelectedFile(null);
       const input = document.getElementById('file-penerimaan');
       if (input) input.value = '';
@@ -248,6 +254,25 @@ const BayarPenerimaanHoPage = () => {
                     </button>
                   </div>
                   {formErrors.nominal && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {formErrors.nominal}</p>}
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Tanggal Pembayaran</label>
+                  <input
+                    type="date"
+                    value={paymentDate}
+                    onChange={(e) => {
+                      setPaymentDate(e.target.value);
+                      if (formErrors.payment_date) setFormErrors((p) => ({ ...p, payment_date: '' }));
+                    }}
+                    disabled={submitLoading || sisa <= 0}
+                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100"
+                  />
+                  {formErrors.payment_date && (
+                    <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" /> {formErrors.payment_date}
+                    </p>
+                  )}
                 </div>
 
                 <div className="mb-4">
