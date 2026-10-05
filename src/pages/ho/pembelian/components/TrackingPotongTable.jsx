@@ -12,6 +12,8 @@ import {
   Download,
   Loader2,
   ExternalLink,
+  ChevronLeft,
+  ChevronRight,
   X
 } from 'lucide-react';
 import usePembelianHO from '../hooks/usePembelianHO';
@@ -26,13 +28,20 @@ const formatNumber = (val) => {
   return Number(val).toLocaleString('id-ID');
 };
 
+const formatPercent = (val) => {
+  if (val === null || val === undefined || isNaN(val)) return '0,00';
+  return Number(val).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 const TrackingPotongTable = () => {
   const navigate = useNavigate();
   const { getTrackingPotong, loading: hookLoading } = usePembelianHO();
 
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 60);
@@ -43,33 +52,85 @@ const TrackingPotongTable = () => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
 
+  // Server-side pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [backendSummary, setBackendSummary] = useState(null);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setCurrentPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const res = await getTrackingPotong({
         start_date: startDate,
         end_date: endDate,
-        search: searchTerm,
+        search: debouncedSearch,
+        page: currentPage,
+        per_page: perPage,
+        start: (currentPage - 1) * perPage,
+        length: perPage,
       });
       if (res.success) {
         setData(res.data || []);
+        setTotalRecords(res.recordsFiltered ?? 0);
+        if (res.summary) {
+          setBackendSummary(res.summary);
+        }
       } else {
         setData([]);
+        setTotalRecords(0);
       }
     } catch (err) {
       console.error('Failed to fetch tracking potong:', err);
       setData([]);
+      setTotalRecords(0);
     } finally {
       setLoading(false);
     }
-  }, [getTrackingPotong, startDate, endDate, searchTerm]);
+  }, [getTrackingPotong, startDate, endDate, debouncedSearch, currentPage, perPage]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
+  const totalPages = Math.max(1, Math.ceil(totalRecords / perPage));
+
+  const pageNumbers = useMemo(() => {
+    const pages = [];
+    const maxVisible = 5;
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+      let end = Math.min(totalPages, start + maxVisible - 1);
+      if (end - start + 1 < maxVisible) {
+        start = Math.max(1, end - maxVisible + 1);
+      }
+      for (let i = start; i <= end; i++) pages.push(i);
+    }
+    return pages;
+  }, [currentPage, totalPages]);
+
   const summary = useMemo(() => {
-    const totalEkor = data.length;
+    if (backendSummary) {
+      return {
+        totalEkor: backendSummary.total_ekor ?? 0,
+        totalBeratPotong: backendSummary.total_berat_potong ?? 0,
+        totalPenjualan: backendSummary.total_penjualan ?? 0,
+        totalBeliHo: backendSummary.total_beli_ho ?? 0,
+        totalLabaRugi: backendSummary.total_laba_rugi ?? 0,
+      };
+    }
+    const totalEkor = totalRecords || data.length;
     const totalBeratPotong = data.reduce((acc, row) => acc + (Number(row.berat_setelah_potong) || 0), 0);
     const totalPenjualan = data.reduce((acc, row) => acc + (Number(row.jumlah) || 0), 0);
     const totalBeliHo = data.reduce((acc, row) => acc + (Number(row.total_beli_ho) || 0), 0);
@@ -81,58 +142,73 @@ const TrackingPotongTable = () => {
     }, 0);
 
     return { totalEkor, totalBeratPotong, totalPenjualan, totalBeliHo, totalLabaRugi };
-  }, [data]);
+  }, [backendSummary, data, totalRecords]);
 
-  const exportCsv = () => {
-    if (!data.length) return;
-    const headers = [
-      'No',
-      'Nota Pembelian HO',
-      'Tgl Beli HO',
-      'Supplier',
-      'Sapi (Eartag)',
-      'RPH',
-      'Tgl Keluar RPH',
-      'Pedagang Pembeli',
-      'Berat Hidup (kg)',
-      'Berat Potong (kg)',
-      'Persentase (%)',
-      'Rasio',
-      'Beli Hidup HO (Rp)',
-      'Harga Daging/KG (Rp)',
-      'Jumlah Penjualan (Rp)',
-      'Laba/Rugi (Rp)',
-      'Status',
-    ];
+  const exportCsv = async () => {
+    setExportLoading(true);
+    try {
+      const res = await getTrackingPotong({
+        start_date: startDate,
+        end_date: endDate,
+        search: debouncedSearch,
+        length: -1,
+      });
+      const exportData = res.success && res.data ? res.data : data;
+      if (!exportData.length) return;
 
-    const rows = data.map((item, idx) => [
-      idx + 1,
-      `"${item.nota || item.nota_sistem || '-'}"`,
-      `"${item.tgl_pembelian_ho || '-'}"`,
-      `"${item.supplier || '-'}"`,
-      `"${item.sapi || '-'}"`,
-      `"${item.rph || '-'}"`,
-      `"${item.tgl_keluar || '-'}"`,
-      `"${item.pedagang || '-'}"`,
-      item.berat_hidup ?? 0,
-      item.berat_setelah_potong ?? 0,
-      item.persentase ?? 0,
-      item.rasio ?? 0,
-      item.total_beli_ho ?? 0,
-      item.harga_daging_per_kg ?? 0,
-      item.jumlah ?? 0,
-      item.laba_rugi ?? '-',
-      `"${item.status_laba_rugi || '-'}"`,
-    ]);
+      const headers = [
+        'No',
+        'Nota Pembelian HO',
+        'Tgl Beli HO',
+        'Supplier',
+        'Sapi (Eartag)',
+        'RPH',
+        'Tgl Keluar RPH',
+        'Pedagang Pembeli',
+        'Berat Hidup (kg)',
+        'Berat Potong (kg)',
+        'Persentase (%)',
+        'Rasio',
+        'Beli Hidup HO (Rp)',
+        'Harga Daging/KG (Rp)',
+        'Jumlah Penjualan (Rp)',
+        'Laba/Rugi (Rp)',
+        'Status',
+      ];
 
-    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `tracking-potong-ho-${startDate}-sd-${endDate}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+      const rows = exportData.map((item, idx) => [
+        idx + 1,
+        `"${item.nota || item.nota_sistem || '-'}"`,
+        `"${item.tgl_pembelian_ho || '-'}"`,
+        `"${item.supplier || '-'}"`,
+        `"${item.sapi || '-'}"`,
+        `"${item.rph || '-'}"`,
+        `"${item.tgl_keluar || '-'}"`,
+        `"${item.pedagang || '-'}"`,
+        item.berat_hidup ?? 0,
+        item.berat_setelah_potong ?? 0,
+        Number(item.persentase ?? 0).toFixed(2),
+        item.rasio ?? 0,
+        item.total_beli_ho ?? 0,
+        item.harga_daging_per_kg ?? 0,
+        item.jumlah ?? 0,
+        item.laba_rugi ?? '-',
+        `"${item.status_laba_rugi || '-'}"`,
+      ]);
+
+      const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tracking-potong-ho-${startDate}-sd-${endDate}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export CSV:', err);
+    } finally {
+      setExportLoading(false);
+    }
   };
 
   return (
@@ -164,14 +240,20 @@ const TrackingPotongTable = () => {
             <input
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => {
+                setStartDate(e.target.value);
+                setCurrentPage(1);
+              }}
               className="border-0 bg-transparent py-0.5 text-xs text-gray-700 focus:outline-none focus:ring-0"
             />
             <span className="text-gray-300">—</span>
             <input
               type="date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => {
+                setEndDate(e.target.value);
+                setCurrentPage(1);
+              }}
               className="border-0 bg-transparent py-0.5 text-xs text-gray-700 focus:outline-none focus:ring-0"
             />
           </div>
@@ -187,11 +269,11 @@ const TrackingPotongTable = () => {
 
           <button
             onClick={exportCsv}
-            disabled={!data.length}
+            disabled={exportLoading || (!data.length && !totalRecords)}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-xs font-semibold hover:bg-gray-50 disabled:opacity-50 transition-all"
           >
             <Download className="h-3.5 w-3.5 text-gray-500" />
-            Export CSV
+            {exportLoading ? 'Mengekspor...' : 'Export CSV'}
           </button>
         </div>
       </div>
@@ -277,7 +359,7 @@ const TrackingPotongTable = () => {
               ) : (
                 data.map((item, idx) => (
                   <tr key={item.id || idx} className="hover:bg-indigo-50/20 transition-colors">
-                    <td className="px-3 py-2.5 text-center text-gray-500">{idx + 1}</td>
+                    <td className="px-3 py-2.5 text-center text-gray-500">{(currentPage - 1) * perPage + idx + 1}</td>
                     <td className="px-3 py-2.5 whitespace-nowrap">
                       {item.pid_pembelian ? (
                         <button
@@ -310,7 +392,7 @@ const TrackingPotongTable = () => {
                       {formatNumber(item.berat_setelah_potong)} kg
                     </td>
                     <td className="px-3 py-2.5 text-right font-medium text-gray-800 whitespace-nowrap">
-                      {formatNumber(item.persentase)}%
+                      {formatPercent(item.persentase)}%
                       <span className="block text-[10px] text-gray-400">({item.rasio}x)</span>
                     </td>
                     <td className="px-3 py-2.5 text-right text-gray-700 whitespace-nowrap">
@@ -344,6 +426,67 @@ const TrackingPotongTable = () => {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Pagination Bar */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <span>Tampilkan</span>
+          <select
+            value={perPage}
+            onChange={(e) => {
+              setPerPage(Number(e.target.value));
+              setCurrentPage(1);
+            }}
+            disabled={loading}
+            className="px-2 py-1 border border-gray-200 rounded-lg text-sm text-gray-700 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          >
+            {[10, 25, 50, 100].map(n => (
+              <option key={n} value={n}>{n} baris</option>
+            ))}
+          </select>
+          <span>
+            {totalRecords > 0
+              ? `• Halaman ${currentPage} dari ${totalPages} (${(currentPage - 1) * perPage + 1}-${Math.min(currentPage * perPage, totalRecords)} dari ${totalRecords} data)`
+              : '• 0 data'}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage <= 1 || loading}
+            className="p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            title="Halaman sebelumnya"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <div className="flex items-center gap-1">
+            {pageNumbers.map(page => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                disabled={loading}
+                className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+                  currentPage === page
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-100 disabled:opacity-40'
+                }`}
+                title={`Halaman ${page}`}
+              >
+                {page}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage >= totalPages || loading}
+            className="p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            title="Halaman berikutnya"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>

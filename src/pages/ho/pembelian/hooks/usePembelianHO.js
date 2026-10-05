@@ -675,6 +675,9 @@ const usePembelianHO = () => {
             return {
                 success: true,
                 data: result.data || [],
+                recordsTotal: result.recordsTotal ?? result.data?.length ?? 0,
+                recordsFiltered: result.recordsFiltered ?? result.data?.length ?? 0,
+                summary: result.summary ?? null,
             };
         } catch (err) {
             const errorMsg = err.message || 'Terjadi kesalahan saat mengambil tracking potong';

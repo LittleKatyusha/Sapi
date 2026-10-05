@@ -27,6 +27,11 @@ const formatNumber = (value, suffix = '') => {
     return `${new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(num)}${suffix}`;
 };
 
+const formatPercent = (value) => {
+    const num = Number(value || 0);
+    return `${new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num)}%`;
+};
+
 const PembelianDetailPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -259,9 +264,9 @@ const PembelianDetailPage = () => {
         }
 
         if (col.key === 'persentase_potong') {
-            return row.is_potong && row.persentase > 0 ? (
+            return row.is_potong && row.persentase_potong !== null && row.persentase_potong !== undefined ? (
                 <div>
-                    <span className="font-bold text-slate-900">{formatNumber(row.persentase, '%')}</span>
+                    <span className="font-bold text-slate-900">{formatPercent(row.persentase_potong)}</span>
                     <span className="block text-[10px] text-slate-400">({row.rasio}x)</span>
                 </div>
             ) : (

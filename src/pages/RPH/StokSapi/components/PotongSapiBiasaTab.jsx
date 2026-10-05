@@ -25,6 +25,11 @@ const formatNumber = (val) => {
   return Number(val).toLocaleString('id-ID');
 };
 
+const formatPercent = (val) => {
+  if (val === null || val === undefined || isNaN(val)) return '0,00';
+  return Number(val).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 const PotongSapiBiasaTab = ({ onRefresh, officeSelector }) => {
   const [jenis, setJenis] = useState('karkas'); // default 'karkas' karena sesuai instruksi user
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -165,7 +170,7 @@ const PotongSapiBiasaTab = ({ onRefresh, officeSelector }) => {
       `"${item.tgl_keluar_raw || item.tgl_keluar || '-'}"`,
       item.berat_hidup ?? item.berat_sapi ?? 0,
       item.berat_setelah_potong ?? item.total_berat ?? 0,
-      item.persentase ?? 0,
+      Number(item.persentase ?? 0).toFixed(2),
       item.rasio ?? 0,
       item.total_beli_ho ?? 0,
       item.harga_daging_per_kg ?? 0,
@@ -194,7 +199,7 @@ const PotongSapiBiasaTab = ({ onRefresh, officeSelector }) => {
             Data Sapi Potong & Penjualan RPH
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            Monitoring berat sapi keluar setelah potong, persentase karkas/daging, harga jual daging, dan analisa Laba/Rugi.
+            Monitoring berat sapi keluar setelah potong, persentase penurunan berat, harga jual daging, dan analisa Laba/Rugi.
           </p>
         </div>
 
@@ -398,7 +403,7 @@ const PotongSapiBiasaTab = ({ onRefresh, officeSelector }) => {
                       {formatNumber(item.berat_setelah_potong ?? item.total_berat ?? 0)} kg
                     </td>
                     <td className="px-3 py-2.5 text-right font-medium text-slate-700 whitespace-nowrap">
-                      {formatNumber(item.persentase ?? 0)}%
+                      {formatPercent(item.persentase ?? 0)}%
                       <span className="block text-[10px] text-slate-400">({item.rasio ?? 0}x)</span>
                     </td>
                     <td className="px-3 py-2.5 text-right text-slate-700 whitespace-nowrap">
@@ -495,9 +500,9 @@ const PotongSapiBiasaTab = ({ onRefresh, officeSelector }) => {
                 <h4 className="font-bold text-slate-800 text-xs">Kalkulasi Persentase & Rugi / Laba</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="bg-white p-3 rounded-lg border border-slate-200">
-                    <span className="text-[11px] text-slate-500">Persentase (Hidup / Potong)</span>
+                    <span className="text-[11px] text-slate-500">Persentase Penurunan</span>
                     <p className="text-base font-bold text-indigo-700 mt-1">
-                      {formatNumber(detailModal.header?.persentase ?? detailModal.enrichedRow?.persentase ?? 0)}%
+                      {formatPercent(detailModal.header?.persentase ?? detailModal.enrichedRow?.persentase ?? 0)}%
                     </p>
                     <span className="text-[10px] text-slate-400">Rasio: {detailModal.header?.rasio ?? detailModal.enrichedRow?.rasio ?? 0}x</span>
                   </div>
