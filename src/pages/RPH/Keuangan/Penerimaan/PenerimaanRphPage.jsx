@@ -14,7 +14,7 @@ import SearchableSelect from '../../../../components/shared/SearchableSelect';
 import KeuanganDocumentMenu, { useKeuanganDocument } from '../KeuanganDocumentMenu';
 
 const JENIS_PENJUALAN_OPTIONS = [
-  { value: 'sapi_qurban_utuh', label: 'Sapi Qurban / Utuh' },
+  { value: 'sapi_qurban_utuh', label: 'Sapi Qurban / Jogrok' },
   { value: 'boning', label: 'Penjualan Boning' },
   { value: 'karkas', label: 'Penjualan Karkas' },
   { value: 'kulit', label: 'Penjualan Kulit' },
@@ -62,7 +62,7 @@ const normalizeSapiRow = (row) => ({
   biaya_potong: Number(row.biaya_potong || 0),
   nominal_pembayaran: Number(row.nominal_pembayaran || 0),
   sisa_pembayaran: Number(row.sisa_pembayaran || 0),
-  purchase_type_label: row.purchase_type_label || 'Sapi Qurban / Utuh',
+  purchase_type_label: row.purchase_type_label || 'Sapi Qurban / Jogrok',
 });
 
 const normalizeBoningRow = (row) => {
@@ -143,7 +143,7 @@ const normalizeKulitRow = (row) => {
 const normalizeHistoryRow = (row, jenisValue) => ({
   ...row,
   document_jenis: jenisValue,
-  purchase_type_label: row.purchase_type_label || (jenisValue === 'boning' ? 'Penjualan Boning' : (jenisValue === 'karkas' ? 'Penjualan Karkas' : (jenisValue === 'kulit' ? 'Penjualan Kulit' : 'Sapi Qurban / Utuh'))),
+  purchase_type_label: row.purchase_type_label || (jenisValue === 'boning' ? 'Penjualan Boning' : (jenisValue === 'karkas' ? 'Penjualan Karkas' : (jenisValue === 'kulit' ? 'Penjualan Kulit' : 'Sapi Qurban / Jogrok'))),
 });
 
 const SummaryCard = ({ label, value, icon: Icon, color }) => {
@@ -438,7 +438,7 @@ const PenerimaanRphPage = () => {
               ? 'bg-amber-50 text-amber-700 border border-amber-100'
               : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
           }`}>
-            {isKulit ? 'Kulit' : (isKarkas ? 'Karkas' : (isBoning ? 'Boning' : (isQurban ? 'Qurban' : 'Utuh')))}
+            {isKulit ? 'Kulit' : (isKarkas ? 'Karkas' : (isBoning ? 'Boning' : (isQurban ? 'Qurban' : 'Jogrok')))}
           </span>
         );
       },

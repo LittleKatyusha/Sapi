@@ -16,7 +16,7 @@ const TIPE_RETURN_OPTIONS = [
 
 const JENIS_TRANSAKSI_OPTIONS = [
   { value: '', label: 'Semua Jenis' },
-  { value: 'sapi_utuh', label: 'Sapi Utuh' },
+  { value: 'sapi_utuh', label: 'Sapi Jogrok' },
   { value: 'qurban', label: 'Qurban' },
 ];
 
@@ -317,7 +317,7 @@ const ReturnHistoryPage = () => {
                 Riwayat Return Penjualan
               </h1>
               <p className="text-sm text-gray-500 mt-0.5">
-                Daftar semua transaksi return sapi utuh
+                Daftar semua transaksi return sapi jogrok
               </p>
             </div>
           </div>

@@ -784,7 +784,7 @@ const PenjualanSapiUtuhPage = () => {
       cell: (row) => {
         const j = {
           qurban: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-100', label: 'Qurban' },
-          sapi_utuh: { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200', label: 'Utuh' },
+          sapi_utuh: { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200', label: 'Jogrok' },
         };
         const c = j[row.jenis_transaksi] || j.sapi_utuh;
         return (
@@ -975,8 +975,8 @@ const PenjualanSapiUtuhPage = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Penjualan Sapi Utuh</h1>
-            <p className="text-gray-500 text-sm mt-0.5">Kelola transaksi penjualan sapi utuh ke reseller</p>
+            <h1 className="text-2xl font-bold text-gray-900">Penjualan Sapi Jogrok</h1>
+            <p className="text-gray-500 text-sm mt-0.5">Kelola transaksi penjualan sapi jogrok ke reseller</p>
           </div>
           <div className="flex items-center gap-2">
             <button

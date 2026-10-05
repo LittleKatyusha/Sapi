@@ -637,7 +637,7 @@ const AddPenjualanSapiUtuhPageV2 = () => {
             <div className="flex items-center gap-3">
               <div className="p-3 bg-green-100 rounded-xl"><ShoppingCart className="h-7 w-7 text-green-600" /></div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">{isEdit ? 'Edit Penjualan Sapi Utuh' : 'Tambah Penjualan Sapi Utuh'}</h1>
+                <h1 className="text-2xl font-bold text-gray-800">{isEdit ? 'Edit Penjualan Sapi Jogrok' : 'Tambah Penjualan Sapi Jogrok'}</h1>
                 <p className="text-gray-500 text-sm">{isEdit ? 'Perbarui data penjualan' : 'Buat transaksi penjualan baru'}</p>
               </div>
             </div>
@@ -742,7 +742,7 @@ const AddPenjualanSapiUtuhPageV2 = () => {
                       value={formData.jenis_transaksi}
                       options={[
                         { value: 'qurban', label: 'Qurban' },
-                        { value: 'sapi_utuh', label: 'Sapi Utuh' },
+                        { value: 'sapi_utuh', label: 'Sapi Jogrok' },
                       ]}
                       onSelect={(val) => {
                         setFormData((prev) => ({ ...prev, jenis_transaksi: val }));

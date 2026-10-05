@@ -106,7 +106,7 @@ const DetailPenjualanSapiUtuhPage = () => {
           </button>
           <span className="text-gray-300">/</span>
           <button onClick={() => navigate('/rph/penjualan-sapi-utuh')} className="hover:text-gray-700">
-            Penjualan Sapi Utuh
+            Penjualan Sapi Jogrok
           </button>
           <span className="text-gray-300">/</span>
           <span className="text-gray-700 font-medium">Detail</span>
