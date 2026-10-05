@@ -293,6 +293,39 @@ const usePermissions = () => {
         }
     }, [getAuthHeader, fetchPermissions]);
 
+    // Bulk delete permissions
+    const bulkDeletePermissions = useCallback(async (pids) => {
+        setLoading(true);
+        setError(null);
+        
+        try {
+            const authHeader = getAuthHeader();
+            if (!authHeader.Authorization) {
+                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
+            }
+            
+            const result = await HttpClient.post(`${API_BASE}/bulk-delete`, {
+                pids: pids
+            });
+            await fetchPermissions(1, 1000); // Refresh data
+            
+            return {
+                success: true,
+                message: result.message || 'Permissions berhasil dihapus'
+            };
+            
+        } catch (err) {
+            let errorMsg = 'Terjadi kesalahan saat menghapus data';
+            if (err.message) {
+                errorMsg = err.message;
+            }
+            setError(errorMsg);
+            return { success: false, message: errorMsg };
+        } finally {
+            setLoading(false);
+        }
+    }, [getAuthHeader, fetchPermissions, API_BASE]);
+
     // Computed stats
     const stats = useMemo(() => {
         const totalPermissions = permissions.length;
@@ -325,7 +358,8 @@ const usePermissions = () => {
         fetchRoles,
         createPermission,
         updatePermission,
-        deletePermission
+        deletePermission,
+        bulkDeletePermissions
     };
 };
 

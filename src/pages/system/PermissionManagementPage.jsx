@@ -330,7 +330,13 @@ const PermissionManagementPage = () => {
         .map(s => s.pid);
 
       if (activePids.length > 0) {
-        await Promise.all(activePids.map(pid => permissionService.delete(pid)));
+        if (activePids.length === 1) {
+          await permissionService.delete(activePids[0]);
+        } else if (typeof permissionService.bulkDelete === 'function') {
+          await permissionService.bulkDelete(activePids);
+        } else {
+          await Promise.all(activePids.map(pid => permissionService.delete(pid)));
+        }
         setSuccess(`Semua permission (${activePids.length}) berhasil dihapus untuk role "${selectedRole.nama}"`);
       } else {
         setSuccess(`Role "${selectedRole.nama}" tidak memiliki permission aktif.`);
@@ -378,7 +384,13 @@ const PermissionManagementPage = () => {
         await permissionService.bulkCreate(toCreate);
       }
       if (toDelete.length > 0) {
-        await Promise.all(toDelete.map(pid => permissionService.delete(pid)));
+        if (toDelete.length === 1) {
+          await permissionService.delete(toDelete[0]);
+        } else if (typeof permissionService.bulkDelete === 'function') {
+          await permissionService.bulkDelete(toDelete);
+        } else {
+          await Promise.all(toDelete.map(pid => permissionService.delete(pid)));
+        }
       }
 
       if (toCreate.length > 0 && toDelete.length > 0) {

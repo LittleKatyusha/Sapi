@@ -222,6 +222,24 @@ class PermissionService {
   }
 
   /**
+   * Bulk delete permissions
+   * @param {Array<string>} pids - Array of encrypted permission IDs
+   * @returns {Promise<Object>} Deletion result
+   */
+  async bulkDelete(pids) {
+    try {
+      const response = await HttpClient.post(API_ENDPOINTS.SYSTEM.PERMISSIONS + '/bulk-delete', {
+        pids: pids
+      });
+      
+      return response;
+    } catch (error) {
+      console.error('Error bulk deleting permissions:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get permission statistics
    * @returns {Promise<Object>} Statistics data
    */
