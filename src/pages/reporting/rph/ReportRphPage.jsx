@@ -11,6 +11,7 @@ const REPORTS = [
   { key: 'stok-ternak', title: 'Stok Ternak', endpoint: 'getStokTernak' },
   { key: 'stok-feedmil', title: 'Stok Feedmil', endpoint: 'getStokFeedmil' },
   { key: 'stok-ovk', title: 'Stok OVK', endpoint: 'getStokOvk' },
+  { key: 'potong-sapi', title: 'Data Sapi Potong & Laba/Rugi', endpoint: 'getPotongSapi' },
 ];
 
 const normalize = (response) => ({

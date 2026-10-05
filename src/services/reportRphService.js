@@ -19,6 +19,7 @@ class ReportRphService {
   static getStokTernak(params) { return get(API_ENDPOINTS.REPORT.RPH.STOK_TERNAK, params); }
   static getStokFeedmil(params) { return get(API_ENDPOINTS.REPORT.RPH.STOK_FEEDMIL, params); }
   static getStokOvk(params) { return get(API_ENDPOINTS.REPORT.RPH.STOK_OVK, params); }
+  static getPotongSapi(params) { return get('/api/report/rph/potong-sapi', params); }
 }
 
 export default ReportRphService;

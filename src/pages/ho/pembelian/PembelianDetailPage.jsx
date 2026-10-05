@@ -44,6 +44,7 @@ const PembelianDetailPage = () => {
 
     const [pembelianData, setPembelianData] = useState(null);
     const [detailData, setDetailData] = useState([]);
+    const [viewMode, setViewMode] = useState('tracking'); // 'standard' or 'tracking'
 
     // Server-side pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -172,18 +173,36 @@ const PembelianDetailPage = () => {
     const endRecord = Math.min(currentPage * perPage, recordsFiltered);
 
 
-    // Column definitions with server-side sort indicators
-    const columns = [
-        { key: 'eartag', label: 'Eartag', width: '180px', align: 'left' },
-        { key: 'code_eartag', label: 'Code Eartag', width: '160px', align: 'left' },
-        { key: 'nama_klasifikasi_hewan', label: 'Klasifikasi', width: '160px', align: 'left' },
-        { key: 'berat', label: 'Berat (kg)', width: '120px', align: 'right' },
-        { key: 'harga', label: 'Harga Satuan', width: '180px', align: 'right' },
-        { key: 'hpp', label: 'HPP / Ekor', width: '180px', align: 'right' },
-        { key: 'total_harga_beli', label: 'Total Harga Beli', width: '200px', align: 'right' },
-        { key: 'total_harga', label: 'Total Harga Jual', width: '200px', align: 'right' },
-        { key: 'persentase', label: '%', width: '90px', align: 'right' },
+    // Standard column definitions
+    const standardColumns = [
+        { key: 'eartag', label: 'Eartag', width: '150px', align: 'left' },
+        { key: 'code_eartag', label: 'Code Eartag', width: '140px', align: 'left' },
+        { key: 'nama_klasifikasi_hewan', label: 'Klasifikasi', width: '140px', align: 'left' },
+        { key: 'berat', label: 'Berat Hidup (kg)', width: '120px', align: 'right' },
+        { key: 'harga', label: 'Harga Satuan', width: '150px', align: 'right' },
+        { key: 'hpp', label: 'HPP / Ekor', width: '150px', align: 'right' },
+        { key: 'total_harga_beli', label: 'Total Beli', width: '160px', align: 'right' },
+        { key: 'total_harga', label: 'Total Jual', width: '160px', align: 'right' },
+        { key: 'persentase', label: '%', width: '80px', align: 'right' },
     ];
+
+    // Tracking potong & penjualan column definitions
+    const trackingColumns = [
+        { key: 'eartag', label: 'Sapi (Eartag)', width: '140px', align: 'left' },
+        { key: 'code_eartag', label: 'Code Eartag', width: '130px', align: 'left' },
+        { key: 'status_potong', label: 'Status Potong', width: '150px', align: 'center' },
+        { key: 'tgl_keluar', label: 'Tgl Keluar RPH', width: '130px', align: 'left' },
+        { key: 'pedagang', label: 'Pedagang Pembeli', width: '150px', align: 'left' },
+        { key: 'berat_hidup', label: 'Berat Hidup', width: '110px', align: 'right' },
+        { key: 'berat_setelah_potong', label: 'Berat Potong', width: '110px', align: 'right' },
+        { key: 'persentase_potong', label: 'Persentase', width: '110px', align: 'right' },
+        { key: 'harga_daging_per_kg', label: 'Harga Daging/KG', width: '140px', align: 'right' },
+        { key: 'jumlah_penjualan', label: 'Jumlah Penjualan', width: '160px', align: 'right' },
+        { key: 'total_beli_ho', label: 'Beli Hidup HO', width: '160px', align: 'right' },
+        { key: 'laba_rugi', label: 'Rugi / Laba', width: '160px', align: 'center' },
+    ];
+
+    const columns = viewMode === 'tracking' ? trackingColumns : standardColumns;
 
     const renderSortIcon = (idx) => {
         if (sortColumn !== idx) return <ArrowUpDown size={12} className="text-gray-400" />;
@@ -194,7 +213,110 @@ const PembelianDetailPage = () => {
 
     const renderCell = (row, col) => {
         const val = row[col.key];
+
+        if (col.key === 'status_potong') {
+            return row.is_potong ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
+                    Dipotong & Keluar
+                </span>
+            ) : (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500">
+                    Belum Dipotong
+                </span>
+            );
+        }
+
+        if (col.key === 'tgl_keluar') {
+            return row.is_potong && row.tgl_keluar && row.tgl_keluar !== '-' ? (
+                <span className="font-medium text-slate-800">{row.tgl_keluar}</span>
+            ) : (
+                <span className="text-slate-400">-</span>
+            );
+        }
+
+        if (col.key === 'pedagang') {
+            return row.nama_pedagang ? (
+                <div>
+                    <span className="font-semibold text-slate-900 block">{row.nama_pedagang}</span>
+                    {row.no_kwitansi_penjualan && <span className="text-[10px] text-slate-400 font-mono">{row.no_kwitansi_penjualan}</span>}
+                </div>
+            ) : (
+                <span className="text-slate-400">-</span>
+            );
+        }
+
+        if (col.key === 'berat_hidup') {
+            const berat = row.berat_hidup ?? row.berat ?? 0;
+            return <span className="text-xs font-medium text-slate-800">{formatNumber(berat, ' kg')}</span>;
+        }
+
+        if (col.key === 'berat_setelah_potong') {
+            return row.is_potong ? (
+                <span className="text-xs font-bold text-indigo-700">{formatNumber(row.berat_setelah_potong, ' kg')}</span>
+            ) : (
+                <span className="text-slate-400">-</span>
+            );
+        }
+
+        if (col.key === 'persentase_potong') {
+            return row.is_potong && row.persentase > 0 ? (
+                <div>
+                    <span className="font-bold text-slate-900">{formatNumber(row.persentase, '%')}</span>
+                    <span className="block text-[10px] text-slate-400">({row.rasio}x)</span>
+                </div>
+            ) : (
+                <span className="text-slate-400">-</span>
+            );
+        }
+
+        if (col.key === 'harga_daging_per_kg') {
+            return row.is_potong && row.harga_daging_per_kg > 0 ? (
+                <span className="text-xs font-semibold text-slate-800">{formatCurrency(row.harga_daging_per_kg)}</span>
+            ) : (
+                <span className="text-slate-400">-</span>
+            );
+        }
+
+        if (col.key === 'jumlah_penjualan') {
+            return row.is_potong && row.jumlah_penjualan > 0 ? (
+                <span className="text-xs font-bold text-slate-900">{formatCurrency(row.jumlah_penjualan)}</span>
+            ) : (
+                <span className="text-slate-400">-</span>
+            );
+        }
+
+        if (col.key === 'total_beli_ho') {
+            const beli = row.total_beli_ho ?? row.total_harga ?? 0;
+            return <span className="text-xs font-medium text-slate-700">{formatCurrency(beli)}</span>;
+        }
+
+        if (col.key === 'laba_rugi') {
+            if (!row.is_potong || row.laba_rugi === null || row.laba_rugi === undefined) {
+                return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500">Belum Ada</span>;
+            }
+            if (row.laba_rugi > 0) {
+                return (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        +{formatCurrency(row.laba_rugi)} (Laba)
+                    </span>
+                );
+            }
+            if (row.laba_rugi < 0) {
+                return (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                        {formatCurrency(row.laba_rugi)} (Rugi)
+                    </span>
+                );
+            }
+            return (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                    Rp 0 (Impas)
+                </span>
+            );
+        }
+
         if (val === null || val === undefined || val === '') return <span className="text-gray-300">-</span>;
+
         switch (col.key) {
             case 'eartag':
                 return <span className="font-mono text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">{val}</span>;
@@ -316,15 +438,44 @@ const PembelianDetailPage = () => {
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                     {/* Table header with search */}
                     <div className="px-5 py-3 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                        <div>
-                            <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                                <Package size={16} className="text-purple-600" />
-                                Detail Ternak
-                            </h2>
-                            <p className="text-gray-500 text-xs mt-0.5">
-                                Menampilkan {startRecord}–{endRecord} dari {recordsFiltered} data{recordsFiltered !== recordsTotal ? ` (total ${recordsTotal})` : ''}
-                            </p>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                            <div>
+                                <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                                    <Package size={16} className="text-purple-600" />
+                                    Detail Ternak
+                                </h2>
+                                <p className="text-gray-500 text-xs mt-0.5">
+                                    Menampilkan {startRecord}–{endRecord} dari {recordsFiltered} data{recordsFiltered !== recordsTotal ? ` (total ${recordsTotal})` : ''}
+                                </p>
+                            </div>
+
+                            {/* View Mode Toggle */}
+                            <div className="inline-flex rounded-lg border border-gray-200 bg-gray-100 p-0.5 text-xs font-semibold">
+                                <button
+                                    type="button"
+                                    onClick={() => setViewMode('tracking')}
+                                    className={`px-3 py-1.5 rounded-md transition-all ${
+                                        viewMode === 'tracking'
+                                            ? 'bg-white text-indigo-700 shadow-sm'
+                                            : 'text-gray-600 hover:text-gray-900'
+                                    }`}
+                                >
+                                    Tracking Potong & Penjualan
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setViewMode('standard')}
+                                    className={`px-3 py-1.5 rounded-md transition-all ${
+                                        viewMode === 'standard'
+                                            ? 'bg-white text-indigo-700 shadow-sm'
+                                            : 'text-gray-600 hover:text-gray-900'
+                                    }`}
+                                >
+                                    Data Pembelian Ternak
+                                </button>
+                            </div>
                         </div>
+
                         <div className="relative w-full sm:w-72">
                             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                             <input

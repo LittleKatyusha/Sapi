@@ -29,6 +29,7 @@ export const HO_REPORTS = [
   { key: 'other-ho-load-other-daily', title: 'Other HO Load Other Daily', group: 'Pembelian', endpoint: API_ENDPOINTS.REPORT.PEMBELIAN.OTHER_HO_LOAD_OTHER_DAILY },
   { key: 'other-ho-load-other-monthly', title: 'Other HO Load Other Monthly', group: 'Pembelian', endpoint: API_ENDPOINTS.REPORT.PEMBELIAN.OTHER_HO_LOAD_OTHER_MONTHLY },
   { key: 'other-ho-receipt', title: 'Other HO Receipt', group: 'Pembelian', endpoint: API_ENDPOINTS.REPORT.PEMBELIAN.OTHER_HO_RECEIPT },
+  { key: 'potong-sapi-ho', title: 'Data Sapi Potong & Penjualan RPH', group: 'Penjualan', endpoint: '/api/report/ho/potong-sapi' },
 ];
 
 class ReportHoService {

@@ -168,6 +168,7 @@ export const API_ENDPOINTS = {
   HO: {
     PEMBELIAN: '/api/ho/pembelian',
     PEMBELIAN_SHOW_PAGINATED: '/api/ho/pembelian/show-paginated',
+    PEMBELIAN_TRACKING_POTONG: '/api/ho/pembelian/tracking-potong',
     PENJUALAN: '/api/ho/penjualan',
     PENJUALAN_DOKA_SAPI: '/api/ho/penjualandokasapi', // Updated endpoint for Penjualan Doka Sapi
     PENGAJUAN_BIAYA: '/api/ho/pengajuanbiaya', // Pengajuan Biaya endpoint (Cash Budget Request)

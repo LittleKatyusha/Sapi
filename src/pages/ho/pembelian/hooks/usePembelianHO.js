@@ -663,6 +663,31 @@ const usePembelianHO = () => {
         }
     }, []);
 
+    // Get tracking potong & penjualan karkas per nota
+    const getTrackingPotong = useCallback(async (params = {}) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const result = await HttpClient.get(
+                API_ENDPOINTS.HO.PEMBELIAN_TRACKING_POTONG,
+                { params: { ...params, _: Date.now() }, cache: false }
+            );
+            return {
+                success: true,
+                data: result.data || [],
+            };
+        } catch (err) {
+            const errorMsg = err.message || 'Terjadi kesalahan saat mengambil tracking potong';
+            setError(errorMsg);
+            return {
+                success: false,
+                data: [],
+            };
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
     // Memoized computed stats for better performance
     const stats = useMemo(() => {
         const total = pembelian.length;
@@ -1081,6 +1106,7 @@ const usePembelianHO = () => {
         deleteLoading,
         getPembelianDetail,
         getPembelianDetailPaginated,
+        getTrackingPotong,
         createDetail,
         updateDetail,
         deleteDetail,

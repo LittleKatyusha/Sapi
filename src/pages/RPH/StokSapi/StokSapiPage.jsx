@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Package, ClipboardList, Scale, AlertTriangle, Wheat, Plus } from 'lucide-react';
+import { Package, ClipboardList, Scale, AlertTriangle, Wheat, Plus, Beef } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import useDocumentTitle from '../../../hooks/useDocumentTitle';
 import { InventoryOfficeSelector, useInventoryOffice } from '../../../components/InventoryScopeGate';
@@ -8,6 +8,7 @@ import StokRingkasTab from './components/StokRingkasTab';
 import StokDetailTab from './components/StokDetailTab';
 import PotongPaksaTab from './components/PotongPaksaTab';
 import SapiMatiTab from './components/SapiMatiTab';
+import PotongSapiBiasaTab from './components/PotongSapiBiasaTab';
 import PotongPaksaModal from './modals/PotongPaksaModal';
 import SapiMatiModal from './modals/SapiMatiModal';
 import PotongSapiBiasaModal from './modals/PotongSapiBiasaModal';
@@ -16,6 +17,7 @@ import BeriPakanKonsentratModal from './modals/BeriPakanKonsentratModal';
 const TABS = [
   { id: 'ringkas', label: 'Ringkas', icon: Package },
   { id: 'detail', label: 'Detail', icon: ClipboardList },
+  { id: 'potongsapi', label: 'Potong Sapi', icon: Beef },
   { id: 'potongpaksa', label: 'Potong Paksa', icon: Scale },
   { id: 'sapimati', label: 'Sapi Mati', icon: AlertTriangle },
 ];
@@ -185,6 +187,9 @@ const StokSapiPage = () => {
                 onPotongSapiBiasa={handlePotongSapiBiasa}
                 onSapiMati={handleSapiMati}
               />
+            )}
+            {activeTab === 'potongsapi' && (
+              <PotongSapiBiasaTab officeSelector={officeSelector} />
             )}
             {activeTab === 'potongpaksa' && (
               <PotongPaksaTab officeSelector={officeSelector} />

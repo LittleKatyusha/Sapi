@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PlusCircle, ShoppingCart, Truck, Calendar, CalendarDays, CalendarRange, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { PlusCircle, ShoppingCart, Truck, Calendar, CalendarDays, CalendarRange, FileSpreadsheet, Loader2, Beef } from 'lucide-react';
 
 import usePembelianHO from './hooks/usePembelianHO';
 import LaporanPembelianService from '../../../services/laporanPembelianService';
 import useTipePembelian from './hooks/useTipePembelian';
 import ModernPembelianTable from './components/ModernPembelianTable';
+import TrackingPotongTable from './components/TrackingPotongTable';
 import PembelianFilterPanel from './components/PembelianFilterPanel';
 import { downloadTandaTerimaPDF } from './utils/tandaTerimaPDF';
 import { downloadEartagLabelPDF } from './utils/eartagLabelPDF';
@@ -115,6 +116,7 @@ const Notification = React.memo(({ notification, onClose }) => {
 const PembelianHOPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const [activeMainTab, setActiveMainTab] = useState('pembelian'); // 'pembelian' | 'tracking'
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [selectedPembelian, setSelectedPembelian] = useState(null);
     const [notification, setNotification] = useState(null);
@@ -859,42 +861,76 @@ const PembelianHOPage = () => {
                     );
                 })()}
 
-                {/* Modern Table + Mobile Cards */}
-                <div className="space-y-4">
-                    {error && (
-                        <div className="bg-white rounded-xl shadow-sm border border-red-100 p-4 flex items-center gap-3 text-red-700">
-                            <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                </svg>
-                            </div>
-                            <div>
-                                <div className="text-sm font-semibold">Gagal memuat data</div>
-                                <div className="text-xs text-red-600">{error}</div>
-                            </div>
-                        </div>
-                    )}
+                {/* Navigation Tabs */}
+                <div className="flex border-b border-gray-200 bg-white rounded-t-xl px-4 pt-2 shadow-sm gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setActiveMainTab('pembelian')}
+                        className={`px-4 py-2.5 text-xs font-bold border-b-2 transition-all flex items-center gap-2 ${
+                            activeMainTab === 'pembelian'
+                                ? 'border-indigo-600 text-indigo-700'
+                                : 'border-transparent text-gray-500 hover:text-gray-800'
+                        }`}
+                    >
+                        <ShoppingCart size={15} />
+                        Nota Pembelian HO
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setActiveMainTab('tracking')}
+                        className={`px-4 py-2.5 text-xs font-bold border-b-2 transition-all flex items-center gap-2 ${
+                            activeMainTab === 'tracking'
+                                ? 'border-indigo-600 text-indigo-700'
+                                : 'border-transparent text-gray-500 hover:text-gray-800'
+                        }`}
+                    >
+                        <Beef size={15} />
+                        Tracking Potong & Penjualan RPH
+                    </button>
+                </div>
 
-                    <ModernPembelianTable
-                        data={filteredData}
-                        loading={loading}
-                        serverPagination={{
-                            currentPage: serverPagination.currentPage,
-                            perPage: serverPagination.perPage,
-                            totalRecords: serverPagination.totalItems || serverPagination.totalRecords || 0
-                        }}
-                        onPageChange={handleServerPageChange}
-                        onPerPageChange={handleServerPerPageChange}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                        onDetail={handleDetail}
-                        onBayar={handleBayar}
-                        onDownload={handleDownload}
-                        onTandaTerima={handleTandaTerima}
-                        onEartagLabel={handleEartagLabel}
-                        onSuratJalan={handleSuratJalan}
-                        getJenisPembelianLabel={getJenisPembelianLabel}
-                    />
+                {/* Table Content */}
+                <div className="space-y-4">
+                    {activeMainTab === 'pembelian' ? (
+                        <>
+                            {error && (
+                                <div className="bg-white rounded-xl shadow-sm border border-red-100 p-4 flex items-center gap-3 text-red-700">
+                                    <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-semibold">Gagal memuat data</div>
+                                        <div className="text-xs text-red-600">{error}</div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <ModernPembelianTable
+                                data={filteredData}
+                                loading={loading}
+                                serverPagination={{
+                                    currentPage: serverPagination.currentPage,
+                                    perPage: serverPagination.perPage,
+                                    totalRecords: serverPagination.totalItems || serverPagination.totalRecords || 0
+                                }}
+                                onPageChange={handleServerPageChange}
+                                onPerPageChange={handleServerPerPageChange}
+                                onEdit={handleEdit}
+                                onDelete={handleDelete}
+                                onDetail={handleDetail}
+                                onBayar={handleBayar}
+                                onDownload={handleDownload}
+                                onTandaTerima={handleTandaTerima}
+                                onEartagLabel={handleEartagLabel}
+                                onSuratJalan={handleSuratJalan}
+                                getJenisPembelianLabel={getJenisPembelianLabel}
+                            />
+                        </>
+                    ) : (
+                        <TrackingPotongTable />
+                    )}
                 </div>
             </div>
 
