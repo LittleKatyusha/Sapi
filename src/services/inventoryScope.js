@@ -19,6 +19,8 @@ export const inventoryEndpoints = {
   'qurban/potong-paksa': ['GET data', 'GET available-sapi-pengganti', 'POST show', 'POST store', 'POST hapus'],
   'qurban/sapi-mati': ['GET data', 'GET available-sapi-pengganti', 'POST show', 'POST store', 'POST hapus'],
   'pemberian-pakan-konsentrat': ['POST stok-resep', 'POST preview-per-sapi', 'POST store-per-sapi', 'POST preview-bulk-selected', 'POST store-bulk-selected', 'POST history-by-sapi'],
+  'pembelian-ovk': ['GET data', 'GET stok', 'GET card', 'POST store', 'POST show', 'POST cancel', 'POST bayar', 'POST payment-history'],
+  'pembelian-konsentrat': ['GET data', 'GET stok', 'GET card', 'POST store', 'POST show', 'POST cancel', 'POST bayar', 'POST payment-history'],
 };
 
 const allowed = Object.entries(inventoryEndpoints).flatMap(([prefix, actions]) => actions.map(action => {
@@ -29,6 +31,7 @@ const allowed = Object.entries(inventoryEndpoints).flatMap(([prefix, actions]) =
 const inventoryPages = [
   'persediaan-ovk', 'persediaan-pakan', 'persediaan-boning', 'persediaan-hasil-potong',
   'stok-sapi', 'stok-doka', 'stok-sapi-qurban', 'pemberian-ovk-sapi', 'kandang',
+  'pembelian-ovk', 'pembelian-konsentrat',
 ];
 
 export const inventoryPageRoot = pathname => inventoryPages
@@ -37,10 +40,26 @@ export const inventoryPageRoot = pathname => inventoryPages
 
 const STORAGE_KEY = 'inventoryOffice';
 let scope = null;
-export const allInventoryReads = ['persediaan/pakan/data', 'persediaan/ovk/data', 'persediaan/ovk/datastok', 'pemeliharaansapi/stok-sapi-options', 'pemeliharaansapi/stoksapi', 'pemeliharaansapi/stoksapibyjenis', 'pemeliharaansapi/stokfilteroptions', 'persediaan/potongpaksa/data', 'persediaan/sapimati/data'];
+export const allInventoryReads = [
+  'persediaan/pakan/data',
+  'persediaan/ovk/data',
+  'persediaan/ovk/datastok',
+  'pemeliharaansapi/stok-sapi-options',
+  'pemeliharaansapi/stoksapi',
+  'pemeliharaansapi/stoksapibyjenis',
+  'pemeliharaansapi/stokfilteroptions',
+  'persediaan/potongpaksa/data',
+  'persediaan/sapimati/data',
+  'pembelian-ovk/data',
+  'pembelian-ovk/stok',
+  'pembelian-ovk/card',
+  'pembelian-konsentrat/data',
+  'pembelian-konsentrat/stok',
+  'pembelian-konsentrat/card',
+];
 export const getInventoryAccess = () => scope;
 export function setInventoryPage(pathname) {
-  if (scope) scope.pageAll = pathname === '/rph/persediaan-ovk' || pathname === '/rph/stok-sapi';
+  if (scope) scope.pageAll = pathname === '/rph/persediaan-ovk' || pathname === '/rph/stok-sapi' || pathname === '/rph/pembelian-ovk' || pathname === '/rph/pembelian-konsentrat';
 }
 
 export function resetInventoryScope() {

@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Save, Plus, Trash2, ShoppingCart, Calculator, AlertCircle } from 'lucide-react';
 
 import useDocumentTitle from '../../../hooks/useDocumentTitle';
 import pembelianKonsentratService from '../../../services/pembelianKonsentratService';
 import { useNotification } from '../../../components/shared/Notification';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
+import { getInventoryAccess, getInventoryOffice } from '../../../services/inventoryScope';
+import HttpClient from '../../../services/httpClient';
 
 const formatRupiah = (v) => {
   const n = Number(v || 0);
@@ -29,15 +31,31 @@ const getRphId = () => {
 const AddEditPembelianKonsentratPage = () => {
   useDocumentTitle('Beli Konsentrat dari HO');
   const navigate = useNavigate();
+  const location = useLocation();
   const { showSuccess, showError } = useNotification();
 
-  const idRph = getRphId();
+  const access = getInventoryAccess();
+  const isRestricted = Boolean(access);
+  const selectedOfficeFromState = location.state?.selectedOffice;
+  const initialRph = selectedOfficeFromState || (isRestricted ? (getInventoryOffice() || access?.offices?.[0]?.id || '') : getRphId());
 
   const [form, setForm] = useState({
-    id_rph: idRph || '',
+    id_rph: initialRph ? String(initialRph) : '',
     tgl_jual: new Date().toISOString().split('T')[0],
     keterangan: '',
   });
+
+  const [availableOffices, setAvailableOffices] = useState(access?.offices || []);
+
+  useEffect(() => {
+    if (isRestricted && (!access?.offices || access.offices.length === 0)) {
+      HttpClient.get('/api/auth/inventory-offices', { cache: false })
+        .then((res) => {
+          if (res.data) setAvailableOffices(res.data);
+        })
+        .catch(() => {});
+    }
+  }, [isRestricted, access]);
 
   const [resepOptions, setResepOptions] = useState([]);
   const [resepLoading, setResepLoading] = useState(false);
@@ -181,7 +199,23 @@ const AddEditPembelianKonsentratPage = () => {
               Informasi Pembelian
             </h2>
           </div>
-          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {isRestricted && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">RPH Tujuan <span className="text-red-500">*</span></label>
+                <select
+                  value={form.id_rph}
+                  onChange={(e) => handleChange('id_rph', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.id_rph ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'}`}
+                >
+                  <option value="" disabled>Pilih RPH Tujuan</option>
+                  {availableOffices.map((o) => (
+                    <option key={o.id} value={o.id}>{o.name}</option>
+                  ))}
+                </select>
+                {errors.id_rph && <p className="text-xs text-red-600 mt-1">{errors.id_rph}</p>}
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Jual <span className="text-red-500">*</span></label>
               <input

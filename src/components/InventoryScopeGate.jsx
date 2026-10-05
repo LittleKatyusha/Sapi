@@ -16,8 +16,8 @@ export function useInventoryOffice() {
 export default function InventoryScopeGate({ children }) {
   const { pathname } = useLocation();
   const root = inventoryPageRoot(pathname);
-  const allPage = pathname === '/rph/persediaan-ovk' || pathname === '/rph/stok-sapi';
-  const stockPage = pathname === '/rph/stok-sapi';
+  const allPage = pathname === '/rph/persediaan-ovk' || pathname === '/rph/stok-sapi' || pathname === '/rph/pembelian-ovk' || pathname === '/rph/pembelian-konsentrat';
+  const stockPage = pathname === '/rph/stok-sapi' || pathname === '/rph/pembelian-ovk' || pathname === '/rph/pembelian-konsentrat';
   setInventoryPage(pathname);
   const [state, setState] = useState(null);
   const [error, setError] = useState('');

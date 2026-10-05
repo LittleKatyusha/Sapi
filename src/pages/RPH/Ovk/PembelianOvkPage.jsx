@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
@@ -7,6 +7,8 @@ import { PlusCircle, Search, XCircle, FileText, Boxes, Ban, Wallet, History, Mor
 import useDocumentTitle from '../../../hooks/useDocumentTitle';
 import pembelianOvkService from '../../../services/pembelianOvkService';
 import { useNotification } from '../../../components/shared/Notification';
+import { InventoryOfficeSelector, useInventoryOffice } from '../../../components/InventoryScopeGate';
+import { getInventoryAccess } from '../../../services/inventoryScope';
 
 const formatRupiah = (v) => {
   const n = Number(v || 0);
@@ -32,7 +34,11 @@ const PembelianOvkPage = () => {
   const navigate = useNavigate();
   const { showError, showSuccess } = useNotification();
 
-  const idRph = getRphId();
+  const office = useInventoryOffice();
+  const isRestricted = Boolean(getInventoryAccess());
+  const needsOffice = Boolean(isRestricted && !office);
+  const officeSelector = <InventoryOfficeSelector />;
+  const idRph = office || (isRestricted ? 'all' : getRphId());
 
   const [activeTab, setActiveTab] = useState('histori');
   const [data, setData] = useState([]);
@@ -250,13 +256,19 @@ const PembelianOvkPage = () => {
     }
   };
 
-  const historiColumns = [
+  const historiColumns = useMemo(() => [
     {
       name: 'No Faktur',
       selector: (row) => row.nomor_faktur,
       sortable: true,
       cell: (row) => <span className="font-mono text-xs font-semibold text-gray-800">{row.nomor_faktur}</span>,
     },
+    ...(isRestricted && !office ? [{
+      name: 'RPH',
+      selector: (row) => row.nama_rph,
+      sortable: true,
+      cell: (row) => <span className="text-sm font-medium text-slate-700">{row.nama_rph || '-'}</span>,
+    }] : []),
     {
       name: 'HO Penjual',
       selector: (row) => row.nama_office,
@@ -382,9 +394,15 @@ const PembelianOvkPage = () => {
         </div>
       ),
     },
-  ];
+  ], [openMenuId, menuPos, downloading, isRestricted, office]);
 
-  const stokColumns = [
+  const stokColumns = useMemo(() => [
+    ...(isRestricted && !office ? [{
+      name: 'RPH',
+      selector: (row) => row.nama_rph,
+      sortable: true,
+      cell: (row) => <span className="text-sm font-medium text-slate-700">{row.nama_rph || '-'}</span>,
+    }] : []),
     {
       name: 'Nama Item',
       selector: (row) => row.nama_item,
@@ -436,7 +454,7 @@ const PembelianOvkPage = () => {
         </button>
       ),
     },
-  ];
+  ], [downloading, isRestricted, office]);
 
   const totalStok = activeTab === 'stok' ? data.reduce((s, r) => s + Number(r.jumlah || 0), 0) : 0;
 
@@ -449,13 +467,27 @@ const PembelianOvkPage = () => {
             <p className="text-sm text-gray-500 mt-1">Beli OVK dari HO & monitor stok RPH</p>
           </div>
           <button
-            onClick={() => navigate('/rph/pembelian-ovk/add')}
+            onClick={() => navigate('/rph/pembelian-ovk/add', { state: { selectedOffice: office } })}
             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg shadow-sm hover:shadow transition-all duration-200 flex items-center gap-2 text-sm font-medium active:scale-[0.98]"
           >
             <PlusCircle className="w-4 h-4" />
             Beli OVK
           </button>
         </div>
+
+        {/* Office selector when restricted */}
+        {isRestricted && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              {officeSelector}
+              {needsOffice && (
+                <p role="status" className="text-xs text-slate-500">
+                  Menampilkan data semua RPH. Pilih RPH tertentu untuk menyaring data atau menambah pembelian khusus RPH tersebut.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-1 flex gap-1 w-fit">
