@@ -46,7 +46,7 @@ const AddEditPembelianPage = () => {
         note: '', // Note field from backend
         // Tipe Pembayaran dan Jatuh Tempo fields
         purchase_type: '', // Required - 1 or 2
-        due_date: '', // Required - tanggal jatuh tempo
+        due_date: '', // Tanggal jatuh tempo (opsional)
         syarat_pembelian: '', // Syarat Pembelian
         // markup removed - no longer needed in header
     });
@@ -1361,20 +1361,11 @@ const AddEditPembelianPage = () => {
         if (!headerData.platNomor) errors.push('Plat nomor harus diisi');
         // biayaTruck and biayaLain are optional, no validation needed
         
-        // Tipe Pembayaran dan Jatuh Tempo validation
+        // Tipe Pembayaran validation
         if (!headerData.purchase_type) {
             errors.push('Tipe Pembayaran harus dipilih');
         } else if (![1, 2].includes(parseInt(headerData.purchase_type))) {
             errors.push('Tipe Pembayaran harus 1 atau 2');
-        }
-        
-        // Conditional validation for due date based on payment type
-        // If payment type is cash (assumed to be 1), due date is optional
-        // If payment type is credit (assumed to be 2), due date is required
-        if (headerData.purchase_type && parseInt(headerData.purchase_type) === 2) { // Credit payment
-            if (!headerData.due_date) {
-                errors.push('Tanggal jatuh tempo harus diisi untuk pembayaran kredit');
-            }
         }
 
         // Syarat Pembelian validation
@@ -2007,7 +1998,7 @@ const AddEditPembelianPage = () => {
                                     <div className="flex items-center justify-between mb-1">
                                         <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                                             <Calendar className="w-4 h-4" />
-                                            Tanggal Jatuh Tempo {headerData.purchase_type && parseInt(headerData.purchase_type) === 2 ? ' *' : ''}
+                                            Tanggal Jatuh Tempo
                                         </label>
                                     </div>
                                     <input
@@ -2015,7 +2006,6 @@ const AddEditPembelianPage = () => {
                                         value={headerData.due_date}
                                         onChange={(e) => handleHeaderChange('due_date', e.target.value)}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                        required={headerData.purchase_type && parseInt(headerData.purchase_type) === 2}
                                     />
                                     {tipePembayaranLoading && (
                                         <p className="text-xs text-blue-60 mt-1">
@@ -2027,16 +2017,9 @@ const AddEditPembelianPage = () => {
                                             ⚠️ Error loading data: {tipePembayaranError}
                                         </p>
                                     )}
-                                    {headerData.purchase_type && parseInt(headerData.purchase_type) === 2 && (
-                                        <p className="text-xs text-red-600 mt-1">
-                                            * Wajib diisi untuk pembayaran kredit
-                                        </p>
-                                    )}
-                                    {headerData.purchase_type && parseInt(headerData.purchase_type) === 1 && (
-                                        <p className="text-xs text-gray-600 mt-1">
-                                            Opsional untuk pembayaran cash
-                                        </p>
-                                    )}
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Opsional
+                                    </p>
                                 </div>
         
 
