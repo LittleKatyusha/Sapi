@@ -42,6 +42,8 @@ const AddEditPembelianOvkPage = () => {
   const [form, setForm] = useState({
     id_rph: initialRph ? String(initialRph) : '',
     tgl_jual: new Date().toISOString().split('T')[0],
+    diskon: '',
+    penambahan_harga: '',
     keterangan: '',
   });
 
@@ -86,19 +88,22 @@ const AddEditPembelianOvkPage = () => {
 
   const preview = useMemo(() => {
     let totalQty = 0;
-    let totalHarga = 0;
+    let subtotal = 0;
     items.forEach((it) => {
       const j = parseFloat(it.jumlah) || 0;
       if (j > 0 && it.id_item) {
         const opt = stokOptions.find((o) => optionKey(o) === it._key);
         if (opt) {
           totalQty += j;
-          totalHarga += j * hargaJual(opt);
+          subtotal += j * hargaJual(opt);
         }
       }
     });
-    return { totalQty, totalHarga };
-  }, [items, stokOptions]);
+    const diskon = parseFloat(form.diskon) || 0;
+    const penambahan = parseFloat(form.penambahan_harga) || 0;
+    const totalHarga = Math.max(0, subtotal - diskon + penambahan);
+    return { totalQty, subtotal, diskon, penambahan, totalHarga };
+  }, [items, stokOptions, form.diskon, form.penambahan_harga]);
 
   const handleChange = (field, value) => {
     setForm((f) => ({ ...f, [field]: value }));
@@ -168,6 +173,8 @@ const AddEditPembelianOvkPage = () => {
     const payload = {
       id_rph: parseInt(form.id_rph),
       tgl_jual: form.tgl_jual,
+      diskon: form.diskon ? parseFloat(form.diskon) : 0,
+      penambahan_harga: form.penambahan_harga ? parseFloat(form.penambahan_harga) : 0,
       keterangan: form.keterangan?.trim() || null,
       items: items
         .filter((it) => it.id_item && parseFloat(it.jumlah) > 0)
@@ -240,6 +247,42 @@ const AddEditPembelianOvkPage = () => {
                 className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.tgl_jual ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
               />
               {errors.tgl_jual && <p className="text-xs text-red-600 mt-1">{errors.tgl_jual}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Diskon (Nominal Rp)</label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 text-sm">Rp</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={form.diskon}
+                  onChange={(e) => handleChange('diskon', e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="0 (nominal)"
+                />
+              </div>
+              {form.diskon && parseFloat(form.diskon) > 0 && (
+                <p className="text-xs text-gray-500 mt-1">{formatRupiah(form.diskon)}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Penambahan Harga (Nominal Rp)</label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 text-sm">Rp</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={form.penambahan_harga}
+                  onChange={(e) => handleChange('penambahan_harga', e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="0 (nominal)"
+                />
+              </div>
+              {form.penambahan_harga && parseFloat(form.penambahan_harga) > 0 && (
+                <p className="text-xs text-gray-500 mt-1">{formatRupiah(form.penambahan_harga)}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
@@ -358,11 +401,24 @@ const AddEditPembelianOvkPage = () => {
               <Calculator className="w-4 h-4 text-blue-500" />
               Ringkasan Pembelian
             </h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="bg-white rounded-lg p-3 border border-gray-200">
                 <p className="text-xs font-medium text-gray-500 uppercase">Total Kuantitas</p>
                 <p className="text-lg font-bold text-gray-900">{formatNumber(preview.totalQty)}</p>
               </div>
+              <div className="bg-white rounded-lg p-3 border border-gray-200">
+                <p className="text-xs font-medium text-gray-500 uppercase">Subtotal</p>
+                <p className="text-lg font-bold text-gray-900">{formatRupiah(preview.subtotal)}</p>
+              </div>
+              {(preview.diskon > 0 || preview.penambahan > 0) ? (
+                <div className="bg-white rounded-lg p-3 border border-gray-200">
+                  <p className="text-xs font-medium text-gray-500 uppercase">Penyesuaian</p>
+                  <p className="text-sm font-semibold text-gray-700 mt-1">
+                    {preview.diskon > 0 && <span className="text-rose-600 block">- Diskon: {formatRupiah(preview.diskon)}</span>}
+                    {preview.penambahan > 0 && <span className="text-emerald-600 block">+ Tambah: {formatRupiah(preview.penambahan)}</span>}
+                  </p>
+                </div>
+              ) : null}
               <div className="bg-white rounded-lg p-3 border border-blue-200 ring-2 ring-blue-100">
                 <p className="text-xs font-medium text-blue-600 uppercase">Total Harga</p>
                 <p className="text-lg font-bold text-blue-700">{formatRupiah(preview.totalHarga)}</p>

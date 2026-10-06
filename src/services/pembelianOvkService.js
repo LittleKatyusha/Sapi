@@ -97,7 +97,16 @@ const pembelianOvkService = {
 
   storePayment: async (data) => {
     try {
-      const response = await httpClient.post(`${API_BASE}/bayar`, data);
+      let payload = data;
+      if (data && !(data instanceof FormData) && data.file instanceof File) {
+        payload = new FormData();
+        Object.keys(data).forEach((key) => {
+          if (data[key] !== null && data[key] !== undefined) {
+            payload.append(key, data[key]);
+          }
+        });
+      }
+      const response = await httpClient.post(`${API_BASE}/bayar`, payload);
       return {
         success: true,
         data: response?.data,

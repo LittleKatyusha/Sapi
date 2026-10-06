@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, XCircle, FileText, Boxes, Ban, Wallet, History, MoreVertical, AlertCircle, Calendar, CalendarRange, CalendarDays, TrendingUp } from 'lucide-react';
+import { PlusCircle, Search, XCircle, FileText, Boxes, Ban, Wallet, History, MoreVertical, AlertCircle, Calendar, CalendarRange, CalendarDays, TrendingUp, Upload, Eye, Trash2 } from 'lucide-react';
 
 import useDocumentTitle from '../../../hooks/useDocumentTitle';
 import pembelianKonsentratService from '../../../services/pembelianKonsentratService';
@@ -62,6 +62,7 @@ const PembelianKonsentratPage = () => {
   const [payHistory, setPayHistory] = useState(null);
   const [payLoading, setPayLoading] = useState(false);
   const [payForm, setPayForm] = useState({ nominal_pembayaran: '', metode_pembayaran: 'tunai', nama_pembayar: '', payment_date: '', note: '' });
+  const [payFile, setPayFile] = useState(null);
   const [paySubmitting, setPaySubmitting] = useState(false);
 
   const [cardData, setCardData] = useState(null);
@@ -191,6 +192,7 @@ const PembelianKonsentratPage = () => {
   const openPay = async (row) => {
     setPayTarget(row);
     setPayForm({ nominal_pembayaran: '', metode_pembayaran: 'tunai', nama_pembayar: '', payment_date: '', note: '' });
+    setPayFile(null);
     setPayHistory(null);
     setPayLoading(true);
     const res = await pembelianKonsentratService.getPaymentHistory(row.pid);
@@ -225,6 +227,7 @@ const PembelianKonsentratPage = () => {
       nama_pembayar: payForm.nama_pembayar || null,
       payment_date: payForm.payment_date || null,
       note: payForm.note || null,
+      file: payFile || undefined,
     });
     setPaySubmitting(false);
     if (res.success) {
@@ -233,6 +236,7 @@ const PembelianKonsentratPage = () => {
       const hist = await pembelianKonsentratService.getPaymentHistory(payTarget.pid);
       if (hist.success) setPayHistory(hist.data);
       setPayForm({ nominal_pembayaran: '', metode_pembayaran: 'tunai', nama_pembayar: '', payment_date: '', note: '' });
+      setPayFile(null);
       fetchData();
     } else {
       showError(res.message || 'Gagal mencatat pembayaran');
@@ -704,6 +708,22 @@ const PembelianKonsentratPage = () => {
                   <label className="text-xs font-medium text-gray-500 uppercase">Total Harga</label>
                   <p className="text-sm font-semibold text-blue-700">{formatRupiah(detailData.total_harga)}</p>
                 </div>
+                {(Number(detailData.diskon || 0) > 0 || Number(detailData.penambahan_harga || 0) > 0) && (
+                  <>
+                    {Number(detailData.diskon || 0) > 0 && (
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 uppercase">Diskon</label>
+                        <p className="text-sm font-semibold text-rose-600">- {formatRupiah(detailData.diskon)}</p>
+                      </div>
+                    )}
+                    {Number(detailData.penambahan_harga || 0) > 0 && (
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 uppercase">Penambahan Harga</label>
+                        <p className="text-sm font-semibold text-emerald-600">+ {formatRupiah(detailData.penambahan_harga)}</p>
+                      </div>
+                    )}
+                  </>
+                )}
                 <div>
                   <label className="text-xs font-medium text-gray-500 uppercase">Total HPP</label>
                   <p className="text-sm text-gray-700">{formatRupiah(detailData.total_hpp)}</p>
@@ -899,6 +919,38 @@ const PembelianKonsentratPage = () => {
                         placeholder="Opsional"
                       />
                     </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Upload Bukti Pembayaran</label>
+                      <div className="flex items-center gap-3">
+                        <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition">
+                          <Upload className="w-4 h-4 text-gray-500" />
+                          <span className="truncate max-w-xs">{payFile ? payFile.name : 'Pilih Berkas (JPG, PNG, PDF)'}</span>
+                          <input
+                            type="file"
+                            accept=".jpg,.jpeg,.png,.pdf"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f && f.size > 5 * 1024 * 1024) {
+                                showError('Ukuran berkas maksimal 5MB');
+                                e.target.value = '';
+                                return;
+                              }
+                              setPayFile(f || null);
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                        {payFile && (
+                          <button
+                            type="button"
+                            onClick={() => setPayFile(null)}
+                            className="text-red-500 hover:text-red-700 text-xs flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Hapus Berkas
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <div className="flex justify-end">
                     <button
@@ -928,6 +980,7 @@ const PembelianKonsentratPage = () => {
                           <th className="text-right px-3 py-2 text-xs font-semibold text-gray-600">Nominal</th>
                           <th className="text-left px-3 py-2 text-xs font-semibold text-gray-600">Metode</th>
                           <th className="text-left px-3 py-2 text-xs font-semibold text-gray-600">Pembayar</th>
+                          <th className="text-center px-3 py-2 text-xs font-semibold text-gray-600">Bukti</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
@@ -937,6 +990,21 @@ const PembelianKonsentratPage = () => {
                             <td className="px-3 py-2 text-right font-medium text-emerald-700">{formatRupiah(d.amount)}</td>
                             <td className="px-3 py-2 text-gray-700">{d.metode_pembayaran || '-'}</td>
                             <td className="px-3 py-2 text-gray-700">{d.nama_pembayar || '-'}</td>
+                            <td className="px-3 py-2 text-center">
+                              {d.bukti_pembayaran_url ? (
+                                <a
+                                  href={d.bukti_pembayaran_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
+                                  title="Lihat bukti pembayaran"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                </a>
+                              ) : (
+                                <span className="text-gray-300 text-xs">-</span>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
