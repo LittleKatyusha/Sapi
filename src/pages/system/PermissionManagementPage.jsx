@@ -26,6 +26,11 @@ const getModuleKey = (serviceName) => {
   return MODULE_CONFIG[prefix] ? prefix : 'other';
 };
 
+const getPermKey = (opt) => {
+  if (!opt) return '';
+  return `${opt.service_name || ''}:${opt.function_name || ''}:${opt.method || ''}`;
+};
+
 /**
  * Permission Management Page
  * Connected to backend API with module-grouped layout
@@ -77,7 +82,7 @@ const PermissionManagementPage = () => {
         stats[modKey] = { total: 0, checked: 0 };
       }
       stats[modKey].total++;
-      if (permissionSelections[opt.value]?.checked) {
+      if (permissionSelections[getPermKey(opt)]?.checked) {
         stats[modKey].checked++;
       }
     });
@@ -92,12 +97,12 @@ const PermissionManagementPage = () => {
       const matchModule = selectedModuleTab === 'ALL' || getModuleKey(opt.service_name) === selectedModuleTab;
       const matchMethod = permMethod ? opt.method === permMethod : true;
       
-      const isChecked = !!permissionSelections[opt.value]?.checked;
+      const isChecked = !!permissionSelections[getPermKey(opt)]?.checked;
       const matchStatus = 
         permStatus === 'ACTIVE' ? isChecked :
         permStatus === 'INACTIVE' ? !isChecked : true;
 
-      const text = `${opt.value} ${opt.service_name} ${opt.function_name}`.toLowerCase();
+      const text = `${opt.value} ${opt.service_name} ${opt.function_name} ${opt.method}`.toLowerCase();
       const matchSearch = term ? text.includes(term) : true;
 
       return matchModule && matchMethod && matchStatus && matchSearch;
@@ -127,7 +132,7 @@ const PermissionManagementPage = () => {
 
       groups[modKey].services[opt.service_name].push(opt);
       groups[modKey].totalCount++;
-      if (permissionSelections[opt.value]?.checked) {
+      if (permissionSelections[getPermKey(opt)]?.checked) {
         groups[modKey].checkedCount++;
       }
     });
@@ -198,8 +203,9 @@ const PermissionManagementPage = () => {
         const rows = resp?.data || [];
         const uniqueMap = new Map();
         rows.forEach(r => {
-          if (!uniqueMap.has(r.value)) {
-            uniqueMap.set(r.value, {
+          const k = getPermKey(r);
+          if (!uniqueMap.has(k)) {
+            uniqueMap.set(k, {
               value: r.value,
               service_name: r.service_name,
               function_name: r.function_name,
@@ -211,7 +217,9 @@ const PermissionManagementPage = () => {
       }
 
       const capability = { service_name: 'rph.inventory', function_name: 'all-rph', method: 'GET', value: 'rph.inventory.all-rph' };
-      const options = [...(definitions || []).filter(option => option.value !== capability.value), capability].sort((a, b) => a.value.localeCompare(b.value));
+      const options = [...(definitions || []).filter(option => option.value !== capability.value), capability].sort(
+        (a, b) => a.value.localeCompare(b.value) || a.method.localeCompare(b.method)
+      );
       setPermissionOptions(options);
 
       // Initialize all modules as expanded
@@ -230,13 +238,14 @@ const PermissionManagementPage = () => {
         console.warn('Error fetching role permissions by role_id:', err);
       }
 
-      const rolePidByValue = new Map((roleRows || []).map(r => [r.value, r.pid]));
+      const rolePidByKey = new Map((roleRows || []).map(r => [getPermKey(r), r.pid]));
 
       // 3. Build selection map
       const selection = {};
       options.forEach(opt => {
-        const pid = rolePidByValue.get(opt.value) || null;
-        selection[opt.value] = {
+        const key = getPermKey(opt);
+        const pid = rolePidByKey.get(key) || null;
+        selection[key] = {
           checked: !!pid,
           pid,
           meta: opt
@@ -254,10 +263,10 @@ const PermissionManagementPage = () => {
   };
 
   // Toggle single permission
-  const togglePermission = (value) => {
+  const togglePermission = (key) => {
     setPermissionSelections(prev => ({
       ...prev,
-      [value]: { ...prev[value], checked: !prev[value]?.checked }
+      [key]: { ...prev[key], checked: !prev[key]?.checked }
     }));
   };
 
@@ -269,8 +278,9 @@ const PermissionManagementPage = () => {
       const updated = { ...prev };
       Object.values(mod.services).forEach(opts => {
         opts.forEach(opt => {
-          if (updated[opt.value]) {
-            updated[opt.value] = { ...updated[opt.value], checked };
+          const key = getPermKey(opt);
+          if (updated[key]) {
+            updated[key] = { ...updated[key], checked };
           }
         });
       });
@@ -283,8 +293,9 @@ const PermissionManagementPage = () => {
     setPermissionSelections(prev => {
       const updated = { ...prev };
       opts.forEach(opt => {
-        if (updated[opt.value]) {
-          updated[opt.value] = { ...updated[opt.value], checked };
+        const key = getPermKey(opt);
+        if (updated[key]) {
+          updated[key] = { ...updated[key], checked };
         }
       });
       return updated;
@@ -362,7 +373,7 @@ const PermissionManagementPage = () => {
       const toCreate = [];
       const toDelete = [];
 
-      Object.entries(permissionSelections).forEach(([value, sel]) => {
+      Object.entries(permissionSelections).forEach(([key, sel]) => {
         if (sel.checked) {
           if (!sel.pid) {
             toCreate.push({
@@ -370,7 +381,7 @@ const PermissionManagementPage = () => {
               service_name: sel.meta.service_name,
               function_name: sel.meta.function_name,
               method: sel.meta.method,
-              value
+              value: sel.meta.value
             });
           }
         } else {
@@ -789,7 +800,7 @@ const PermissionManagementPage = () => {
                       <div className="divide-y divide-gray-100">
                         {Object.entries(mod.services).map(([serviceName, opts]) => {
                           const serviceTotal = opts.length;
-                          const serviceChecked = opts.filter(o => permissionSelections[o.value]?.checked).length;
+                          const serviceChecked = opts.filter(o => permissionSelections[getPermKey(o)]?.checked).length;
                           const isServiceAllSelected = serviceTotal > 0 && serviceChecked === serviceTotal;
 
                           return (
@@ -828,14 +839,15 @@ const PermissionManagementPage = () => {
                               {/* Permissions Grid/Table under this service */}
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 pl-2">
                                 {opts.map((opt) => {
-                                  const isChecked = !!permissionSelections[opt.value]?.checked;
-                                  const hasPid = !!permissionSelections[opt.value]?.pid;
+                                  const permKey = getPermKey(opt);
+                                  const isChecked = !!permissionSelections[permKey]?.checked;
+                                  const hasPid = !!permissionSelections[permKey]?.pid;
                                   const isDirty = isChecked !== hasPid;
 
                                   return (
                                     <div
-                                      key={opt.value}
-                                      onClick={() => togglePermission(opt.value)}
+                                      key={permKey}
+                                      onClick={() => togglePermission(permKey)}
                                       className={`p-3 rounded-lg border text-left cursor-pointer select-none transition-all flex items-start gap-2.5 ${
                                         isChecked
                                           ? 'bg-blue-50/60 border-blue-200 hover:bg-blue-50'
