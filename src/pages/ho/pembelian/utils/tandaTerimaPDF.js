@@ -1,7 +1,9 @@
 /**
  * Generate & download Tanda Terima Barang PDF from pembelian data
- * Uses browser's print-to-PDF via hidden iframe (no external library needed).
+ * Downloads server-rendered DomPDF with fallback to browser print.
  */
+
+import HttpClient from '../../../../services/httpClient';
 
 const formatCurrency = (value) => {
     if (!value || isNaN(value)) return 'Rp 0';
@@ -171,11 +173,35 @@ const buildTandaTerimaHTML = (pembelian, title = 'TANDA TERIMA BARANG') => {
 
 /**
  * Generate and download Tanda Terima Barang PDF from pembelian data.
- * Opens a hidden iframe, writes the HTML, triggers print dialog (user can save as PDF).
+ * Attempts server-side DomPDF download; falls back to browser print dialog.
  */
-export const downloadTandaTerimaPDF = (pembelian, title = 'TANDA TERIMA BARANG') => {
+export const downloadTandaTerimaPDF = async (pembelian, title = 'TANDA TERIMA BARANG') => {
+    const reportId = pembelian?.id || pembelian?.encryptedPid || pembelian?.pid || pembelian?.pubid;
+    const nota = pembelian?.nota_sistem || pembelian?.nota_ho || pembelian?.nota || 'BARANG';
+
+    if (reportId) {
+        try {
+            const blob = await HttpClient.get('/api/report/pembelian/other-ho-receipt', {
+                params: { id: reportId },
+                responseType: 'blob'
+            });
+            if (blob && (blob instanceof Blob || blob.size > 0)) {
+                const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `Tanda_Terima_${nota}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+                return { success: true, nota };
+            }
+        } catch (error) {
+            console.warn('Server DomPDF download failed, falling back to print view:', error);
+        }
+    }
+
     const html = buildTandaTerimaHTML(pembelian, title);
-    const nota = pembelian.nota_sistem || pembelian.nota_ho || pembelian.nota || 'pembelian';
 
     // Use iframe to avoid navigating away from current page
     const iframe = document.createElement('iframe');
@@ -210,8 +236,6 @@ export const downloadTandaTerimaPDF = (pembelian, title = 'TANDA TERIMA BARANG')
         }, 1000);
     }, 300);
 
-    // Fallback: if print doesn't trigger download, offer direct HTML download
-    // (Some browsers block print on iframes — user can use Ctrl+P manually)
     return {
         nota,
         html
