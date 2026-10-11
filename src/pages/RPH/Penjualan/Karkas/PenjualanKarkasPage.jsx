@@ -23,7 +23,7 @@ const optionRows = (response) => Array.isArray(response) ? response : (response?
 const toSelectOptions = (items) => items.map((item) => ({ value: String(item.id), label: item.label }));
 const sapiCode = (item) => item.code_eartag || String(item.label || '').split(' - ')[0].split(' \u2014 ')[0].split(' \u00e2\u20ac\u201d ')[0] || item.eartag || '-';
 const sapiSupplierEartag = (item) => item.eartag_supplier || item.eartagSupplier || item.supplier_eartag || '';
-const toSapiOptions = (items) => items.map((item) => ({
+export const toSapiOptions = (items) => items.map((item) => ({
   value: String(item.id),
   label: item.label,
   eartag: sapiCode(item),
@@ -104,6 +104,18 @@ const formatSapiOption = (option, { context }) => {
       </div>
       <div className="mt-0.5 font-mono text-xs text-slate-500">Supplier: {option.eartag_supplier || '-'}</div>
     </div>
+  );
+};
+export const filterSapiOption = (candidate, input) => {
+  const q = String(input || '').toLowerCase().trim();
+  if (!q) return true;
+  const d = candidate?.data || {};
+  return (
+    String(d.label || '').toLowerCase().includes(q) ||
+    String(d.eartag || '').toLowerCase().includes(q) ||
+    String(d.code_eartag || '').toLowerCase().includes(q) ||
+    String(d.eartag_supplier || '').toLowerCase().includes(q) ||
+    (d.eartag_supplier ? `supplier: ${d.eartag_supplier}`.toLowerCase().includes(q) : false)
   );
 };
 
@@ -356,7 +368,7 @@ const KarkasFormModal = ({
                 <div key={i} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                   <div className="grid gap-4 lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto]">
                     <Field label="Sapi">
-                      <SearchableSelect required value={String(x.id_pembelian_ho_detail || '')} onChange={v => { const selected = toSapiOptions(available(x.id_pembelian_ho_detail)).find(option => option.value === String(v)); setItem(i, null, { ...x, id_pembelian_ho_detail: v || '', code_eartag: selected?.code_eartag || '', eartag_supplier: selected?.eartag_supplier || '', berat_sapi_kg: selected?.berat || '', paha_depan_terjual: selected?.paha_depan_terjual || false, paha_belakang_terjual: selected?.paha_belakang_terjual || false, berat_paha_depan_terjual: selected?.berat_paha_depan_terjual || 0, berat_paha_belakang_terjual: selected?.berat_paha_belakang_terjual || 0, total_berat_terjual: selected?.total_berat_terjual || 0 }); }} options={toSapiOptions(available(x.id_pembelian_ho_detail))} placeholder="Pilih sapi" accentColor="red" maxMenuHeight={280} formatOptionLabel={formatSapiOption} filterOption={(candidate, input) => candidate.data.label.toLowerCase().includes(input.toLowerCase())} />
+                      <SearchableSelect required value={String(x.id_pembelian_ho_detail || '')} onChange={v => { const selected = toSapiOptions(available(x.id_pembelian_ho_detail)).find(option => option.value === String(v)); setItem(i, null, { ...x, id_pembelian_ho_detail: v || '', code_eartag: selected?.code_eartag || '', eartag_supplier: selected?.eartag_supplier || '', berat_sapi_kg: selected?.berat || '', paha_depan_terjual: selected?.paha_depan_terjual || false, paha_belakang_terjual: selected?.paha_belakang_terjual || false, berat_paha_depan_terjual: selected?.berat_paha_depan_terjual || 0, berat_paha_belakang_terjual: selected?.berat_paha_belakang_terjual || 0, total_berat_terjual: selected?.total_berat_terjual || 0 }); }} options={toSapiOptions(available(x.id_pembelian_ho_detail))} placeholder="Pilih sapi" accentColor="red" maxMenuHeight={280} formatOptionLabel={formatSapiOption} filterOption={filterSapiOption} />
                       {x.id_pembelian_ho_detail && <div className="mt-2 space-y-1 text-xs"><div><span className="text-slate-500">Eartag Sistem:</span> <span className="font-mono font-semibold text-slate-800">{selectedSapi?.code_eartag || x.code_eartag || '-'}</span></div><div><span className="text-slate-500">Eartag Supplier:</span> <span className="font-mono font-semibold text-slate-800">{selectedSapi?.eartag_supplier || x.eartag_supplier || '-'}</span></div></div>}
                     </Field>
                     <Field label="Bobot Sapi (kg)">
