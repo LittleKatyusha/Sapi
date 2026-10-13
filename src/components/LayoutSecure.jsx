@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { Menu, LogOut, Shield } from 'lucide-react';
 import { useAuthSecure } from '../hooks/useAuthSecure';
 import { useDynamicMenu } from '../hooks/useDynamicMenu';
+import { useTenant } from '../hooks/useTenant';
 import { DynamicMenuList } from './DynamicMenuItem';
 import SecurityNotification from './security/SecurityNotification';
 import MenuStatusPanel from './MenuStatusPanel';
@@ -20,6 +21,7 @@ const LayoutSecure = ({ children, title }) => {
   const [showMenuStatus, setShowMenuStatus] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const location = useLocation();
+  const tenant = useTenant();
   
   const {
     user,
@@ -148,7 +150,7 @@ const LayoutSecure = ({ children, title }) => {
       >
         
         {/* Fixed Header Section */}
-        <div className="fixed top-0 left-0 z-40 bg-emerald-800 border-b border-emerald-700/50"
+        <div className="fixed top-0 left-0 z-40 bg-emerald-800 sidebar-tenant-bg border-b border-emerald-700/50 sidebar-tenant-border"
              style={{
                width: shouldShowExpanded ? '256px' : '64px',
                transition: 'width 300ms ease-in-out'
@@ -157,7 +159,7 @@ const LayoutSecure = ({ children, title }) => {
             {shouldShowExpanded && (
               <div className="logo-fade-in sidebar-content-fade">
                 <h1 className="text-lg font-bold text-white">TernaSys</h1>
-                <p className="text-xs text-emerald-300">Secure Dashboard</p>
+                <p className="text-xs text-emerald-300">{tenant.fullName || tenant.companyName}</p>
               </div>
             )}
             <button
@@ -206,7 +208,7 @@ const LayoutSecure = ({ children, title }) => {
         </nav>
 
         {/* Fixed Profile Section */}
-        <div className="fixed bottom-0 left-0 z-40 bg-emerald-800 border-t border-emerald-700/50"
+        <div className="fixed bottom-0 left-0 z-40 bg-emerald-800 sidebar-tenant-bg border-t border-emerald-700/50 sidebar-tenant-border"
              style={{
                width: shouldShowExpanded ? '256px' : '64px',
                transition: 'width 300ms ease-in-out'

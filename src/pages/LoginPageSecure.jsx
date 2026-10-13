@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthSecure } from '../hooks/useAuthSecure';
+import { useTenant } from '../hooks/useTenant';
 import { Eye, EyeOff, Shield, AlertTriangle, Loader2, ArrowRight, User, Lock, X, Mail, ArrowBigUp } from 'lucide-react';
 
 import SecurityNotification from '../components/security/SecurityNotification';
@@ -35,6 +36,7 @@ const LoginPageSecure = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuthSecure();
+  const tenant = useTenant();
 
   // Restore remembered email & autofocus email input on mount
   useEffect(() => {
@@ -398,7 +400,7 @@ const LoginPageSecure = () => {
   return (
     <div className="min-h-screen flex bg-slate-50">
       {/* === Left Brand Panel (desktop only) === */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900">
+      <div className={`hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br ${tenant.loginGradient}`}>
         {/* Subtle dot pattern */}
         <div
           className="absolute inset-0 opacity-10"
@@ -409,15 +411,15 @@ const LoginPageSecure = () => {
           }}
         />
         {/* Glow blobs */}
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl" />
-        <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-teal-400/20 rounded-full blur-3xl" />
+        <div className={`absolute -top-24 -right-24 w-96 h-96 ${tenant.loginGlow1} rounded-full blur-3xl`} />
+        <div className={`absolute -bottom-32 -left-32 w-96 h-96 ${tenant.loginGlow2} rounded-full blur-3xl`} />
 
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 text-white w-full">
           {/* Logo */}
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 bg-white/15 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
-              <Shield className="w-6 h-6 text-emerald-300" />
+              <Shield className={`w-6 h-6 ${tenant.loginAccentText}`} />
             </div>
             <span className="text-xl font-bold tracking-tight">TernaSys</span>
           </div>
@@ -427,16 +429,16 @@ const LoginPageSecure = () => {
             <h1 className="text-4xl xl:text-5xl font-bold tracking-tight leading-tight">
               Sistem Manajemen
               <br />
-              <span className="text-emerald-300">CV Puput Bersaudara</span>
+              <span className={tenant.loginAccentText}>{tenant.fullName}</span>
             </h1>
-            <p className="text-emerald-100/80 text-lg leading-relaxed">
-              Platform terintegrasi untuk pengelolaan ternak, persediaan, dan distribusi sapi yang efisien dan aman.
+            <p className="text-white/80 text-lg leading-relaxed">
+              {tenant.tagline}
             </p>
             <div className="flex flex-wrap gap-2 pt-2">
               {['Real-time Stock', 'Multi-RPH', 'Secure Auth', 'Audit Trail'].map((f) => (
                 <span
                   key={f}
-                  className="px-3 py-1.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-full text-xs font-medium text-emerald-100"
+                  className="px-3 py-1.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-full text-xs font-medium text-white/90"
                 >
                   {f}
                 </span>
@@ -445,8 +447,8 @@ const LoginPageSecure = () => {
           </div>
 
           {/* Footer */}
-          <div className="text-xs text-emerald-200/60">
-            © {new Date().getFullYear()} CV Puput Bersaudara. All rights reserved.
+          <div className="text-xs text-white/60">
+            © {new Date().getFullYear()} {tenant.fullName}. All rights reserved.
           </div>
         </div>
       </div>
@@ -455,7 +457,7 @@ const LoginPageSecure = () => {
       <div className="flex-1 flex flex-col lg:w-1/2">
         {/* Mobile header */}
         <div className="lg:hidden flex items-center justify-center gap-2.5 pt-10 pb-6">
-          <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+          <div className={`w-10 h-10 bg-gradient-to-br ${tenant.mobileIconGradient} rounded-xl flex items-center justify-center shadow-lg`}>
             <Shield className="w-5 h-5 text-white" />
           </div>
           <span className="text-xl font-bold tracking-tight text-slate-800">TernaSys</span>
@@ -488,7 +490,7 @@ const LoginPageSecure = () => {
                   Email atau Username
                 </label>
                 <div className="relative group">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
+                  <User className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-slate-400 ${tenant.iconFocusClass} transition-colors`} />
                   <input
                     ref={emailRef}
                     id="email"
@@ -500,10 +502,10 @@ const LoginPageSecure = () => {
                     onChange={handleInputChange}
                     aria-invalid={!!inputErrors.email}
                     aria-describedby={inputErrors.email ? 'email-error' : undefined}
-                    className={`block w-full pl-11 pr-4 py-3 text-sm bg-slate-50 border rounded-xl text-slate-900 placeholder-slate-400 transition-all duration-150 outline-none focus:ring-4 focus:ring-emerald-500/10 ${
+                    className={`block w-full pl-11 pr-4 py-3 text-sm bg-slate-50 border rounded-xl text-slate-900 placeholder-slate-400 transition-all duration-150 outline-none focus:ring-4 ${
                       inputErrors.email
                         ? 'border-red-400 focus:border-red-500 focus:ring-red-500/10'
-                        : 'border-slate-200 focus:border-emerald-500'
+                        : `border-slate-200 ${tenant.inputFocusClass}`
                     }`}
                     placeholder="email@example.com atau username"
                     disabled={isBlocked || isLoading}
@@ -526,13 +528,13 @@ const LoginPageSecure = () => {
                   <button
                     type="button"
                     onClick={() => setShowForgotModal(true)}
-                    className="text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
+                    className={`text-xs font-medium ${tenant.linkClass} transition-colors`}
                   >
                     Lupa password?
                   </button>
                 </div>
                 <div className="relative group">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
+                  <Lock className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-slate-400 ${tenant.iconFocusClass} transition-colors`} />
                   <input
                     id="password"
                     name="password"
@@ -547,10 +549,10 @@ const LoginPageSecure = () => {
                     aria-describedby={
                       inputErrors.password ? 'password-error' : capsLockOn ? 'capslock-warning' : undefined
                     }
-                    className={`block w-full pl-11 pr-11 py-3 text-sm bg-slate-50 border rounded-xl text-slate-900 placeholder-slate-400 transition-all duration-150 outline-none focus:ring-4 focus:ring-emerald-500/10 ${
+                    className={`block w-full pl-11 pr-11 py-3 text-sm bg-slate-50 border rounded-xl text-slate-900 placeholder-slate-400 transition-all duration-150 outline-none focus:ring-4 ${
                       inputErrors.password
                         ? 'border-red-400 focus:border-red-500 focus:ring-red-500/10'
-                        : 'border-slate-200 focus:border-emerald-500'
+                        : `border-slate-200 ${tenant.inputFocusClass}`
                     }`}
                     placeholder="••••••••"
                     disabled={isLoading}
@@ -587,7 +589,7 @@ const LoginPageSecure = () => {
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-2 focus:ring-emerald-500/20 cursor-pointer transition-colors"
+                    className={`w-4 h-4 rounded border-slate-300 ${tenant.checkboxClass} cursor-pointer transition-colors`}
                   />
                   <span className="text-sm text-slate-600 group-hover:text-slate-700 transition-colors">
                     Ingat saya
@@ -614,7 +616,7 @@ const LoginPageSecure = () => {
               <button
                 type="submit"
                 disabled={isLoading || !captchaToken}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 active:scale-[0.98]"
+                className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold text-white ${tenant.loginBtnClass} focus:outline-none focus:ring-4 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 active:scale-[0.98]`}
               >
                 {isLoading ? (
                   <>

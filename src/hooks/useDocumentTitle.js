@@ -6,8 +6,13 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { pageTitleMap } from '../config/pageTitleMap';
+import { resolveTenant } from '../config/tenantConfig';
 
-const DEFAULT_TITLE = 'TernaSys - Dashboard CV Puput Bersaudara';
+const getTenantDefaultTitle = () => {
+  const tenant = resolveTenant();
+  return `TernaSys - Dashboard ${tenant.fullName}`;
+};
+
 const TITLE_SEPARATOR = ' | ';
 
 export const useDocumentTitle = (customTitle = null, options = {}) => {
@@ -23,7 +28,7 @@ export const useDocumentTitle = (customTitle = null, options = {}) => {
   } = options;
 
   useEffect(() => {
-    let newTitle = DEFAULT_TITLE;
+    let newTitle = getTenantDefaultTitle();
 
     if (customTitle) {
       // Use custom title if provided
@@ -72,7 +77,7 @@ export const useDocumentTitle = (customTitle = null, options = {}) => {
     if (temporary) {
       // Reset to default after a delay
       setTimeout(() => {
-        const routeTitle = pageTitleMap[location.pathname] || DEFAULT_TITLE;
+        const routeTitle = pageTitleMap[location.pathname] || getTenantDefaultTitle();
         const resetTitle = suffix && !routeTitle.includes(suffix)
           ? `${routeTitle}${separator}${suffix}`
           : routeTitle;
