@@ -93,7 +93,8 @@ const normalizeBoningRow = (row) => {
 const normalizeKarkasRow = (row) => {
   const totalHarga = Number(row.total_harga || 0);
   const biayaKirim = Number(row.biaya_pengiriman || 0);
-  const totalTagihan = Number(row.total_tagihan || row.total_bayar || (totalHarga + biayaKirim));
+  const biayaPotong = Number(row.biaya_potong || 0);
+  const totalTagihan = Number(row.total_tagihan || row.total_bayar || (totalHarga + biayaKirim + biayaPotong));
   const totalTerbayar = Number(row.total_terbayar || 0);
   return {
     ...row,
@@ -104,7 +105,7 @@ const normalizeKarkasRow = (row) => {
     pic: '-',
     total_harga: totalHarga,
     biaya_kirim: biayaKirim,
-    biaya_potong: 0,
+    biaya_potong: biayaPotong,
     nominal_pembayaran: totalTerbayar,
     sisa_pembayaran: Math.max(totalTagihan - totalTerbayar, 0),
     status_pembayaran: row.payment_status,

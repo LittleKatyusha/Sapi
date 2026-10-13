@@ -103,7 +103,10 @@ const DetailKarkasModal = ({ isOpen, onClose, data }) => {
               <div className="mt-4 space-y-3 text-sm text-slate-600">
                 <div className="flex justify-between gap-3"><span>Total Berat</span><span className="font-semibold text-slate-900">{Number(header.total_berat || 0).toFixed(3)} Kg</span></div>
                 <div className="flex justify-between gap-3"><span>Total Harga Item</span><span className="font-semibold text-slate-900">{formatCurrency(header.total_harga)}</span></div>
-                <div className="flex justify-between gap-3"><span>Biaya Pengiriman</span><span className="font-semibold text-slate-900">{formatCurrency(header.biaya_pengiriman || header.biaya_kirim || header.ongkos_kirim)}</span></div>
+                {Number(header.biaya_potong || 0) > 0 && (
+                  <div className="flex justify-between gap-3"><span>Biaya Potong</span><span className="font-semibold text-slate-900">{formatCurrency(header.biaya_potong)}</span></div>
+                )}
+                <div className="flex justify-between gap-3"><span>Biaya Pengiriman / Transport</span><span className="font-semibold text-slate-900">{formatCurrency(header.biaya_pengiriman || header.biaya_kirim || header.ongkos_kirim)}</span></div>
                 <div className="flex justify-between gap-3 border-t border-slate-200 pt-3"><span>Grand Total Tagihan</span><span className="font-bold text-slate-950">{formatCurrency(header.total_bayar || header.total_tagihan)}</span></div>
                 <div className="flex justify-between gap-3"><span>Saldo Pedagang Digunakan</span><span className="font-semibold text-sky-700">{formatCurrency(header.penggunaan_saldo || 0)}</span></div>
                 <div className="flex justify-between gap-3"><span>Telah Dibayar</span><span className="font-semibold text-emerald-700">{formatCurrency(header.total_terbayar || header.nominal_pembayaran || 0)}</span></div>

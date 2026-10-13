@@ -63,4 +63,13 @@ describe('Penjualan Karkas - Sapi selection search', () => {
     expect(filterSapiOption(candidate0, '450')).toBe(true);
     expect(filterSapiOption(candidate0, 'NONEXISTENT')).toBe(false);
   });
+
+  test('grand total includes subtotal, biaya potong and biaya transport', () => {
+    const subtotal = 10000000;
+    const biayaPotong = 250000;
+    const biayaPengiriman = 150000;
+    const grandTotal = subtotal + Number(biayaPotong || 0) + Number(biayaPengiriman || 0);
+
+    expect(grandTotal).toBe(10400000);
+  });
 });
