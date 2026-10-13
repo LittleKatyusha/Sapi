@@ -886,6 +886,7 @@ const KeuanganPage = () => {
                                         setOpenMenuId={setOpenMenuId}
                                         onProses={handleProses}
                                         onDownload={(item) => handleDownload(item, 'pengajuan')}
+                                        onDetail={handleDetail}
                                     />
                                 </div>
                             )}
@@ -981,6 +982,7 @@ const KeuanganPage = () => {
                 isOpen={isDetailModalOpen}
                 onClose={handleCloseDetailModal}
                 data={selectedItem}
+                onBayar={handleBayar}
             />
 
             <SetorKasModal

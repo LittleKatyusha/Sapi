@@ -34,7 +34,8 @@ const ModernPengajuanTable = ({
     openMenuId,
     setOpenMenuId,
     onProses,
-    onDownload
+    onDownload,
+    onDetail
 }) => {
     const totalPages = Math.ceil(pagination.totalItems / pagination.perPage) || 1;
     const startItem = (pagination.currentPage - 1) * pagination.perPage + 1;
@@ -42,6 +43,9 @@ const ModernPengajuanTable = ({
 
     const getActions = (row) => {
         const actions = [];
+        if (onDetail) {
+            actions.push({ key: 'detail', label: 'Detail', onClick: onDetail });
+        }
         if (onProses) {
             actions.push({ key: 'proses', label: 'Proses', onClick: onProses });
         }
