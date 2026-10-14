@@ -18,12 +18,16 @@ const OpnameStokModal = ({ isOpen, onClose, onSaved, tipeStok, selectedItem }) =
 
   useEffect(() => {
     if (isOpen && selectedItem) {
+      const idItem = selectedItem.id_item || selectedItem.ID_ITEM || selectedItem.id_item_ovk || selectedItem.id || '';
+      const idSatuan = selectedItem.id_satuan || '';
+      const matchedSatuan = selectedItem.satuan || (selectedItem.NAME && selectedItem.NAME.match(/\(([^)]+)\)$/)?.[1]) || (tipeStok === 'FEEDMIL' ? 'kg' : 'pcs');
       setFormData({
-        id_item: selectedItem.ID_ITEM || selectedItem.id_item || selectedItem.id_item_ovk || selectedItem.id_satuan || '',
-        item_name: selectedItem.NAME || selectedItem.item_name || selectedItem.nama_item || selectedItem.produk || '',
+        id_item: idItem,
+        id_satuan: idSatuan,
+        item_name: selectedItem.NAME || selectedItem.name || selectedItem.item_name || selectedItem.nama_item || selectedItem.produk || '',
         tipe_opname: 'PENAMBAHAN',
         jumlah: '',
-        satuan: tipeStok === 'FEEDMIL' ? 'kg' : 'pcs',
+        satuan: matchedSatuan,
         tanggal_opname: new Date().toISOString().split('T')[0],
         alasan: '',
       });
@@ -50,24 +54,24 @@ const OpnameStokModal = ({ isOpen, onClose, onSaved, tipeStok, selectedItem }) =
       // Debug log
       console.log('Submitting opname:', { tipeStok, selectedItem, formData });
 
-      // For OVK, prioritize id_satuan (HO stok table), then id_item_ovk (RPH stok table)
-      if (tipeStok === 'OVK') {
-        if (!selectedItem?.id_satuan && !selectedItem?.id_item_ovk && !selectedItem?.id_item) {
-          setError('Data item OVK tidak memiliki ID yang valid.');
-          setLoading(false);
-          return;
-        }
+      const idItem = selectedItem?.id_item || selectedItem?.ID_ITEM || selectedItem?.id_item_ovk || selectedItem?.id || formData.id_item;
+      const idSatuan = selectedItem?.id_satuan || formData.id_satuan;
+
+      if (!idItem && !idSatuan) {
+        setError(`Data item ${tipeStok === 'FEEDMIL' ? 'Feedmil' : 'OVK'} tidak memiliki ID yang valid.`);
+        setLoading(false);
+        return;
       }
 
       // Map field names based on tipeStok
       const payload = {
         ...formData,
+        id_item: Number(idItem || idSatuan),
         jumlah: parseFloat(formData.jumlah),
       };
 
-      // For OVK, use id_satuan (HO) or id_item_ovk (RPH) as the item identifier
-      if (tipeStok === 'OVK') {
-        payload.id_item = selectedItem?.id_satuan || selectedItem?.id_item_ovk || selectedItem?.id_item || formData.id_item;
+      if (idSatuan) {
+        payload.id_satuan = Number(idSatuan);
       }
 
       console.log('Final payload:', payload);
