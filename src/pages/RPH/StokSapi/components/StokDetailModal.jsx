@@ -7,6 +7,7 @@ const StokDetailModal = ({ row, onClose }) => {
   const detailItems = [
     ['Jenis Sapi', row.jenis_sapi],
     ['Eartag', row.eartag],
+    ['Eartag Supplier', row.eartag_supplier],
     ['Bobot', row.bobot ? `${row.bobot} KG` : '-'],
     ['Lokasi Sapi', row.lokasi_sapi],
     ['Harga Beli', row.harga_beli ? `Rp ${row.harga_beli}` : '-'],

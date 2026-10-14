@@ -286,7 +286,7 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Eartag, jenis sapi, pemasok, nota..."
+                placeholder="Eartag, eartag supplier, jenis sapi, pemasok, nota..."
                 className="w-full rounded-md border border-gray-300 bg-white pl-8 pr-3 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
               />
             </div>
