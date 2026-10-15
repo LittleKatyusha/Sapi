@@ -133,19 +133,29 @@ const KeuanganFilterPanel = ({
         onApply(newFilters);
     };
 
-    const removeDateRange = () => {
+    const removeTxDateRange = () => {
         const newFilters = { ...localFilters, start_date: '', end_date: '' };
         setLocalFilters(newFilters);
         onApply(newFilters);
     };
 
-    // Count active filters (date range counts as 1)
-    const dateFields = fields.filter(f => f.type === 'date').map(f => f.key);
+    const removeDueDateRange = () => {
+        const newFilters = { ...localFilters, due_date_start: '', due_date_end: '' };
+        setLocalFilters(newFilters);
+        onApply(newFilters);
+    };
+
+    // Count active filters (date ranges count as 1 each)
     const selectFields = fields.filter(f => f.type === 'select').map(f => f.key);
-    const hasDateRange = dateFields.some(k => filters[k]);
+    const hasTxDate = Boolean(fields.some(f => f.key === 'start_date') && (filters.start_date || filters.end_date));
+    const hasDueDate = Boolean(fields.some(f => f.key === 'due_date_start') && (filters.due_date_start || filters.due_date_end));
+    const otherDateFields = fields.filter(f => f.type === 'date' && !['start_date', 'end_date', 'due_date_start', 'due_date_end'].includes(f.key));
+    const hasOtherDates = otherDateFields.filter(f => filters[f.key]);
 
     const activeCount = selectFields.filter(k => filters[k] && filters[k].toString().trim() !== '').length
-        + (hasDateRange ? 1 : 0);
+        + (hasTxDate ? 1 : 0)
+        + (hasDueDate ? 1 : 0)
+        + hasOtherDates.length;
 
     const hasActiveFilters = activeCount > 0;
 
@@ -156,9 +166,6 @@ const KeuanganFilterPanel = ({
         const opt = def.options.find(o => o.value === filters[field]);
         return opt ? opt.label : filters[field];
     };
-
-    const startDateKey = dateFields[0];
-    const endDateKey = dateFields[1] || dateFields[0];
 
     return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -208,13 +215,30 @@ const KeuanganFilterPanel = ({
                                     />
                                 ) : null
                             ))}
-                            {hasDateRange && (
+                            {hasTxDate && (
                                 <ActiveFilterBadge
-                                    label="Tanggal"
-                                    value={`${filters[startDateKey] || '...'} s/d ${filters[endDateKey] || '...'}`}
-                                    onRemove={removeDateRange}
+                                    label={fields.some(f => f.key === 'due_date_start') ? 'Tgl Transaksi' : 'Tanggal'}
+                                    value={`${filters.start_date || '...'} s/d ${filters.end_date || '...'}`}
+                                    onRemove={removeTxDateRange}
                                 />
                             )}
+                            {hasDueDate && (
+                                <ActiveFilterBadge
+                                    label="Jatuh Tempo"
+                                    value={`${filters.due_date_start || '...'} s/d ${filters.due_date_end || '...'}`}
+                                    onRemove={removeDueDateRange}
+                                />
+                            )}
+                            {otherDateFields.map(f => (
+                                filters[f.key] ? (
+                                    <ActiveFilterBadge
+                                        key={f.key}
+                                        label={f.label}
+                                        value={filters[f.key]}
+                                        onRemove={() => removeFilter(f.key)}
+                                    />
+                                ) : null
+                            ))}
                         </div>
                     )}
 

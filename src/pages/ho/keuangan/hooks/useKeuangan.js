@@ -24,7 +24,9 @@ const useKeuangan = (activeTab = 'belum-dibayar', tipePembayaran = 1) => {
         payment_status: '',
         start_date: '',
         end_date: '',
-        purchase_type: ''
+        purchase_type: '',
+        due_date_start: '',
+        due_date_end: ''
     });
 
     // Fetch card data
@@ -74,7 +76,9 @@ const useKeuangan = (activeTab = 'belum-dibayar', tipePembayaran = 1) => {
                     : {}),
                 ...(filtersToUse.start_date ? { start_date: filtersToUse.start_date } : {}),
                 ...(filtersToUse.end_date ? { end_date: filtersToUse.end_date } : {}),
-                ...(filtersToUse.purchase_type ? { purchase_type: filtersToUse.purchase_type } : {})
+                ...(filtersToUse.purchase_type ? { purchase_type: filtersToUse.purchase_type } : {}),
+                ...(filtersToUse.due_date_start ? { due_date_start: filtersToUse.due_date_start } : {}),
+                ...(filtersToUse.due_date_end ? { due_date_end: filtersToUse.due_date_end } : {})
             };
 
             const dataTablesParams = pengeluaranService.convertToDataTablesParams(
@@ -147,7 +151,7 @@ const useKeuangan = (activeTab = 'belum-dibayar', tipePembayaran = 1) => {
 
     // Reset advanced filters
     const resetFilters = useCallback(() => {
-        const emptyFilters = { payment_status: '', start_date: '', end_date: '', purchase_type: '' };
+        const emptyFilters = { payment_status: '', start_date: '', end_date: '', purchase_type: '', due_date_start: '', due_date_end: '' };
         setAdvancedFilters(emptyFilters);
         setSearchTerm('');
         fetchData(1, serverPagination.perPage, '', activeTab, true, false, emptyFilters);

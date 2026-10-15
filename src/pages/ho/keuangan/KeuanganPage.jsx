@@ -148,8 +148,10 @@ const KeuanganPage = () => {
     const transaksiFields = [
         { key: 'payment_status', label: 'Status Pembayaran', type: 'select', icon: 'circle', options: STATUS_PEMBAYARAN_OPTIONS },
         { key: 'purchase_type', label: 'Jenis Pembelian', type: 'select', icon: 'tag', options: JENIS_PEMBELIAN_OPTIONS },
-        { key: 'start_date', label: 'Tanggal Jatuh Tempo Mulai', type: 'date' },
-        { key: 'end_date', label: 'Tanggal Jatuh Tempo Akhir', type: 'date' }
+        { key: 'start_date', label: 'Tanggal Transaksi Mulai', type: 'date' },
+        { key: 'end_date', label: 'Tanggal Transaksi Akhir', type: 'date' },
+        { key: 'due_date_start', label: 'Tanggal Jatuh Tempo Mulai', type: 'date' },
+        { key: 'due_date_end', label: 'Tanggal Jatuh Tempo Akhir', type: 'date' }
     ];
     const pengajuanFields = [
         { key: 'status', label: 'Status Pengajuan', type: 'select', icon: 'circle', options: STATUS_PENGAJUAN_OPTIONS },
@@ -230,6 +232,8 @@ const KeuanganPage = () => {
                 ...(filterData?.end_date ? { end_date: filterData.end_date } : {}),
                 ...(filterData?.purchase_type ? { purchase_type: filterData.purchase_type } : {}),
                 ...(filterData?.payment_status !== '' && filterData?.payment_status != null ? { payment_status: filterData.payment_status } : {}),
+                ...(filterData?.due_date_start ? { due_date_start: filterData.due_date_start } : {}),
+                ...(filterData?.due_date_end ? { due_date_end: filterData.due_date_end } : {}),
             };
 
             const blob = format === 'excel'
@@ -898,7 +902,7 @@ const KeuanganPage = () => {
                                         onApply={applyFilters}
                                         onReset={resetFilters}
                                         fields={transaksiFields}
-                                        emptyFilters={{ payment_status: '', start_date: '', end_date: '', purchase_type: '' }}
+                                        emptyFilters={{ payment_status: '', start_date: '', end_date: '', purchase_type: '', due_date_start: '', due_date_end: '' }}
                                         subtitle="Klik untuk filter berdasarkan status, jenis, tanggal"
                                     />
                                     <ModernKeuanganTable
