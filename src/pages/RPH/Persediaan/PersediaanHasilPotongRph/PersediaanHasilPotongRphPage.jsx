@@ -6,6 +6,7 @@ import BoningTab from './components/BoningTab';
 import DetailModal from './modals/DetailModal';
 import EditModal from './modals/EditModal';
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
+import OpnameStokModal from './modals/OpnameStokModal';
 import PersediaanHasilPotongService from '../../../../services/persediaanHasilPotongService';
 import StokSapiService from '../../../../services/stokSapiService';
 import PotongSapiBiasaModal from '../../StokSapi/modals/PotongSapiBiasaModal';
@@ -41,6 +42,9 @@ const PersediaanHasilPotongRphPage = () => {
   const [editSapiModalOpen, setEditSapiModalOpen] = useState(false);
   const [editSapiData, setEditSapiData] = useState(null);
   const [tabCounts, setTabCounts] = useState({});
+  const [opnameModalOpen, setOpnameModalOpen] = useState(false);
+  const [opnameItem, setOpnameItem] = useState(null);
+  const [opnameType, setOpnameType] = useState('boning');
 
   // Fetch all tab counts in parallel on mount (progressive disclosure of volume)
   useEffect(() => {
@@ -97,6 +101,7 @@ const PersediaanHasilPotongRphPage = () => {
           { id: null, name: 'Berat Keluar', berat: item.total_berat_keluar ?? 0 },
           { id: null, name: 'Berat Tersedia', berat: item.berat_tersedia ?? 0 },
         ],
+        riwayat_opname: item.riwayat_opname || [],
       });
       setDetailModalOpen(true);
       return;
@@ -195,6 +200,24 @@ const PersediaanHasilPotongRphPage = () => {
     setSelectedItem(null);
     setTableRefreshKey(k => k + 1);
     showNotification('success', 'Data berhasil dihapus');
+  }, [showNotification]);
+
+  const handleOpenOpname = useCallback((item, type) => {
+    setOpnameItem(item);
+    setOpnameType(type || activeTab);
+    setOpnameModalOpen(true);
+  }, [activeTab]);
+
+  const handleOpnameClose = useCallback(() => {
+    setOpnameModalOpen(false);
+    setOpnameItem(null);
+  }, []);
+
+  const handleOpnameSuccess = useCallback((msg) => {
+    setOpnameModalOpen(false);
+    setOpnameItem(null);
+    setTableRefreshKey(k => k + 1);
+    showNotification('success', msg || 'Opname stok berhasil disimpan');
   }, [showNotification]);
 
   return (
@@ -298,6 +321,7 @@ const PersediaanHasilPotongRphPage = () => {
                 onOpenDetail={handleOpenDetail}
                 onOpenEdit={handleOpenEdit}
                 onOpenDelete={handleOpenDelete}
+                onOpenOpname={handleOpenOpname}
               />
             ) : (
               <PersediaanTab
@@ -306,6 +330,7 @@ const PersediaanHasilPotongRphPage = () => {
                 onOpenDetail={handleOpenDetail}
                 onOpenEdit={handleOpenEdit}
                 onOpenDelete={handleOpenDelete}
+                onOpenOpname={handleOpenOpname}
               />
             )}
           </div>
@@ -348,6 +373,13 @@ const PersediaanHasilPotongRphPage = () => {
         item={selectedItem}
         type={modalType}
         loading={loading && loadingContext === 'delete'}
+      />
+      <OpnameStokModal
+        isOpen={opnameModalOpen}
+        onClose={handleOpnameClose}
+        onSuccess={handleOpnameSuccess}
+        type={opnameType}
+        item={opnameItem}
       />
       <PotongSapiBiasaModal
         isOpen={editSapiModalOpen}

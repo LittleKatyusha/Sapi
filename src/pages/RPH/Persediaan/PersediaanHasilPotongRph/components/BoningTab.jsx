@@ -1,7 +1,7 @@
 import React, { useMemo, useEffect, useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import DataTable from 'react-data-table-component';
-import { Search, X, RefreshCw, Eye, MoreVertical, ArrowUp, ArrowDown, ChevronsUpDown, Beef, ArrowDownToLine, Package } from 'lucide-react';
+import { Search, X, RefreshCw, Eye, Scale, MoreVertical, ArrowUp, ArrowDown, ChevronsUpDown, Beef, ArrowDownToLine, Package } from 'lucide-react';
 import usePersediaanHasilPotong from '../hooks/usePersediaanHasilPotong';
 import customTableStyles from '../constants/tableStyles';
 
@@ -41,7 +41,7 @@ const SortIcon = ({ direction }) => {
 };
 
 // Consistent 3-dot action menu (same as PersediaanTab)
-const ActionMenu = ({ row, buttonRef, onClose, onDetail }) => {
+const ActionMenu = ({ row, buttonRef, onClose, onDetail, onOpname }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
 
@@ -73,7 +73,7 @@ const ActionMenu = ({ row, buttonRef, onClose, onDetail }) => {
 
   return createPortal(
     <div ref={menuRef} style={menuStyle} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl" role="menu">
-      <div className="p-1.5">
+      <div className="p-1.5 space-y-0.5">
         <button
           type="button"
           onClick={() => { onDetail?.(row, 'boning'); onClose(); }}
@@ -84,13 +84,23 @@ const ActionMenu = ({ row, buttonRef, onClose, onDetail }) => {
           </div>
           <span className="text-sm font-semibold text-slate-700">Detail</span>
         </button>
+        <button
+          type="button"
+          onClick={() => { onOpname?.(row, 'boning'); onClose(); }}
+          className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-slate-50"
+        >
+          <div className="rounded-md p-1.5 bg-emerald-100">
+            <Scale className="h-4 w-4 text-emerald-600" />
+          </div>
+          <span className="text-sm font-semibold text-slate-700">Opname Stok</span>
+        </button>
       </div>
     </div>,
     document.body
   );
 };
 
-const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail }) => {
+const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onOpname }) => {
   const buttonRef = useRef(null);
   return (
     <div className="relative flex justify-center">
@@ -108,7 +118,7 @@ const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail }) => {
       >
         <MoreVertical className="h-4 w-4" />
       </button>
-      {isOpen && <ActionMenu row={row} buttonRef={buttonRef} onClose={onClose} onDetail={onDetail} />}
+      {isOpen && <ActionMenu row={row} buttonRef={buttonRef} onClose={onClose} onDetail={onDetail} onOpname={onOpname} />}
     </div>
   );
 };
@@ -167,7 +177,7 @@ const BoningSummaryCard = ({ data, summary }) => {
   );
 };
 
-const BoningSummaryTable = ({ onOpenDetail, refreshKey }) => {
+const BoningSummaryTable = ({ onOpenDetail, onOpenOpname, refreshKey }) => {
   const {
     dataList,
     summary,
@@ -229,6 +239,7 @@ const BoningSummaryTable = ({ onOpenDetail, refreshKey }) => {
             onToggle={() => setOpenMenuId(openMenuId === rowKey ? null : rowKey)}
             onClose={() => setOpenMenuId(null)}
             onDetail={onOpenDetail}
+            onOpname={onOpenOpname}
           />
         );
       },
@@ -299,7 +310,7 @@ const BoningSummaryTable = ({ onOpenDetail, refreshKey }) => {
         return <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${color}`}>{status}</span>;
       },
     },
-  ]), [onOpenDetail, openMenuId, serverPagination.currentPage, serverPagination.perPage]);
+  ]), [onOpenDetail, onOpenOpname, openMenuId, serverPagination.currentPage, serverPagination.perPage]);
 
   return (
     <div className="space-y-3">
@@ -574,6 +585,7 @@ const BoningSummaryTable = ({ onOpenDetail, refreshKey }) => {
                     onToggle={() => setOpenMenuId(openMenuId === rowKey ? null : rowKey)}
                     onClose={() => setOpenMenuId(null)}
                     onDetail={onOpenDetail}
+                    onOpname={onOpenOpname}
                   />
                 </div>
                 <div className="mt-2.5 grid grid-cols-2 gap-2">
@@ -601,11 +613,12 @@ const BoningSummaryTable = ({ onOpenDetail, refreshKey }) => {
   );
 };
 
-const BoningTab = ({ refreshKey, onOpenDetail }) => {
+const BoningTab = ({ refreshKey, onOpenDetail, onOpenOpname }) => {
   return (
     <BoningSummaryTable
       refreshKey={refreshKey}
       onOpenDetail={onOpenDetail}
+      onOpenOpname={onOpenOpname}
     />
   );
 };

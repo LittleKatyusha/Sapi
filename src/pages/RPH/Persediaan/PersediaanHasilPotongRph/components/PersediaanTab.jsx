@@ -17,7 +17,7 @@ const formatWeight = (value) => {
 };
 
 // Consistent 3-dot action menu — compact, portal-rendered, same across all tabs
-const ActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete, type }) => {
+const ActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete, onOpname, type }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
 
@@ -57,6 +57,7 @@ const ActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete, type 
 
   const actions = [
     { label: 'Detail', icon: Eye, iconClass: 'text-sky-600', bgClass: 'bg-sky-100', onClick: () => onDetail?.(row) },
+    { label: 'Opname Stok', icon: Scale, iconClass: 'text-emerald-600', bgClass: 'bg-emerald-100', onClick: () => onOpname?.(row, type) },
     ...(type !== 'kulit' ? [
       { label: 'Edit', icon: Pencil, iconClass: 'text-amber-600', bgClass: 'bg-amber-100', onClick: () => onEdit?.(row) },
       { label: 'Hapus', icon: Trash2, iconClass: 'text-red-600', bgClass: 'bg-red-100', onClick: () => onDelete?.(row) },
@@ -65,7 +66,7 @@ const ActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete, type 
 
   return createPortal(
     <div ref={menuRef} style={menuStyle} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl" role="menu">
-      <div className="p-1.5">
+      <div className="p-1.5 space-y-0.5">
         {actions.map((action) => (
           <button
             key={action.label}
@@ -85,7 +86,7 @@ const ActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete, type 
   );
 };
 
-const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete, type }) => {
+const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete, onOpname, type }) => {
   const buttonRef = useRef(null);
   return (
     <div className="relative flex justify-center">
@@ -104,7 +105,7 @@ const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDele
         <MoreVertical className="h-4 w-4" />
       </button>
       {isOpen && (
-        <ActionMenu row={row} buttonRef={buttonRef} onClose={onClose} onDetail={onDetail} onEdit={onEdit} onDelete={onDelete} type={type} />
+        <ActionMenu row={row} buttonRef={buttonRef} onClose={onClose} onDetail={onDetail} onEdit={onEdit} onDelete={onDelete} onOpname={onOpname} type={type} />
       )}
     </div>
   );
@@ -125,7 +126,7 @@ const SkeletonRows = () => (
 );
 
 // Mobile card list — thumb-friendly, no horizontal scroll, 3-dot menu konsisten
-const MobileCardList = ({ data, type, page, perPage, onDetail, onEdit, onDelete }) => {
+const MobileCardList = ({ data, type, page, perPage, onDetail, onEdit, onDelete, onOpname }) => {
   const [openMenuId, setOpenMenuId] = useState(null);
   if (!data.length) return null;
   return (
@@ -167,6 +168,7 @@ const MobileCardList = ({ data, type, page, perPage, onDetail, onEdit, onDelete 
                 onDetail={onDetail}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                onOpname={onOpname}
                 type={type}
               />
             </div>
@@ -247,7 +249,7 @@ const PersediaanSummaryCard = ({ data, type }) => {
   );
 };
 
-const PersediaanTab = ({ type, onOpenDetail, onOpenEdit, onOpenDelete }) => {
+const PersediaanTab = ({ type, onOpenDetail, onOpenEdit, onOpenDelete, onOpenOpname }) => {
   const {
     dataList,
     loading,
@@ -312,6 +314,7 @@ const PersediaanTab = ({ type, onOpenDetail, onOpenEdit, onOpenDelete }) => {
                 onDetail={onOpenDetail}
                 onEdit={onOpenEdit}
                 onDelete={onOpenDelete}
+                onOpname={onOpenOpname}
                 type={type}
               />
             );
@@ -415,6 +418,7 @@ const PersediaanTab = ({ type, onOpenDetail, onOpenEdit, onOpenDelete }) => {
               onDetail={onOpenDetail}
               onEdit={onOpenEdit}
               onDelete={onOpenDelete}
+              onOpname={onOpenOpname}
               type={type}
             />
           );
@@ -483,7 +487,7 @@ const PersediaanTab = ({ type, onOpenDetail, onOpenEdit, onOpenDelete }) => {
     }
 
     return baseColumns;
-  }, [openMenuId, serverPagination, type, onOpenDetail, onOpenEdit, onOpenDelete]);
+  }, [openMenuId, serverPagination, type, onOpenDetail, onOpenEdit, onOpenDelete, onOpenOpname]);
 
   const typeLabels = {
     boning: 'Boning',
@@ -614,6 +618,7 @@ const PersediaanTab = ({ type, onOpenDetail, onOpenEdit, onOpenDelete }) => {
               onDetail={onOpenDetail}
               onEdit={onOpenEdit}
               onDelete={onOpenDelete}
+              onOpname={onOpenOpname}
             />
           )}
         </div>

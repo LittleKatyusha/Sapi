@@ -92,6 +92,29 @@ class PersediaanHasilPotongService {
     }
   }
 
+  static async opname(type, payload) {
+    const endpoint = this.getEndpoint(type);
+    if (!endpoint) return { success: false, data: null, message: 'Invalid type' };
+
+    try {
+      const response = await HttpClient.post(`${endpoint}/opname`, payload);
+      return { success: true, data: response.data, message: response.message || 'Opname berhasil disimpan' };
+    } catch (error) {
+      console.error(`PersediaanHasilPotongService.opname(${type}) error:`, error);
+      let errorMessage = 'Gagal menyimpan opname';
+      if (error?.data?.data) {
+        const validationErrors = error.data.data;
+        const messages = Object.values(validationErrors).flat();
+        errorMessage = messages.join(', ');
+      } else if (error?.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      return { success: false, data: null, message: errorMessage };
+    }
+  }
+
   static async updateKulit(payload) {
     try {
       const response = await HttpClient.post(`${this.API_KULIT}/update`, payload);
