@@ -46,11 +46,11 @@ const getSapiLabel = (item) => (
   || item.id_pembelian_ho_detail
   || '-'
 );
-const getItemWeight = (item) => Number(item.berat_paha_depan_kg || 0) + Number(item.berat_paha_belakang_kg || 0);
+const getItemWeight = (item) => Math.max(Number(item.berat_paha_depan_kg || 0) + Number(item.berat_paha_belakang_kg || 0) - Number(item.penyusutan_kg || 0), 0);
 const getItemPrice = (item) => Number(item.harga_karkas_aktual ?? item.harga_satuan ?? item.harga ?? 0);
 const getItemSubtotal = (item) => {
   if (item.total_harga !== undefined && item.total_harga !== null) return Number(item.total_harga);
-  const nominalKarkas = getItemWeight(item) * getItemPrice(item);
+  const nominalKarkas = Math.max((Number(item.berat_paha_depan_kg || 0) + Number(item.berat_paha_belakang_kg || 0)) * getItemPrice(item) - Number(item.diskon || 0), 0);
   const nominalKulit = item.perlakuan_kulit === 'DIAMBIL' ? Number(item.nominal_kulit || 0) : 0;
   return nominalKarkas + nominalKulit;
 };
@@ -131,10 +131,20 @@ const DetailKarkasModal = ({ isOpen, onClose, data }) => {
             </div>
           </div>
 
-          {(header.keterangan || header.note) && (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-              <div className="text-sm font-semibold text-amber-700">Catatan</div>
-              <div className="mt-1 text-sm text-slate-700">{header.keterangan || header.note}</div>
+          {(header.keterangan || header.note || header.alasan_backdate) && (
+            <div className="space-y-2">
+              {header.alasan_backdate && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                  <div className="text-sm font-semibold text-amber-700">Alasan Backdate</div>
+                  <div className="mt-1 text-sm text-slate-700">{header.alasan_backdate}</div>
+                </div>
+              )}
+              {(header.keterangan || header.note) && (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="text-sm font-semibold text-slate-700">Catatan</div>
+                  <div className="mt-1 text-sm text-slate-700">{header.keterangan || header.note}</div>
+                </div>
+              )}
             </div>
           )}
 
@@ -149,6 +159,8 @@ const DetailKarkasModal = ({ isOpen, onClose, data }) => {
                     <th className="px-4 py-3 text-right font-semibold text-slate-500">Berat Karkas (Kg)</th>
                     <th className="px-4 py-3 text-right font-semibold text-slate-500">Harga / Kg</th>
                     <th className="px-4 py-3 text-left font-semibold text-slate-500">Kulit</th>
+                    <th className="px-4 py-3 text-right font-semibold text-slate-500">Penyusutan</th>
+                    <th className="px-4 py-3 text-right font-semibold text-slate-500">Diskon</th>
                     <th className="px-4 py-3 text-right font-semibold text-slate-500">Subtotal</th>
                   </tr>
                 </thead>
@@ -166,12 +178,14 @@ const DetailKarkasModal = ({ isOpen, onClose, data }) => {
                         <div className="font-medium">{item.perlakuan_kulit || '-'}</div>
                         <div className="mt-0.5 text-xs text-slate-500">{Number(item.berat_kulit_kg || item.berat_kulit || 0).toFixed(3)} Kg</div>
                       </td>
+                      <td className="px-4 py-3 text-right text-slate-700">{Number(item.penyusutan_kg || 0) > 0 ? `${Number(item.penyusutan_kg).toFixed(2)} Kg` : '-'}</td>
+                      <td className="px-4 py-3 text-right text-slate-700">{Number(item.diskon || 0) > 0 ? formatCurrency(item.diskon) : '-'}</td>
                       <td className="px-4 py-3 text-right font-semibold text-slate-900">{formatCurrency(getItemSubtotal(item))}</td>
                     </tr>
                   ))}
                   {!detailItems.length && (
                     <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-slate-500">Detail sapi belum tersedia.</td>
+                      <td colSpan={8} className="px-4 py-8 text-center text-slate-500">Detail sapi belum tersedia.</td>
                     </tr>
                   )}
                 </tbody>

@@ -17,8 +17,8 @@ const formatNumberInput = (value) => {
   return Number.isFinite(number) ? new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(number) : '';
 };
 const parseNumberInput = (value) => String(value || '').replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '');
-const blankItem = (harga = 0) => ({ id_pembelian_ho_detail: '', code_eartag: '', eartag_supplier: '', berat_sapi_kg: '', berat_paha_depan_kg: 0, berat_paha_belakang_kg: 0, harga_karkas_aktual: harga || '', berat_kulit_kg: 0, perlakuan_kulit: 'DITABUNG', nominal_kulit: '', alasan_perubahan_harga: '', boning_items: [] });
-const initial = (harga = 0) => ({ id_pedagang: '', tanggal_penjualan: new Date().toISOString().slice(0, 10), tipe_pembayaran: '1', id_syarat_pembelian: '', biaya_potong: 0, gunakan_saldo: false, penggunaan_saldo: '', pengiriman: 'DIAMBIL', biaya_pengiriman: 0, alamat_pengiriman: '', id_pengirim: '', id_kendaraan_ekspedisi: '', nama_penerima: '', keterangan: '', items: [blankItem(harga)] });
+const blankItem = (harga = 0) => ({ id_pembelian_ho_detail: '', code_eartag: '', eartag_supplier: '', berat_sapi_kg: '', berat_paha_depan_kg: 0, berat_paha_belakang_kg: 0, harga_karkas_aktual: harga || '', berat_kulit_kg: 0, perlakuan_kulit: 'DITABUNG', nominal_kulit: '', alasan_perubahan_harga: '', penyusutan_kg: 0, diskon: 0, boning_items: [] });
+const initial = (harga = 0) => ({ id_pedagang: '', tanggal_penjualan: new Date().toISOString().slice(0, 10), alasan_backdate: '', tipe_pembayaran: '1', id_syarat_pembelian: '', biaya_potong: 0, gunakan_saldo: false, penggunaan_saldo: '', pengiriman: 'DIAMBIL', biaya_pengiriman: 0, alamat_pengiriman: '', id_pengirim: '', id_kendaraan_ekspedisi: '', nama_penerima: '', keterangan: '', items: [blankItem(harga)] });
 const optionRows = (response) => Array.isArray(response) ? response : (response?.data || []);
 const toSelectOptions = (items) => items.map((item) => ({ value: String(item.id), label: item.label }));
 const sapiCode = (item) => item.code_eartag || String(item.label || '').split(' - ')[0].split(' \u2014 ')[0].split(' \u00e2\u20ac\u201d ')[0] || item.eartag || '-';
@@ -302,6 +302,12 @@ const KarkasFormModal = ({
               </Field>
             </div>
 
+            {String(form.tanggal_penjualan || '').slice(0, 10) < new Date().toISOString().slice(0, 10) && (
+              <Field label="Alasan Backdate">
+                <Input required value={form.alasan_backdate || ''} onChange={e => setHeader('alasan_backdate', e.target.value)} placeholder="Wajib diisi jika tanggal transaksi lampau" />
+              </Field>
+            )}
+
             {String(form.tipe_pembayaran || '1') === '2' && (
               <Field label="Bank">
                 <SearchableSelect required value={String(form.id_syarat_pembelian || '')} onChange={v => setHeader('id_syarat_pembelian', v || '')} options={toSelectOptions(banks)} placeholder="Pilih bank" accentColor="red" />
@@ -368,10 +374,10 @@ const KarkasFormModal = ({
           <div className="space-y-4">
             {form.items.map((x, i) => {
               const totalHasilPotong = (x.boning_items || []).reduce((n, b) => n + Number(b.berat_kg || 0), 0);
-              const totalKarkas = Number(x.berat_paha_depan_kg || 0) + Number(x.berat_paha_belakang_kg || 0);
+              const totalKarkas = Math.max(Number(x.berat_paha_depan_kg || 0) + Number(x.berat_paha_belakang_kg || 0) - Number(x.penyusutan_kg || 0), 0);
               const beratKulit = Number(x.berat_kulit_kg || 0);
               const totalBerat = totalKarkas + beratKulit + totalHasilPotong;
-              const nominalKarkas = totalKarkas * Number(x.harga_karkas_aktual || 0);
+              const nominalKarkas = Math.max((Number(x.berat_paha_depan_kg || 0) + Number(x.berat_paha_belakang_kg || 0)) * Number(x.harga_karkas_aktual || 0) - Number(x.diskon || 0), 0);
               const nominalKulit = Number(x.nominal_kulit || 0);
               const boningDiambil = (x.boning_items || []).filter(b => b.perlakuan === 'DIAMBIL').reduce((n, b) => n + Number(b.berat_kg || 0) * Number(b.harga_per_kg_preview || 0), 0);
               const boningTidakDiambil = (x.boning_items || []).filter(b => b.perlakuan === 'TIDAK_DIAMBIL').reduce((n, b) => n + Number(b.berat_kg || 0) * Number(b.harga_per_kg_preview || 0), 0);
@@ -427,6 +433,17 @@ const KarkasFormModal = ({
                       <Input value={x.alasan_perubahan_harga} onChange={e => setItem(i, 'alasan_perubahan_harga', e.target.value)} />
                     </Field>
                   </div>
+
+                  {Boolean(form.pid) && (
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+                      <Field label="Penyusutan (kg)">
+                        <Input type="number" min="0" step="0.01" value={x.penyusutan_kg || ''} onChange={e => setItem(i, 'penyusutan_kg', e.target.value)} placeholder="0" />
+                      </Field>
+                      <Field label="Diskon (Rp)">
+                        <MoneyInput min="0" value={x.diskon || ''} onChange={value => setItem(i, 'diskon', value)} placeholder="0" />
+                      </Field>
+                    </div>
+                  )}
 
                   <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3">
                     <div className="mb-2 flex items-center justify-between"><div><div className="font-semibold text-slate-800">Hasil Boning</div><div className="text-xs text-slate-500">TIDAK_DIAMBIL menambah stok, nilainya mengurangi tagihan.</div></div><button type="button" onClick={() => setItem(i, 'boning_items', [...(x.boning_items || []), { id_jenis_potong: 1, id_item_potong: '', berat_kg: '', perlakuan: 'DIAMBIL', harga_per_kg_preview: '', harga_per_kg_snapshot: '' }])} className="rounded-lg border border-amber-300 bg-white px-2 py-1 text-xs font-semibold text-amber-800">+ Item</button></div>
@@ -532,7 +549,10 @@ export default function PenjualanKarkasPage() {
       .then((r) => setPedagang(optionRows(r)))
       .catch((e) => setError(e.message || 'Gagal memuat daftar pedagang'));
     PenjualanKarkasService.optionsSapi()
-      .then((r) => setSapi(current => optionRows(r).map(item => ({ ...item, ...(current.find(existing => String(existing.id) === String(item.id) && existing.isEditOption) || {}) }))))
+      .then((r) => setSapi(current => {
+        const editItems = new Map(current.filter(item => item.isEditOption).map(item => [String(item.id), item]));
+        return optionRows(r).map(item => editItems.get(String(item.id)) || item);
+      }))
       .catch((e) => setError(e.message || 'Gagal memuat daftar sapi'));
     PenjualanKarkasService.optionsBank()
       .then((r) => setBanks(optionRows(r)))
@@ -545,7 +565,48 @@ export default function PenjualanKarkasPage() {
       .catch((e) => setError(e.message || 'Gagal memuat daftar kendaraan ekspedisi'));
     StokSapiService.getItemPotongOptions().then(r => setBoningOptions((r.data || []).filter(item => Number(item.id_jenis_potong) === 1).map(item => ({ value: String(item.id), label: item.name || `Item Boning #${item.id}` }))));
   }, []);
-  const loadEdit = useCallback(async (id) => { setActionLoading('Memuat data edit...'); try { const r = await PenjualanKarkasService.show(id); const details = r.data.details || []; setSapi(current => { const byId = new Map(current.map(item => [String(item.id), item])); details.forEach(detail => { const itemId = String(detail.id_pembelian_ho_detail || ''); if (itemId) byId.set(itemId, detailToSapiOption(detail)); }); return Array.from(byId.values()); }); const usage = Number(r.data.penjualan.penggunaan_saldo || 0); setForm({ ...initial(), ...r.data.penjualan, id_pedagang: r.data.penjualan.id_pedagang, biaya_potong: Number(r.data.penjualan.biaya_potong || 0), biaya_pengiriman: Number(r.data.penjualan.biaya_pengiriman || 0), gunakan_saldo: r.data.penjualan.is_penggunaan_saldo === 'YA' || usage > 0, penggunaan_saldo: usage || '', items: details.map(x => ({ ...x, nominal_kulit: x.nominal_kulit ?? '', boning_items: (x.boning_items || []).map(b => ({ ...b, harga_per_kg_preview: b.harga_per_kg_preview ?? b.harga_per_kg_snapshot ?? '', harga_per_kg_snapshot: b.harga_per_kg_snapshot ?? b.harga_per_kg_preview ?? '' })) })) }); } catch (e) { setError(e.message); } finally { setActionLoading(''); } }, []);
+  const loadEdit = useCallback(async (id) => {
+    setActionLoading('Memuat data edit...');
+    try {
+      const r = await PenjualanKarkasService.show(id);
+      const details = r.data.details || [];
+      setSapi(current => {
+        const byId = new Map(current.map(item => [String(item.id), item]));
+        details.forEach(detail => {
+          const itemId = String(detail.id_pembelian_ho_detail || '');
+          if (itemId) byId.set(itemId, detailToSapiOption(detail));
+        });
+        return Array.from(byId.values());
+      });
+      const usage = Number(r.data.penjualan.penggunaan_saldo || 0);
+      setForm({
+        ...initial(),
+        ...r.data.penjualan,
+        id_pedagang: r.data.penjualan.id_pedagang,
+        alasan_backdate: r.data.penjualan.alasan_backdate || '',
+        biaya_potong: Number(r.data.penjualan.biaya_potong || 0),
+        biaya_pengiriman: Number(r.data.penjualan.biaya_pengiriman || 0),
+        gunakan_saldo: r.data.penjualan.is_penggunaan_saldo === 'YA' || usage > 0,
+        penggunaan_saldo: usage || '',
+        items: details.map(x => ({
+          ...x,
+          berat_sapi_kg: Number(x.berat_sapi_kg || x.berat || 0),
+          penyusutan_kg: Number(x.penyusutan_kg || 0),
+          diskon: Number(x.diskon || 0),
+          nominal_kulit: x.nominal_kulit ?? '',
+          boning_items: (x.boning_items || []).map(b => ({
+            ...b,
+            harga_per_kg_preview: b.harga_per_kg_preview ?? b.harga_per_kg_snapshot ?? '',
+            harga_per_kg_snapshot: b.harga_per_kg_snapshot ?? b.harga_per_kg_preview ?? '',
+          })),
+        })),
+      });
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setActionLoading('');
+    }
+  }, []);
   useEffect(() => { if (isFormPage && routePid) loadEdit(routePid); else if (isFormPage) setForm(initial()); }, [isFormPage, routePid, loadEdit]);
   const openCreate = () => navigate('/rph/penjualan-karkas/add');
   const openEdit = async (row) => { if (isPaidRow(row)) { setError('Transaksi yang sudah dibayar tidak bisa diedit.'); return; } navigate(`/rph/penjualan-karkas/edit/${row.pid}`); };
@@ -555,8 +616,9 @@ export default function PenjualanKarkasPage() {
   const selectShipping = (value) => setForm(f => ({ ...f, pengiriman: value || 'DIAMBIL', ...(value === 'DIANTAR' ? {} : { alamat_pengiriman: '', id_pengirim: '', id_kendaraan_ekspedisi: '', nama_penerima: '' }) }));
   const selectPedagang = async (id) => { setHeader('id_pedagang', id); try { const r = await PenjualanKarkasService.getHarga(id); const harga = r.data?.nominal || ''; setForm(f => ({ ...f, id_pedagang: id, items: f.items.map(x => x.harga_diedit ? x : { ...x, harga_karkas_aktual: harga }) })); } catch {} };
   const totals = useMemo(() => form.items.reduce((a, x) => {
-    const w = Number(x.berat_paha_depan_kg || 0) + Number(x.berat_paha_belakang_kg || 0) + Number(x.berat_kulit_kg || 0) + (x.boning_items || []).reduce((sum, b) => sum + Number(b.berat_kg || 0), 0);
-    const nominalKarkas = (Number(x.berat_paha_depan_kg || 0) + Number(x.berat_paha_belakang_kg || 0)) * Number(x.harga_karkas_aktual || 0);
+    const totalKarkas = Math.max(Number(x.berat_paha_depan_kg || 0) + Number(x.berat_paha_belakang_kg || 0) - Number(x.penyusutan_kg || 0), 0);
+    const w = totalKarkas + Number(x.berat_kulit_kg || 0) + (x.boning_items || []).reduce((sum, b) => sum + Number(b.berat_kg || 0), 0);
+    const nominalKarkas = Math.max((Number(x.berat_paha_depan_kg || 0) + Number(x.berat_paha_belakang_kg || 0)) * Number(x.harga_karkas_aktual || 0) - Number(x.diskon || 0), 0);
     const nominalKulit = Number(x.nominal_kulit || 0);
     const boningDiambil = (x.boning_items || []).filter(b => b.perlakuan === 'DIAMBIL').reduce((n, b) => n + Number(b.berat_kg || 0) * Number(b.harga_per_kg_preview || 0), 0); const boningTidakDiambil = (x.boning_items || []).filter(b => b.perlakuan === 'TIDAK_DIAMBIL').reduce((n, b) => n + Number(b.berat_kg || 0) * Number(b.harga_per_kg_preview || 0), 0);
     return {
@@ -567,7 +629,77 @@ export default function PenjualanKarkasPage() {
       n: a.n + nominalKarkas + (x.perlakuan_kulit === 'DIAMBIL' ? nominalKulit : 0) + boningDiambil - boningTidakDiambil,
     };
   }, { w: 0, karkas: 0, kulitDiambil: 0, kulitDitabung: 0, n: 0 }), [form.items]);
-  const save = async (e) => { e.preventDefault(); setSaving(true); setActionLoading('Menyimpan transaksi...'); setError(''); try { const grandTotal = totals.n + Number(form.biaya_potong || 0) + Number(form.biaya_pengiriman || 0); if (form.gunakan_saldo && Number(form.penggunaan_saldo || 0) > grandTotal) throw new Error('Penggunaan saldo tidak boleh melebihi total tagihan.'); const boningIds = form.items.flatMap(item => (item.boning_items || []).map(boning => String(boning.id_item_potong || '')).filter(Boolean)); if (new Set(boningIds).size !== boningIds.length) throw new Error('Item hasil boning tidak boleh dipilih lebih dari satu kali dalam satu transaksi.'); if (form.items.some(x => { const selected = toSapiOptions(sapi).find(option => option.value === String(x.id_pembelian_ho_detail)); const totalBaru = Number(x.berat_paha_depan_kg || 0) + Number(x.berat_paha_belakang_kg || 0) + Number(x.berat_kulit_kg || 0) + (x.boning_items || []).reduce((total, b) => total + Number(b.berat_kg || 0), 0); return totalBaru > Math.max(Number(x.berat_sapi_kg || 0) - Number(selected?.total_berat_terjual || 0), 0); })) throw new Error('Total baru tidak boleh melebihi sisa bobot sapi.'); if (form.tipe_pembayaran === '2' && !form.id_syarat_pembelian) throw new Error('Bank wajib dipilih untuk pembayaran kredit.'); if (form.pengiriman === 'DIANTAR' && !form.id_pengirim) throw new Error('Pengirim wajib dipilih untuk pengiriman diantar.'); if (form.pengiriman === 'DIANTAR' && !form.id_kendaraan_ekspedisi) throw new Error('Kendaraan ekspedisi wajib dipilih untuk pengiriman diantar.'); const payload = { ...form, pid: form.pid, id_pedagang: Number(form.id_pedagang), biaya_potong: Number(form.biaya_potong || 0), biaya_pengiriman: Number(form.biaya_pengiriman || 0), penggunaan_saldo: form.gunakan_saldo ? Number(form.penggunaan_saldo || 0) : 0, id_syarat_pembelian: form.tipe_pembayaran === '2' ? Number(form.id_syarat_pembelian) : null, alamat_pengiriman: form.pengiriman === 'DIANTAR' ? form.alamat_pengiriman : null, id_pengirim: form.pengiriman === 'DIANTAR' ? Number(form.id_pengirim) : null, id_kendaraan_ekspedisi: form.pengiriman === 'DIANTAR' ? Number(form.id_kendaraan_ekspedisi) : null, nama_penerima: form.pengiriman === 'DIANTAR' ? form.nama_penerima : null, items: form.items.map(x => { const selected = toSapiOptions(sapi).find(option => option.value === String(x.id_pembelian_ho_detail)); return { ...x, boning_items: (x.boning_items || []).map(b => ({ ...b, id_jenis_potong: 1, harga_per_kg_snapshot: b.harga_per_kg_snapshot ?? b.harga_per_kg_preview ?? '' })), id_pembelian_ho_detail: Number(x.id_pembelian_ho_detail), berat_sapi_kg: Number(x.berat_sapi_kg), berat_paha_depan_kg: selected?.paha_depan_terjual ? 0 : Number(x.berat_paha_depan_kg), berat_paha_belakang_kg: selected?.paha_belakang_terjual ? 0 : Number(x.berat_paha_belakang_kg), harga_karkas_aktual: Number(x.harga_karkas_aktual), berat_kulit_kg: Number(x.berat_kulit_kg || 0), nominal_kulit: Number(x.nominal_kulit || 0) }; }) }; const r = form.pid ? await PenjualanKarkasService.update(payload) : await PenjualanKarkasService.store(payload); if (r.success === false) throw new Error(r.message); setModal(null); await load(); if (isFormPage) navigate('/rph/penjualan-karkas'); } catch (e) { const message = getRequestErrorMessage(e, 'Gagal menyimpan penjualan karkas.'); setError(message); showError(message); } finally { setSaving(false); setActionLoading(''); } };
+  const save = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setActionLoading('Menyimpan transaksi...');
+    setError('');
+    try {
+      const isBackdate = String(form.tanggal_penjualan || '').slice(0, 10) < new Date().toISOString().slice(0, 10);
+      if (isBackdate && !String(form.alasan_backdate || '').trim()) {
+        throw new Error('Alasan backdate wajib diisi untuk transaksi tanggal lampau.');
+      }
+      const grandTotal = totals.n + Number(form.biaya_potong || 0) + Number(form.biaya_pengiriman || 0);
+      if (form.gunakan_saldo && Number(form.penggunaan_saldo || 0) > grandTotal) throw new Error('Penggunaan saldo tidak boleh melebihi total tagihan.');
+      const boningIds = form.items.flatMap(item => (item.boning_items || []).map(boning => String(boning.id_item_potong || '')).filter(Boolean));
+      if (new Set(boningIds).size !== boningIds.length) throw new Error('Item hasil boning tidak boleh dipilih lebih dari satu kali dalam satu transaksi.');
+      if (form.items.some(x => {
+        const selected = toSapiOptions(sapi).find(option => option.value === String(x.id_pembelian_ho_detail));
+        const totalBaru = Number(x.berat_paha_depan_kg || 0) + Number(x.berat_paha_belakang_kg || 0) + Number(x.berat_kulit_kg || 0) + (x.boning_items || []).reduce((total, b) => total + Number(b.berat_kg || 0), 0);
+        return totalBaru > Math.max(Number(x.berat_sapi_kg || 0) - Number(selected?.total_berat_terjual || 0), 0);
+      })) throw new Error('Total baru tidak boleh melebihi sisa bobot sapi.');
+      if (form.tipe_pembayaran === '2' && !form.id_syarat_pembelian) throw new Error('Bank wajib dipilih untuk pembayaran kredit.');
+      if (form.pengiriman === 'DIANTAR' && !form.id_pengirim) throw new Error('Pengirim wajib dipilih untuk pengiriman diantar.');
+      if (form.pengiriman === 'DIANTAR' && !form.id_kendaraan_ekspedisi) throw new Error('Kendaraan ekspedisi wajib dipilih untuk pengiriman diantar.');
+
+      const payload = {
+        ...form,
+        pid: form.pid,
+        id_pedagang: Number(form.id_pedagang),
+        alasan_backdate: form.alasan_backdate ? String(form.alasan_backdate).trim() : null,
+        biaya_potong: Number(form.biaya_potong || 0),
+        biaya_pengiriman: Number(form.biaya_pengiriman || 0),
+        penggunaan_saldo: form.gunakan_saldo ? Number(form.penggunaan_saldo || 0) : 0,
+        id_syarat_pembelian: form.tipe_pembayaran === '2' ? Number(form.id_syarat_pembelian) : null,
+        alamat_pengiriman: form.pengiriman === 'DIANTAR' ? form.alamat_pengiriman : null,
+        id_pengirim: form.pengiriman === 'DIANTAR' ? Number(form.id_pengirim) : null,
+        id_kendaraan_ekspedisi: form.pengiriman === 'DIANTAR' ? Number(form.id_kendaraan_ekspedisi) : null,
+        nama_penerima: form.pengiriman === 'DIANTAR' ? form.nama_penerima : null,
+        items: form.items.map(x => {
+          const selected = toSapiOptions(sapi).find(option => option.value === String(x.id_pembelian_ho_detail));
+          return {
+            ...x,
+            penyusutan_kg: Number(x.penyusutan_kg || 0),
+            diskon: Number(x.diskon || 0),
+            boning_items: (x.boning_items || []).map(b => ({
+              ...b,
+              id_jenis_potong: 1,
+              harga_per_kg_snapshot: b.harga_per_kg_snapshot ?? b.harga_per_kg_preview ?? '',
+            })),
+            id_pembelian_ho_detail: Number(x.id_pembelian_ho_detail),
+            berat_sapi_kg: Number(x.berat_sapi_kg),
+            berat_paha_depan_kg: selected?.paha_depan_terjual ? 0 : Number(x.berat_paha_depan_kg),
+            berat_paha_belakang_kg: selected?.paha_belakang_terjual ? 0 : Number(x.berat_paha_belakang_kg),
+            harga_karkas_aktual: Number(x.harga_karkas_aktual),
+            berat_kulit_kg: Number(x.berat_kulit_kg || 0),
+            nominal_kulit: Number(x.nominal_kulit || 0),
+          };
+        }),
+      };
+      const r = form.pid ? await PenjualanKarkasService.update(payload) : await PenjualanKarkasService.store(payload);
+      if (r.success === false) throw new Error(r.message);
+      setModal(null);
+      await load();
+      if (isFormPage) navigate('/rph/penjualan-karkas');
+    } catch (e) {
+      const message = getRequestErrorMessage(e, 'Gagal menyimpan penjualan karkas.');
+      setError(message);
+      showError(message);
+    } finally {
+      setSaving(false);
+      setActionLoading('');
+    }
+  };
   const cancel = async (row) => { if (isPaidRow(row)) { setError('Transaksi yang sudah dibayar tidak bisa dihapus.'); return; } if (!window.confirm(`Hapus transaksi ${row.no_kwitansi}?`)) return; setActionLoading('Menghapus transaksi...'); try { await PenjualanKarkasService.hapus(row.pid); await load(); } catch (e) { setError(e.message); } finally { setActionLoading(''); } };
   const openDetail = async (row) => { setActionLoading('Memuat detail transaksi...'); try { const x = await PenjualanKarkasService.show(row.pid); setDetail(x.data); } catch (e) { setError(e.message); } finally { setActionLoading(''); } };
   const available = (selected) => sapi.filter(x => (!x.isEditOption || form.pid) && !form.items.some(i => String(i.id_pembelian_ho_detail) === String(x.id) && String(x.id) !== String(selected)));

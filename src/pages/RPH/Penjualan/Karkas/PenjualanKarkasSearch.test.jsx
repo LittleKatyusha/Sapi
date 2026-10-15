@@ -72,4 +72,13 @@ describe('Penjualan Karkas - Sapi selection search', () => {
 
     expect(grandTotal).toBe(10400000);
   });
+
+  test('item adjustments support penyusutan_kg and diskon', () => {
+    const item = {
+      penyusutan_kg: 2.5,
+      diskon: 50000,
+    };
+    expect(item.penyusutan_kg).toBe(2.5);
+    expect(item.diskon).toBe(50000);
+  });
 });
