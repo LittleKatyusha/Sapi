@@ -19,7 +19,8 @@ const normalizePedagangOptions = (items = []) => items.map((item) => ({
   saldo_akhir: Number(item.saldo_akhir ?? ((item.saldo_awal || 0) + (item.tabungan || 0) + (item.kulit || 0) - (item.saldo_beku || 0))),
   limit_kredit: Number(item.limit_kredit || 0),
   is_dispensasi: Number(item.is_dispensasi || 0),
-  label: item.label || `${item.nama_alias || item.nama_identitas || '-'} - ${item.id_pedagang || '-'}`,
+  nama_rph: item.nama_rph,
+  label: item.label || `${item.nama_alias || item.nama_identitas || '-'} - ${item.id_pedagang || '-'}${item.nama_rph ? ` (${item.nama_rph})` : ''}`,
 }));
 
 const normalizeBankOptions = (items = []) => items.map((item) => ({
@@ -113,7 +114,7 @@ const usePenjualanBoning = () => {
     try {
       const [masterRes, pedagangRes] = await Promise.all([
         PenjualanBoningService.getMasterData(idOffice),
-        PenjualanBoningService.getPedagang(idOffice),
+        PenjualanBoningService.getPedagang(),
       ]);
       const pedagangFromMasterData = normalizePedagangOptions(masterRes.data?.pedagang || []);
       const pedagangFromEndpoint = normalizePedagangOptions(pedagangRes.data || []);

@@ -406,7 +406,16 @@ const PenjualanBoningPage = () => {
       selector: (row) => row.tgl_penjualan,
       sortable: true,
       width: '130px',
-      cell: (row) => <span className="text-sm text-slate-700">{formatDate(row.tgl_penjualan)}</span>,
+      cell: (row) => (
+        <div>
+          <span className="text-sm text-slate-700">{formatDate(row.tgl_penjualan)}</span>
+          {row.is_backdated ? (
+            <span className="ml-1 inline-block rounded bg-amber-100 px-1 py-0.5 text-[10px] font-semibold text-amber-800" title={row.alasan_backdate || 'Backdate'}>
+              Backdate
+            </span>
+          ) : null}
+        </div>
+      ),
     },
     {
       name: 'Berat',

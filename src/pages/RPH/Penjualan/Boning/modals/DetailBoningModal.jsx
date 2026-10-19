@@ -89,6 +89,13 @@ const DetailBoningModal = ({ isOpen, onClose, data }) => {
             </div>
           </div>
 
+          {header.alasan_backdate && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <div className="text-sm font-semibold text-amber-700">Alasan Backdate</div>
+              <div className="mt-1 text-sm text-slate-700">{header.alasan_backdate}</div>
+            </div>
+          )}
+
           {header.keterangan && (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
               <div className="text-sm font-semibold text-amber-700">Catatan</div>

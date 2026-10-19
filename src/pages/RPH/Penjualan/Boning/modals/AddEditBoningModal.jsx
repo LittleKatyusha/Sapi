@@ -54,6 +54,7 @@ const AddEditBoningModal = ({
   const [form, setForm] = useState({
     id_pedagang: '',
     tgl_penjualan: new Date().toISOString().split('T')[0],
+    alasan_backdate: '',
     tipe_pembayaran: 'CASH',
     jumlah_pembayaran: '',
     tabungan: '0',
@@ -150,6 +151,7 @@ const AddEditBoningModal = ({
       setForm({
         id_pedagang: String(header.id_pedagang || ''),
         tgl_penjualan: header.tgl_penjualan || new Date().toISOString().split('T')[0],
+        alasan_backdate: header.alasan_backdate || '',
         tipe_pembayaran: String(header.tipe_pembayaran) === '2' ? 'BANK' : 'CASH',
         // P3: jumlah_pembayaran di-default dari total_terbayar (kas riil), bukan total_bayar (kini grand total tagihan).
         // Cek null/undefined eksplisit agar kas cicilan (0) ditangani benar & tak salah jatuh ke tagihan penuh
@@ -178,6 +180,7 @@ const AddEditBoningModal = ({
       setForm({
         id_pedagang: '',
         tgl_penjualan: new Date().toISOString().split('T')[0],
+        alasan_backdate: '',
         tipe_pembayaran: 'CASH',
         jumlah_pembayaran: '',
         tabungan: '0',
@@ -374,6 +377,13 @@ const AddEditBoningModal = ({
     if (form.gunakan_saldo && Number(form.penggunaan_saldo || 0) <= 0) nextErrors.penggunaan_saldo = 'Nominal penggunaan saldo wajib lebih dari 0.';
     if (form.gunakan_saldo && Number(form.penggunaan_saldo || 0) > totals.grandTotal) nextErrors.penggunaan_saldo = 'Nominal penggunaan saldo tidak boleh melebihi total tagihan.';
     if (!form.tgl_penjualan) nextErrors.tgl_penjualan = 'Tanggal penjualan wajib diisi.';
+
+    const today = new Date().toISOString().split('T')[0];
+    const isBackdate = Boolean(form.tgl_penjualan && String(form.tgl_penjualan).slice(0, 10) < today);
+    if (isBackdate && !String(form.alasan_backdate || '').trim()) {
+      nextErrors.alasan_backdate = 'Alasan backdate wajib diisi untuk transaksi tanggal lampau.';
+    }
+
     if (!details.length) nextErrors.details = 'Minimal satu item penjualan wajib diisi.';
 
     details.forEach((item, index) => {
@@ -429,6 +439,7 @@ const AddEditBoningModal = ({
     ...(isEdit ? { pid: editData.penjualan.pid } : {}),
     id_pedagang: Number(form.id_pedagang),
     tgl_penjualan: form.tgl_penjualan,
+    alasan_backdate: form.alasan_backdate ? String(form.alasan_backdate).trim() : null,
     details: details.map((item) => ({
       id_item_potong: Number(item.id_item_potong),
       jumlah_kg: Number(item.jumlah_kg || 0),
@@ -526,6 +537,23 @@ const AddEditBoningModal = ({
                 <input type="date" value={form.tgl_penjualan} onChange={(event) => updateForm('tgl_penjualan', event.target.value)} className={inputClass} />
                 {errors.tgl_penjualan && <p className="mt-1 text-xs text-rose-600">{errors.tgl_penjualan}</p>}
               </div>
+
+              {form.tgl_penjualan && String(form.tgl_penjualan).slice(0, 10) < new Date().toISOString().split('T')[0] && (
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Alasan Backdate <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={form.alasan_backdate || ''}
+                    onChange={(event) => updateForm('alasan_backdate', event.target.value)}
+                    placeholder="Wajib diisi jika tanggal transaksi lampau"
+                    className={inputClass}
+                  />
+                  {errors.alasan_backdate && <p className="mt-1 text-xs text-rose-600">{errors.alasan_backdate}</p>}
+                </div>
+              )}
 
               <div>
                 <label className="mb-2 block text-sm font-semibold text-slate-700">Tipe Pembayaran</label>
