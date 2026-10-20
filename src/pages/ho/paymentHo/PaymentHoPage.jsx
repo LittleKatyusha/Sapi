@@ -7,6 +7,7 @@ import {
   FileText, CalendarDays, Upload, ExternalLink
 } from 'lucide-react';
 import PaymentHoService, { PURCHASE_TYPES, PAYMENT_STATUS } from '../../../services/paymentHoService';
+import { openPaymentProofInNewTab } from '../../../services/paymentProof';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -160,6 +161,25 @@ const DetailModal = ({ isOpen, payment, onClose, onAddCicilan }) => {
   const [details, setDetails] = useState([]);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(null);
+  const [proofLoading, setProofLoading] = useState(null);
+  const [proofError, setProofError] = useState(null);
+
+  const handleViewProof = async (detail) => {
+    if (!detail?.bukti_pembayaran_url) return;
+    setProofError(null);
+    setProofLoading(detail.id);
+    try {
+      // Bukti selalu dibuka di tab baru, sama seperti RPH.
+      const result = await openPaymentProofInNewTab(detail.bukti_pembayaran_url);
+      if (result.mode === 'download') {
+        setProofError('Tab baru diblokir browser — bukti diunduh sebagai file.');
+      }
+    } catch (err) {
+      setProofError(err?.message || 'Gagal membuka bukti pembayaran');
+    } finally {
+      setProofLoading(null);
+    }
+  };
 
   const load = useCallback(() => {
     if (!payment?.id) return;
@@ -212,6 +232,15 @@ const DetailModal = ({ isOpen, payment, onClose, onAddCicilan }) => {
 
         {/* Details List */}
         <div className="overflow-y-auto flex-1 p-6">
+          {proofError && (
+            <div className="mb-3 bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span className="flex-1">{proofError}</span>
+              <button onClick={() => setProofError(null)} className="text-red-400 hover:text-red-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-700 text-sm">Riwayat Cicilan ({details.length})</h3>
             <button onClick={onAddCicilan}
@@ -235,10 +264,12 @@ const DetailModal = ({ isOpen, payment, onClose, onAddCicilan }) => {
                       <p className="font-semibold text-gray-800 text-sm">{fmt(d.amount)}</p>
                       <p className="text-xs text-gray-500">{d.payment_date || '-'}{d.note ? ` — ${d.note}` : ''}</p>
                       {d.bukti_pembayaran_url && (
-                        <a href={d.bukti_pembayaran_url} target="_blank" rel="noopener noreferrer"
-                          className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-0.5">
-                          <ExternalLink className="w-3 h-3" /> Lihat Bukti
-                        </a>
+                        <button type="button" onClick={() => handleViewProof(d)} disabled={proofLoading === d.id}
+                          className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-0.5 disabled:opacity-50">
+                          {proofLoading === d.id
+                            ? <><Loader2 className="w-3 h-3 animate-spin" /> Memuat bukti...</>
+                            : <><ExternalLink className="w-3 h-3" /> Lihat Bukti</>}
+                        </button>
                       )}
                     </div>
                   </div>

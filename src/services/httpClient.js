@@ -686,5 +686,38 @@ export const TokenRefresh = {
   refresh: refreshToken,
 };
 
+/**
+ * Fetch a protected file (e.g. payment proof) with the auth token attached
+ * and open it in a new tab. Opening a raw API URL in a new tab cannot send
+ * the Bearer token, so the file must be fetched first and viewed as a blob.
+ */
+export const openAuthenticatedFile = async (endpoint) => {
+  const res = await HttpClient.get(endpoint, { responseType: 'blob', cache: false });
+  const blob = res instanceof Blob ? res : new Blob([res]);
+  const mime = blob.type || '';
+  // Only let the browser render image/PDF; anything else downloads instead of executing.
+  if (mime && !mime.startsWith('image/') && mime !== 'application/pdf') {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = endpoint.split('/').pop()?.split('?')[0] || 'bukti-pembayaran';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
+    return;
+  }
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, '_blank', 'noopener,noreferrer');
+  if (!win) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = endpoint.split('/').pop()?.split('?')[0] || 'bukti-pembayaran';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+};
+
 export default HttpClient;
 

@@ -1,4 +1,5 @@
 import httpClient from './httpClient';
+import { resolvePaymentFileEndpoint, fetchPaymentProofBlob } from './paymentProof';
 
 const API_BASE = '/api/ho/feedmill/keuangan';
 
@@ -76,6 +77,12 @@ const feedmillKeuanganService = {
       };
     }
   },
+
+  // ===== Bukti pembayaran (payment detail) =====
+  // Backend mengirim URL stream terautentikasi; resolver & unduhan dipakai bersama.
+  getPaymentFileEndpoint: (urlOrPath) => resolvePaymentFileEndpoint(urlOrPath),
+
+  openBuktiPembayaran: async (urlOrPath) => fetchPaymentProofBlob(urlOrPath),
 };
 
 export default feedmillKeuanganService;

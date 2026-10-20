@@ -1,13 +1,35 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import {
-  ArrowLeft, Wallet, Loader2, AlertCircle, Banknote, CheckCircle, Clock, Upload, FileText, X, Eye,
-} from 'lucide-react';
+import { ArrowLeft, Wallet, Loader2, AlertCircle, Banknote, CheckCircle, Clock, Upload, FileText, X, Eye,
+  CalendarDays, CreditCard, User, Hash } from 'lucide-react';
 import DataTable from 'react-data-table-component';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 import { useNotification } from '../../../../components/shared/Notification';
 import feedmillKeuanganService from '../../../../services/feedmillKeuanganService';
+import { openPaymentProofInNewTab } from '../../../../services/paymentProof';
+
+const parseDateParts = (value) => {
+  if (!value) return null;
+  const raw = String(value);
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) return { d: match[3], m: match[2], y: match[1] };
+  const dmy = raw.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (dmy) return { d: dmy[1], m: dmy[2], y: dmy[3] };
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return {
+    d: String(parsed.getDate()).padStart(2, '0'),
+    m: String(parsed.getMonth() + 1).padStart(2, '0'),
+    y: String(parsed.getFullYear()),
+  };
+};
+
+const formatDisplayDate = (value) => {
+  const parts = parseDateParts(value);
+  if (!parts) return value || '-';
+  return `${parts.d}-${parts.m}-${parts.y}`;
+};
 
 const formatRupiah = (val) => 'Rp ' + (Number(val) || 0).toLocaleString('id-ID');
 const parseNumber = (str) => parseFloat(String(str || '').replace(/[^0-9]/g, '')) || 0;
@@ -31,6 +53,8 @@ const BayarPengeluaranFeedmilPage = () => {
   const [formErrors, setFormErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [proofLoading, setProofLoading] = useState(null);
+  const fileInputRef = useRef(null);
 
   const mapHistoryItems = (items) =>
     (Array.isArray(items) ? items : []).map((item, index) => ({
@@ -39,7 +63,8 @@ const BayarPengeluaranFeedmilPage = () => {
       amount: parseFloat(item.amount ?? item.nominal_pembayaran ?? item.nominal) || 0,
       payment_date: item.payment_date || item.tanggal_pembayaran || item.created_at || '',
       note: item.note || item.description || item.catatan || '',
-      bukti_pembayaran_url: item.bukti_pembayaran_url || item.bukti_url || null,
+      // Backend now returns the authenticated stream URL; keep the raw key as fallback.
+      bukti_raw: item.bukti_pembayaran_url || item.bukti_pembayaran || item.bukti_url || null,
     }));
 
   const refreshPaymentDetails = useCallback(async (idPembayaran) => {
@@ -67,23 +92,25 @@ const BayarPengeluaranFeedmilPage = () => {
     const totalFromList = mapped.reduce((sum, row) => sum + (row.amount || 0), 0);
     const totalTagihan = parseFloat(header.total_tagihan);
     const totalTerbayarHeader = parseFloat(header.total_terbayar);
-    const nextTerbayar = totalFromList > 0
-      ? totalFromList
-      : (!Number.isNaN(totalTerbayarHeader) ? totalTerbayarHeader : 0);
 
     setPembayaran((prev) => {
       if (!prev && !header.id && !header.id_pembayaran) return prev;
+      // Header adalah sumber kebenaran untuk tagihan/terbayar; list detail hanya
+      // dipakai saat header tidak membawa angka (mis. repositori lama).
       const nextTagihan = !Number.isNaN(totalTagihan)
         ? totalTagihan
         : (prev?.total_tagihan || 0);
+      const nextPaid = !Number.isNaN(totalTerbayarHeader)
+        ? totalTerbayarHeader
+        : (totalFromList > 0 ? totalFromList : (prev?.total_terbayar || 0));
       return {
         ...(prev || {}),
         ...header,
         id_pembayaran: header.id_pembayaran || header.id || idPembayaran || prev?.id_pembayaran,
         no_po: header.nota || header.nota_sistem || prev?.no_po || '-',
         total_tagihan: nextTagihan,
-        total_terbayar: nextTerbayar,
-        sisa_pembayaran: Math.max(0, nextTagihan - nextTerbayar),
+        total_terbayar: nextPaid,
+        sisa_pembayaran: Math.max(0, nextTagihan - nextPaid),
       };
     });
 
@@ -163,8 +190,26 @@ const BayarPengeluaranFeedmilPage = () => {
 
   const handleRemoveFile = () => {
     setSelectedFile(null);
-    const input = document.getElementById('file-pengeluaran-feedmil');
-    if (input) input.value = '';
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleViewProof = async (row) => {
+    if (!row?.bukti_raw) {
+      showError('Bukti pembayaran tidak tersedia untuk transaksi ini');
+      return;
+    }
+    // Bukti selalu dibuka di tab baru, sama seperti RPH.
+    setProofLoading(row.id);
+    try {
+      const result = await openPaymentProofInNewTab(row.bukti_raw);
+      if (result.mode === 'download') {
+        showError('Tab baru diblokir browser — bukti diunduh sebagai file.');
+      }
+    } catch (err) {
+      showError(err?.message || 'Gagal membuka bukti pembayaran');
+    } finally {
+      setProofLoading(null);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -207,8 +252,7 @@ const BayarPengeluaranFeedmilPage = () => {
         setPaymentDate(new Date().toISOString().split('T')[0]);
         setSelectedFile(null);
         setFormErrors({});
-        const input = document.getElementById('file-pengeluaran-feedmil');
-        if (input) input.value = '';
+        if (fileInputRef.current) fileInputRef.current.value = '';
 
         await refreshPaymentDetails(idPembayaran);
       } else {
@@ -232,7 +276,7 @@ const BayarPengeluaranFeedmilPage = () => {
       name: 'Tanggal',
       selector: (r) => r.payment_date,
       sortable: true,
-      cell: (r) => <span className="text-sm text-gray-700">{r.payment_date || '-'}</span>,
+      cell: (r) => <span className="text-sm text-gray-700">{formatDisplayDate(r.payment_date)}</span>,
     },
     {
       name: 'Nominal',
@@ -248,18 +292,20 @@ const BayarPengeluaranFeedmilPage = () => {
     },
     {
       name: 'Bukti',
-      selector: (r) => r.bukti_pembayaran_url,
+      selector: (r) => r.bukti_raw,
       center: true,
-      cell: (r) => r.bukti_pembayaran_url ? (
-        <a
-          href={r.bukti_pembayaran_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
+      cell: (r) => r.bukti_raw ? (
+        <button
+          type="button"
+          onClick={() => handleViewProof(r)}
+          disabled={proofLoading === r.id}
+          className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition disabled:opacity-50"
           title="Lihat bukti pembayaran"
         >
-          <Eye className="w-4 h-4" />
-        </a>
+          {proofLoading === r.id
+            ? <Loader2 className="w-4 h-4 animate-spin" />
+            : <Eye className="w-4 h-4" />}
+        </button>
       ) : <span className="text-xs text-gray-300">-</span>,
     },
   ];
@@ -320,26 +366,61 @@ const BayarPengeluaranFeedmilPage = () => {
         </div>
 
         {pembayaran && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-              <p className="text-xs text-gray-500 font-medium uppercase">No Nota</p>
-              <p className="text-sm font-bold text-gray-800 truncate">{pembayaran.no_po || '-'}</p>
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+                <p className="text-xs text-gray-500 font-medium uppercase">No Nota</p>
+                <p className="text-sm font-bold text-gray-800 truncate">{pembayaran.no_po || '-'}</p>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+                <p className="text-xs text-gray-500 font-medium uppercase">Total Tagihan</p>
+                <p className="text-sm font-bold text-gray-800">{formatRupiah(pembayaran.total_tagihan)}</p>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+                <p className="text-xs text-gray-500 font-medium uppercase">Sudah Dibayar</p>
+                <p className="text-sm font-bold text-emerald-600">{formatRupiah(pembayaran.total_terbayar)}</p>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+                <p className="text-xs text-gray-500 font-medium uppercase">Sisa</p>
+                <p className={`text-sm font-bold ${sisa > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                  {formatRupiah(sisa)}
+                </p>
+              </div>
             </div>
+
             <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-              <p className="text-xs text-gray-500 font-medium uppercase">Total Tagihan</p>
-              <p className="text-sm font-bold text-gray-800">{formatRupiah(pembayaran.total_tagihan)}</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                <div>
+                  <p className="text-[11px] text-gray-500 font-medium uppercase flex items-center gap-1">
+                    <CalendarDays className="w-3 h-3" /> Jatuh Tempo
+                  </p>
+                  <p className="font-semibold text-gray-800 mt-0.5">{formatDisplayDate(pembayaran.due_date)}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-gray-500 font-medium uppercase flex items-center gap-1">
+                    <CreditCard className="w-3 h-3" /> Metode
+                  </p>
+                  <p className="font-semibold text-gray-800 mt-0.5">
+                    {pembayaran.metode || pembayaran.payment_type_name || '-'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-gray-500 font-medium uppercase flex items-center gap-1">
+                    <User className="w-3 h-3" /> Penerima
+                  </p>
+                  <p className="font-semibold text-gray-800 mt-0.5 truncate">
+                    {pembayaran.penerima || pembayaran.nama_supplier || '-'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-gray-500 font-medium uppercase flex items-center gap-1">
+                    <Hash className="w-3 h-3" /> Kategori
+                  </p>
+                  <p className="font-semibold text-gray-800 mt-0.5">{pembayaran.kategori || '-'}</p>
+                </div>
+              </div>
             </div>
-            <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-              <p className="text-xs text-gray-500 font-medium uppercase">Sudah Dibayar</p>
-              <p className="text-sm font-bold text-emerald-600">{formatRupiah(pembayaran.total_terbayar)}</p>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-              <p className="text-xs text-gray-500 font-medium uppercase">Sisa</p>
-              <p className={`text-sm font-bold ${sisa > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-                {formatRupiah(sisa)}
-              </p>
-            </div>
-          </div>
+          </>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -361,8 +442,8 @@ const BayarPengeluaranFeedmilPage = () => {
                         value={nominal}
                         onChange={handleNominalChange}
                         placeholder="0"
-                        disabled={submitLoading || sisa <= 0}
-                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100"
+                        readOnly={submitLoading || sisa <= 0}
+                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 read-only:bg-gray-100"
                       />
                     </div>
                     <button
@@ -395,8 +476,9 @@ const BayarPengeluaranFeedmilPage = () => {
                       setPaymentDate(e.target.value);
                       if (formErrors.payment_date) setFormErrors((p) => ({ ...p, payment_date: '' }));
                     }}
-                    disabled={submitLoading || sisa <= 0}
-                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100"
+                    readOnly={submitLoading || sisa <= 0}
+                    onPointerDown={(e) => { if (!submitLoading && sisa > 0) e.target.showPicker?.(); }}
+                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 read-only:bg-gray-100"
                   />
                   {formErrors.payment_date && (
                     <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
@@ -414,8 +496,8 @@ const BayarPengeluaranFeedmilPage = () => {
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     placeholder="Catatan pembayaran"
-                    disabled={submitLoading || sisa <= 0}
-                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100"
+                    readOnly={submitLoading || sisa <= 0}
+                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 read-only:bg-gray-100"
                   />
                 </div>
 
@@ -431,10 +513,11 @@ const BayarPengeluaranFeedmilPage = () => {
                       accept="image/jpeg,image/jpg,image/png,application/pdf"
                       onChange={handleFileChange}
                       className="hidden"
-                      disabled={submitLoading || sisa <= 0}
+                      ref={fileInputRef}
                     />
                     <label
-                      htmlFor="file-pengeluaran-feedmil"
+                      htmlFor={submitLoading || sisa <= 0 ? undefined : 'file-pengeluaran-feedmil'}
+                      onClick={(e) => { if (submitLoading || sisa <= 0) e.preventDefault(); }}
                       className={`flex items-center justify-center w-full px-4 py-5 border-2 border-dashed rounded-lg cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 transition-all duration-200 ${
                         submitLoading || sisa <= 0 ? 'opacity-50 cursor-not-allowed border-gray-200' : 'border-gray-300'
                       }`}

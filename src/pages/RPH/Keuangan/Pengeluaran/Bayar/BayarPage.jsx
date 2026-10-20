@@ -6,6 +6,7 @@ import {
 import usePengeluaranRph from '../../../../../hooks/usePengeluaranRph';
 import { useNotification } from '../../../../../components/shared/Notification';
 import SearchableSelect from '../../../../../components/shared/SearchableSelect';
+import { openPaymentProofInNewTab } from '../../../../../services/paymentProof';
 import DataTable from 'react-data-table-component';
 
 const METODE_OPTIONS = [
@@ -33,6 +34,24 @@ const BayarPengeluaranPage = () => {
   const [formErrors, setFormErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [proofLoading, setProofLoading] = useState(null);
+
+  // Bukti privat di MinIO: ambil dengan token lalu buka sebagai blob.
+  const handleViewProof = async (row) => {
+    if (!row?.bukti_pembayaran_url) return;
+    setProofLoading(row.id);
+    try {
+      // Bukti selalu dibuka di tab baru; RPH punya route stream sendiri.
+      const result = await openPaymentProofInNewTab(row.bukti_pembayaran_url);
+      if (result.mode === 'download') {
+        showError('Tab baru diblokir browser — bukti diunduh sebagai file.');
+      }
+    } catch (err) {
+      showError(err?.message || 'Gagal membuka bukti pembayaran');
+    } finally {
+      setProofLoading(null);
+    }
+  };
 
   const loadDetail = async () => {
     const result = await fetchDetail(pid);
@@ -158,9 +177,13 @@ const BayarPengeluaranPage = () => {
       selector: (r) => r.bukti_pembayaran,
       center: true,
       cell: (r) => r.bukti_pembayaran_url ? (
-        <a href={r.bukti_pembayaran_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition" title="Lihat bukti pembayaran">
-          <Eye className="w-4 h-4" />
-        </a>
+        <button type="button" onClick={() => handleViewProof(r)} disabled={proofLoading === r.id}
+          className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition disabled:opacity-50"
+          title="Lihat bukti pembayaran">
+          {proofLoading === r.id
+            ? <Loader2 className="w-4 h-4 animate-spin" />
+            : <Eye className="w-4 h-4" />}
+        </button>
       ) : <span className="text-xs text-gray-300">-</span>,
     },
   ];

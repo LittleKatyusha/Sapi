@@ -1,5 +1,6 @@
 import HttpClient from './httpClient';
 import { API_ENDPOINTS } from '../config/api';
+import { resolvePaymentFileEndpoint, fetchPaymentProofBlob } from './paymentProof';
 
 const ENDPOINTS = API_ENDPOINTS.HO.PAYMENT;
 
@@ -48,6 +49,20 @@ const PaymentHoService = {
   async getPaymentDetails(idPembayaran) {
     const res = await HttpClient.get(`${ENDPOINTS.DETAILS}?id_pembayaran=${idPembayaran}`);
     return res.data ?? res;
+  },
+
+  /**
+   * Resolve a proof URL/path to the authenticated stream endpoint.
+   */
+  getPaymentFileEndpoint(urlOrPath) {
+    return resolvePaymentFileEndpoint(urlOrPath);
+  },
+
+  /**
+   * Download a proof file with the auth token attached (returns a Blob).
+   */
+  async fetchBuktiPembayaran(urlOrPath) {
+    return fetchPaymentProofBlob(urlOrPath);
   },
 
   /**

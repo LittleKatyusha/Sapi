@@ -10,6 +10,7 @@ import { StyleSheetManager } from 'styled-components';
 // Services
 import HttpClient from '../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../config/api';
+import { openPaymentProofInNewTab } from '../../../services/paymentProof';
 
 // Hooks
 import { usePembayaranKasDetail } from './hooks/usePembayaranKasDetail';
@@ -186,17 +187,30 @@ const KeuanganKasDetailPage = () => {
         setOpenMenuId(null);
     }, []);
 
-    const handleViewProofAction = useCallback((row) => {
-        if (row.bukti_pembayaran_url) {
-            // Open the proof image in a new tab
-            window.open(row.bukti_pembayaran_url, '_blank');
-            setOpenMenuId(null);
-        } else {
+    const handleViewProofAction = useCallback(async (row) => {
+        if (!row.bukti_pembayaran_url) {
             setNotification({
                 type: 'error',
                 message: 'Bukti pembayaran tidak tersedia'
             });
             setOpenMenuId(null);
+            return;
+        }
+        setOpenMenuId(null);
+        try {
+            // Bukti privat di MinIO — selalu dibuka di tab baru.
+            const result = await openPaymentProofInNewTab(row.bukti_pembayaran_url);
+            if (result.mode === 'download') {
+                setNotification({
+                    type: 'error',
+                    message: 'Tab baru diblokir browser — bukti diunduh sebagai file.'
+                });
+            }
+        } catch (error) {
+            setNotification({
+                type: 'error',
+                message: error?.message || 'Gagal membuka bukti pembayaran'
+            });
         }
     }, []);
 

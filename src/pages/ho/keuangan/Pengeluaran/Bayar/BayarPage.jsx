@@ -7,6 +7,7 @@ import DataTable from 'react-data-table-component';
 import HttpClient from '../../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../../config/api';
 import { useNotification } from '../../../../../components/shared/Notification';
+import { openPaymentProofInNewTab } from '../../../../../services/paymentProof';
 
 const formatRupiah = (val) => 'Rp ' + (Number(val) || 0).toLocaleString('id-ID');
 const parseNumber = (str) => parseFloat(String(str || '').replace(/[^0-9]/g, '')) || 0;
@@ -31,6 +32,8 @@ const BayarPengeluaranHoPage = () => {
   const [formErrors, setFormErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  // Bukti tersimpan privat di MinIO: fetch dengan token lalu buka sebagai blob.
+  const [proofLoading, setProofLoading] = useState(null);
 
   const mapHistoryItems = (items) =>
     (Array.isArray(items) ? items : []).map((item, index) => ({
@@ -41,6 +44,22 @@ const BayarPengeluaranHoPage = () => {
       note: item.note || item.description || item.catatan || '',
       bukti_pembayaran_url: item.bukti_pembayaran_url || item.bukti_url || null,
     }));
+
+  const handleViewProof = async (row) => {
+    if (!row?.bukti_pembayaran_url) return;
+    setProofLoading(row.id);
+    try {
+      // Bukti selalu dibuka di tab baru, sama seperti RPH.
+      const result = await openPaymentProofInNewTab(row.bukti_pembayaran_url);
+      if (result.mode === 'download') {
+        showError('Tab baru diblokir browser — bukti diunduh sebagai file.');
+      }
+    } catch (err) {
+      showError(err?.message || 'Gagal membuka bukti pembayaran');
+    } finally {
+      setProofLoading(null);
+    }
+  };
 
   // Refresh list riwayat via /api/ho/payment/details?id_pembayaran=...
   // cache:false wajib — HttpClient GET di-cache 5 menit, tanpa ini list tetap stale setelah bayar
@@ -258,15 +277,17 @@ const BayarPengeluaranHoPage = () => {
       selector: (r) => r.bukti_pembayaran_url,
       center: true,
       cell: (r) => r.bukti_pembayaran_url ? (
-        <a
-          href={r.bukti_pembayaran_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
+        <button
+          type="button"
+          onClick={() => handleViewProof(r)}
+          disabled={proofLoading === r.id}
+          className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition disabled:opacity-50"
           title="Lihat bukti pembayaran"
         >
-          <Eye className="w-4 h-4" />
-        </a>
+          {proofLoading === r.id
+            ? <Loader2 className="w-4 h-4 animate-spin" />
+            : <Eye className="w-4 h-4" />}
+        </button>
       ) : <span className="text-xs text-gray-300">-</span>,
     },
   ];

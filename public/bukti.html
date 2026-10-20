@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Bukti Pembayaran</title>
+  <style>
+    :root { color-scheme: light; }
+    html, body { margin: 0; height: 100%; background: #f8fafc; }
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: #334155;
+    }
+    .wrap {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 24px;
+    }
+    .card {
+      width: 100%;
+      max-width: 1100px;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, .08);
+      padding: 16px;
+    }
+    .bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .title {
+      font-size: 14px;
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .primary { background: #2563eb; color: #fff; }
+    .secondary { background: #f1f5f9; color: #334155; }
+    .primary:hover { background: #1d4ed8; }
+    .secondary:hover { background: #e2e8f0; }
+    .media {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f8fafc;
+      border-radius: 10px;
+      overflow: auto;
+      min-height: 60vh;
+    }
+    .media img { max-width: 100%; max-height: 80vh; border-radius: 8px; }
+    .media iframe { width: 100%; height: 80vh; border: 0; border-radius: 8px; background: #fff; }
+    .muted { font-size: 13px; color: #64748b; }
+    .error { color: #b91c1c; font-size: 14px; font-weight: 600; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" id="card">
+      <div class="bar">
+        <div class="title" id="title">Bukti Pembayaran</div>
+        <div style="display:flex;gap:8px">
+          <button class="secondary" id="loadBtn" type="button">Muat ulang</button>
+          <button class="primary" id="downloadBtn" type="button">Unduh</button>
+        </div>
+      </div>
+      <div class="media" id="media">
+        <p class="muted">Menyiapkan bukti pembayaran…</p>
+      </div>
+      <p class="error hidden" id="error"></p>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      const blobUrl = params.get('src');
+      const name = params.get('name') || 'bukti-pembayaran';
+      const media = document.getElementById('media');
+      const errorBox = document.getElementById('error');
+      const title = document.getElementById('title');
+      const loadBtn = document.getElementById('loadBtn');
+      const downloadBtn = document.getElementById('downloadBtn');
+
+      title.textContent = name;
+
+      if (!blobUrl || !blobUrl.startsWith('blob:')) {
+        media.innerHTML = '';
+        errorBox.textContent = 'Bukti tidak dapat dibuka: tautan tidak valid.';
+        errorBox.classList.remove('hidden');
+        loadBtn.classList.add('hidden');
+        downloadBtn.classList.add('hidden');
+        return;
+      }
+
+      function showError(message) {
+        media.innerHTML = '';
+        errorBox.textContent = message;
+        errorBox.classList.remove('hidden');
+      }
+
+      async function render() {
+        errorBox.classList.add('hidden');
+        media.innerHTML = '<p class="muted">Memuat bukti pembayaran…</p>';
+        try {
+          const res = await fetch(blobUrl);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const blob = await res.blob();
+          const type = blob.type || '';
+
+          if (type.startsWith('image/')) {
+            const img = document.createElement('img');
+            img.alt = name;
+            img.src = blobUrl;
+            media.innerHTML = '';
+            media.appendChild(img);
+          } else if (type === 'application/pdf' || /\.pdf$/i.test(name)) {
+            const frame = document.createElement('iframe');
+            frame.title = name;
+            frame.src = blobUrl;
+            media.innerHTML = '';
+            media.appendChild(frame);
+          } else {
+            showError('Pratinjau tidak tersedia untuk tipe file ini. Gunakan tombol Unduh.');
+          }
+        } catch (err) {
+          showError('Bukti tidak dapat dimuat. Tab ini mungkin sudah kedaluwarsa — buka ulang dari halaman pembayaran.');
+        }
+      }
+
+      downloadBtn.addEventListener('click', function () {
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      });
+
+      loadBtn.addEventListener('click', render);
+      render();
+    })();
+  </script>
+</body>
+</html>

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
+import { openPaymentProofInNewTab } from '../../../../services/paymentProof';
 
 const DetailItem = ({ icon, label, value, className = '', highlight = false }) => (
     <div className={`flex items-start space-x-3 ${className}`}>
@@ -94,6 +95,16 @@ const DetailModal = ({ isOpen, onClose, data, onBayar }) => {
     const isPengajuan = Boolean(
         data && (data.nomor_pengajuan || data.yang_mengajukan || (data.purchase_type === 7 && !data.nota && !data.nota_sistem))
     );
+
+    const handleViewProof = async (item) => {
+        const source = item?.bukti_pembayaran_url || item?.bukti_url || item?.bukti_pembayaran;
+        if (!source) return;
+        try {
+            await openPaymentProofInNewTab(source);
+        } catch (err) {
+            console.error('Gagal membuka bukti pembayaran:', err);
+        }
+    };
 
     useEffect(() => {
         let isMounted = true;
@@ -418,15 +429,14 @@ const DetailModal = ({ isOpen, onClose, data, onBayar }) => {
                                                             </td>
                                                             <td className="px-3 py-2.5 text-center">
                                                                 {(item.bukti_pembayaran_url || item.bukti_url) ? (
-                                                                    <a
-                                                                        href={item.bukti_pembayaran_url || item.bukti_url}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleViewProof(item)}
                                                                         className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
                                                                         title="Lihat Bukti"
                                                                     >
                                                                         <Eye size={14} />
-                                                                    </a>
+                                                                    </button>
                                                                 ) : (
                                                                     <span className="text-xs text-gray-300">-</span>
                                                                 )}
