@@ -88,9 +88,12 @@ const StatusBadge = ({ status, statusText }) => {
     );
 };
 
-const DetailModal = ({ isOpen, onClose, data, onBayar }) => {
-    const [paymentHistory, setPaymentHistory] = useState([]);
+const DetailModal = ({ isOpen, onClose, data, onBayar, historyOverride }) => {
+    const [fetchedHistory, setFetchedHistory] = useState([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
+
+    const providedHistory = Array.isArray(historyOverride) ? historyOverride : null;
+    const paymentHistory = providedHistory || fetchedHistory;
 
     const isPengajuan = Boolean(
         data && (data.nomor_pengajuan || data.yang_mengajukan || (data.purchase_type === 7 && !data.nota && !data.nota_sistem))
@@ -109,8 +112,11 @@ const DetailModal = ({ isOpen, onClose, data, onBayar }) => {
     useEffect(() => {
         let isMounted = true;
         const fetchHistory = async () => {
+            if (providedHistory) {
+                return;
+            }
             if (!isOpen || !data?.id_pembayaran || isPengajuan) {
-                setPaymentHistory([]);
+                setFetchedHistory([]);
                 return;
             }
             setLoadingHistory(true);
@@ -128,7 +134,7 @@ const DetailModal = ({ isOpen, onClose, data, onBayar }) => {
                             : Array.isArray(raw?.details)
                                 ? raw.details
                                 : [];
-                    setPaymentHistory(items);
+                    setFetchedHistory(items);
                 }
             } catch (err) {
                 console.error('Error fetching payment history for detail modal:', err);
@@ -141,7 +147,7 @@ const DetailModal = ({ isOpen, onClose, data, onBayar }) => {
         return () => {
             isMounted = false;
         };
-    }, [isOpen, data?.id_pembayaran, isPengajuan]);
+    }, [isOpen, data?.id_pembayaran, isPengajuan, providedHistory]);
 
     if (!isOpen || !data) return null;
 
@@ -181,9 +187,11 @@ const DetailModal = ({ isOpen, onClose, data, onBayar }) => {
         return dateString;
     };
 
-    const totalTagihan = Number(data.total_tagihan) || 0;
+    const totalTagihan = Number(data.total_tagihan ?? data.nominal) || 0;
     const totalTerbayar = Number(data.total_terbayar) || 0;
-    const sisa = Math.max(0, totalTagihan - totalTerbayar);
+    const sisa = Number(data.sisa) !== undefined && !isNaN(Number(data.sisa))
+        ? Number(data.sisa)
+        : Math.max(0, totalTagihan - totalTerbayar);
     const notaDisplay = data.nota || data.nota_sistem || '-';
 
     return (
@@ -334,17 +342,24 @@ const DetailModal = ({ isOpen, onClose, data, onBayar }) => {
                                         <DetailItem
                                             icon={<Tag size={20} />}
                                             label="Jenis Pengeluaran"
-                                            value={data.purchase_type_name || '-'}
+                                            value={data.purchase_type_name || data.kategori || '-'}
                                         />
+                                        {(data.penerima || data.nama_supplier) && (
+                                            <DetailItem
+                                                icon={<User size={20} />}
+                                                label="Penerima / Supplier"
+                                                value={data.penerima || data.nama_supplier}
+                                            />
+                                        )}
                                         <DetailItem
                                             icon={<CreditCard size={20} />}
                                             label="Metode Pembayaran"
-                                            value={data.payment_type_name || (data.payment_type === 1 ? 'KAS' : data.payment_type === 2 ? 'BANK' : '-')}
+                                            value={data.payment_type_name || (data.payment_type === 1 ? 'KAS' : data.payment_type === 2 ? 'BANK' : data.metode || '-')}
                                         />
                                         <DetailItem
                                             icon={<Calendar size={20} />}
                                             label="Tanggal Masuk"
-                                            value={formatDate(data.tgl_masuk)}
+                                            value={formatDate(data.tgl_masuk || data.tgl_pengeluaran)}
                                         />
                                         <DetailItem
                                             icon={<Calendar size={20} />}

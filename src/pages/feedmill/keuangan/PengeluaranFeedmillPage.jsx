@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, XCircle, Banknote, Search, RotateCcw, TrendingUp, Calendar, CalendarDays, CalendarRange, AlertCircle } from 'lucide-react';
+import {
+  Wallet, Search, RotateCcw, TrendingUp, Calendar, CalendarDays, CalendarRange, AlertCircle,
+} from 'lucide-react';
 
 import useDocumentTitle from '../../../hooks/useDocumentTitle';
 import feedmillKeuanganService from '../../../services/feedmillKeuanganService';
@@ -8,27 +10,11 @@ import { useNotification } from '../../../components/shared/Notification';
 
 import ModernKeuanganTable from '../../ho/keuangan/components/ModernKeuanganTable';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
+import DetailModal from '../../ho/keuanganKas/modals/DetailModal';
 
 const formatRupiah = (v) => {
   const n = Number(v || 0);
   return 'Rp ' + n.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-};
-
-const formatDate = (v) => {
-  if (!v) return '-';
-  try {
-    const d = new Date(v);
-    if (isNaN(d.getTime())) return v;
-    return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-  } catch {
-    return v;
-  }
-};
-
-const STATUS_BAYAR_TEXT = {
-  0: 'Belum Lunas',
-  1: 'Lunas',
-  2: 'Belum Bayar',
 };
 
 const STATUS_OPTIONS = [
@@ -378,87 +364,16 @@ const PengeluaranFeedmillPage = () => {
         </div>
       </div>
 
-      {/* Detail Modal */}
-      {isDetailModalOpen && detailData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-5 border-b border-gray-200 sticky top-0 bg-white">
-              <h2 className="text-lg font-bold text-gray-900">Detail Pengeluaran</h2>
-              <button onClick={() => setIsDetailModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-1">
-                <XCircle className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="p-5 space-y-3">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase">Tanggal</label>
-                  <p className="text-sm text-gray-900">{formatDate(detailData.tgl_pengeluaran)}</p>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase">Status</label>
-                  <p className="text-sm font-semibold text-gray-900">
-                    {STATUS_BAYAR_TEXT[detailData.payment_status] || '-'}
-                  </p>
-                </div>
-                <div className="col-span-2">
-                  <label className="text-xs font-medium text-gray-500 uppercase">Kategori</label>
-                  <p className="text-sm font-semibold text-gray-900">{detailData.kategori || 'Pembelian Feedmil'}</p>
-                </div>
-                <div className="col-span-2">
-                  <label className="text-xs font-medium text-gray-500 uppercase">Penerima / Supplier</label>
-                  <p className="text-sm text-gray-900">{detailData.penerima || detailData.nama_supplier || '-'}</p>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase">Nominal Tagihan</label>
-                  <p className="text-sm font-semibold text-gray-900">{formatRupiah(detailData.nominal ?? detailData.total_tagihan)}</p>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase">Terbayar</label>
-                  <p className="text-sm font-semibold text-emerald-700">{formatRupiah(detailData.total_terbayar)}</p>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase">Sisa</label>
-                  <p className="text-sm font-semibold text-red-700">{formatRupiah(detailData.sisa)}</p>
-                </div>
-                {detailData.keterangan && (
-                  <div className="col-span-2">
-                    <label className="text-xs font-medium text-gray-500 uppercase">Keterangan</label>
-                    <p className="text-sm text-gray-700 mt-1 p-3 bg-gray-50 rounded-lg">{detailData.keterangan}</p>
-                  </div>
-                )}
-              </div>
-
-              {detailData.details && detailData.details.length > 0 && (
-                <div className="mt-4 border-t border-gray-200 pt-4">
-                  <h3 className="text-sm font-bold text-gray-800 mb-2">Riwayat Pembayaran</h3>
-                  <div className="space-y-2">
-                    {detailData.details.map((d, i) => (
-                      <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg text-sm">
-                        <div>
-                          <p className="font-medium text-gray-800">{formatRupiah(d.amount)}</p>
-                          <p className="text-xs text-gray-500">{formatDate(d.payment_date)} — {d.metode_pembayaran || '-'} — {d.nama_pembayar || '-'}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {(detailData.sisa || 0) > 0 && (
-                <div className="pt-4 border-t border-gray-200">
-                  <button
-                    onClick={() => { handleBayar(detailData); setIsDetailModalOpen(false); }}
-                    className="w-full px-4 py-2.5 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Banknote className="w-4 h-4" />
-                    Bayar Sisa {formatRupiah(detailData.sisa)}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <DetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setDetailData(null);
+        }}
+        data={detailData}
+        onBayar={handleBayar}
+        historyOverride={detailData?.details}
+      />
 
       {detailLoading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">

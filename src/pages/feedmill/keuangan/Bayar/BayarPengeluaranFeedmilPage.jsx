@@ -31,6 +31,16 @@ const formatDisplayDate = (value) => {
   return `${parts.d}-${parts.m}-${parts.y}`;
 };
 
+// Nama pencatat pembayaran dari sesi login; backend menyimpan di nama_pembayar.
+const getCurrentUserName = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    return user?.name || user?.username || user?.email || '-';
+  } catch {
+    return '-';
+  }
+};
+
 const formatRupiah = (val) => 'Rp ' + (Number(val) || 0).toLocaleString('id-ID');
 const parseNumber = (str) => parseFloat(String(str || '').replace(/[^0-9]/g, '')) || 0;
 
@@ -239,6 +249,9 @@ const BayarPengeluaranFeedmilPage = () => {
       submitData.append('amount', nominalValue);
       submitData.append('payment_date', paymentDate);
       submitData.append('note', note ? String(note).trim() : '');
+      // Simpan metode & nama pembayar supaya riwayat di modal detail tidak kosong.
+      submitData.append('metode_pembayaran', 'transfer_bank');
+      submitData.append('nama_pembayar', getCurrentUserName());
       if (selectedFile) {
         submitData.append('file_upload', selectedFile);
       }
