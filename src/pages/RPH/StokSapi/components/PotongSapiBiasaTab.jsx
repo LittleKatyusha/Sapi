@@ -384,6 +384,14 @@ const PotongSapiBiasaTab = ({ onRefresh, officeSelector }) => {
                     </td>
                     <td className="px-3 py-2.5 text-slate-700 whitespace-nowrap">
                       {item.tgl_potong_raw || item.tgl_potong || '-'}
+                      {item.is_backdated && (
+                        <span
+                          className="ml-1 inline-block rounded bg-amber-100 px-1 py-0.5 text-[10px] font-semibold text-amber-800 align-middle"
+                          title={item.alasan_backdate || 'Backdate'}
+                        >
+                          Backdate
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap">
                       {item.tgl_keluar && item.tgl_keluar !== '-' ? (
@@ -480,6 +488,9 @@ const PotongSapiBiasaTab = ({ onRefresh, officeSelector }) => {
                 <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
                   <p className="text-[11px] text-slate-500 font-semibold">Tgl Potong</p>
                   <p className="text-xs font-bold text-slate-800 mt-1">{detailModal.header?.tgl_potong || '-'}</p>
+                  {detailModal.header?.is_backdated && (
+                    <p className="mt-1 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">Backdate</p>
+                  )}
                 </div>
                 <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
                   <p className="text-[11px] text-slate-500 font-semibold">Tgl Keluar (Penjualan)</p>
@@ -494,6 +505,13 @@ const PotongSapiBiasaTab = ({ onRefresh, officeSelector }) => {
                   <p className="text-xs font-bold text-teal-900 mt-1">{formatNumber(detailModal.header?.berat_setelah_potong ?? detailModal.header?.total_berat ?? 0)} kg</p>
                 </div>
               </div>
+
+              {detailModal.header?.is_backdated && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Alasan Backdate</p>
+                  <p className="mt-1 text-xs font-semibold text-amber-900">{detailModal.header?.alasan_backdate || '-'}</p>
+                </div>
+              )}
 
               {/* Formula & Financial Analysis */}
               <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-2.5">

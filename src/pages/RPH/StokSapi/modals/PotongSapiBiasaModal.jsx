@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, AlertCircle, CheckCircle2, Loader2, Save, Calendar, Scale, Plus, Trash2 } from 'lucide-react';
+import { X, AlertCircle, CheckCircle2, Loader2, Save, Calendar, Scale, Plus, Trash2, FileText } from 'lucide-react';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 import StokSapiService from '../../../../services/stokSapiService';
 
@@ -7,6 +7,8 @@ const getToday = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
+
+const isBackdate = (tglPotong) => Boolean(tglPotong) && String(tglPotong).slice(0, 10) < getToday();
 
 const JENIS_POTONG_OPTIONS = [
   { value: 1, label: 'Boning' },
@@ -96,6 +98,7 @@ const PotongSapiBiasaModal = ({
   recordPid = null,
 }) => {
   const [tglPotong, setTglPotong] = useState(getToday());
+  const [alasanBackdate, setAlasanBackdate] = useState('');
   const [beratKarkas, setBeratKarkas] = useState('');
   const [details, setDetails] = useState([createEmptyDetail()]);
   const [itemPotongOptions, setItemPotongOptions] = useState([]);
@@ -136,6 +139,7 @@ const PotongSapiBiasaModal = ({
     if (!isOpen) return;
     if (mode === 'edit' && initialData) {
       setTglPotong(initialData?.header?.tgl_potong_raw || getToday());
+      setAlasanBackdate(initialData?.header?.alasan_backdate || '');
       setBeratKarkas(initialData?.header?.berat_karkas != null ? String(initialData.header.berat_karkas) : '');
       setDetails(
         Array.isArray(initialData?.detail) && initialData.detail.length > 0
@@ -149,6 +153,7 @@ const PotongSapiBiasaModal = ({
       );
     } else {
       setTglPotong(getToday());
+      setAlasanBackdate('');
       setBeratKarkas('');
       setDetails([createEmptyDetail()]);
     }
@@ -208,6 +213,7 @@ const PotongSapiBiasaModal = ({
   const handleClose = () => {
     if (isSubmitting) return;
     setTglPotong(getToday());
+    setAlasanBackdate('');
     setBeratKarkas('');
     setDetails([createEmptyDetail()]);
     setNotification(null);
@@ -224,6 +230,13 @@ const PotongSapiBiasaModal = ({
 
     if (!tglPotong) {
       setNotification({ type: 'error', message: 'Tanggal potong wajib diisi.' });
+      return;
+    }
+
+    const backdate = isBackdate(tglPotong);
+
+    if (backdate && !alasanBackdate.trim()) {
+      setNotification({ type: 'error', message: 'Alasan backdate wajib diisi untuk tanggal potong lampau.' });
       return;
     }
 
@@ -294,6 +307,7 @@ const PotongSapiBiasaModal = ({
     const payload = {
       pid: mode === 'edit' ? recordPid : cowData?.pid,
       tgl_potong: tglPotong,
+      alasan_backdate: backdate ? alasanBackdate.trim() : null,
       berat_sapi: Number(beratSapi),
       berat_karkas: Number(beratKarkas),
       detail: details.map(detail => ({
@@ -374,7 +388,7 @@ const PotongSapiBiasaModal = ({
           <div className="grid flex-1 min-h-0 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
             <form onSubmit={handleSubmit} className="min-h-0 overflow-y-auto p-5 lg:border-r lg:border-slate-100">
               <div className="space-y-5 pr-1">
-                <Field label="Tanggal Potong" required>
+                <Field label="Tanggal Potong" required helperText={isBackdate(tglPotong) ? 'Tanggal lampau — wajib diisi alasan backdate.' : undefined}>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <input
@@ -386,6 +400,25 @@ const PotongSapiBiasaModal = ({
                     />
                   </div>
                 </Field>
+
+                {isBackdate(tglPotong) && (
+                  <Field label="Alasan Backdate" required helperText="Jelaskan mengapa pemotongan dicatat mundur.">
+                    <div className="relative">
+                      <FileText className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                      <textarea
+                        aria-label="Alasan Backdate"
+                        value={alasanBackdate}
+                        onChange={(e) => setAlasanBackdate(e.target.value)}
+                        placeholder="Contoh: input data tertunda karena kendala jaringan"
+                        rows={3}
+                        maxLength={500}
+                        required
+                        disabled={isSubmitting}
+                        className="w-full resize-none rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </div>
+                  </Field>
+                )}
 
                 <Field label="Berat Sapi (KG)" required helperText="Wajib diisi sebelum detail potong. Total berat detail tidak boleh melebihi berat sapi ini.">
                   <input
@@ -523,6 +556,9 @@ const PotongSapiBiasaModal = ({
                   <div className="rounded-xl bg-slate-50 p-3">
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Tanggal</p>
                     <p className="mt-1 text-sm font-semibold text-slate-800">{tglPotong || '-'}</p>
+                    {isBackdate(tglPotong) && (
+                      <p className="mt-1 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">Backdate</p>
+                    )}
                   </div>
                   <div className="rounded-xl bg-slate-50 p-3">
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Berat Karkas</p>
@@ -533,6 +569,13 @@ const PotongSapiBiasaModal = ({
                     <p className="mt-1 text-sm font-semibold text-slate-800">{totalDetail}</p>
                   </div>
                 </div>
+
+                {isBackdate(tglPotong) && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Alasan Backdate</p>
+                    <p className="mt-1 text-sm font-semibold text-amber-900">{alasanBackdate.trim() || 'Belum diisi'}</p>
+                  </div>
+                )}
 
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
