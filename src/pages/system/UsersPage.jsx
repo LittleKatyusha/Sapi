@@ -82,8 +82,11 @@ const UsersPage = () => {
         setFilterStatus,
         stats,
         roles,
+        offices,
+        officesLoading,
         fetchUsers,
         fetchRoles,
+        fetchOffices,
         createUser,
         updateUser,
         deleteUser,
@@ -93,7 +96,8 @@ const UsersPage = () => {
     useEffect(() => {
         fetchUsers();
         fetchRoles();
-    }, [fetchUsers, fetchRoles]);
+        fetchOffices();
+    }, [fetchUsers, fetchRoles, fetchOffices]);
 
     const handleEdit = (user) => {
         console.log('Edit user:', user);
@@ -275,6 +279,18 @@ const UsersPage = () => {
             )
         },
         {
+            name: 'Office',
+            selector: row => row.officeName || '',
+            sortable: true,
+            cell: row => (
+                row.officeName
+                    ? <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800">
+                        {row.officeName}
+                      </span>
+                    : <span className="text-xs text-gray-400">Belum ada office</span>
+            )
+        },
+        {
             name: 'Aksi',
             cell: row => (
                 <ActionButton
@@ -437,6 +453,8 @@ const UsersPage = () => {
                 editData={isEditModalOpen ? selectedUser : null}
                 loading={loading}
                 roles={roles}
+                offices={offices}
+                officesLoading={officesLoading}
             />
 
             <UserDetailModal

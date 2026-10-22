@@ -11,6 +11,8 @@ const useUsers = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [roles, setRoles] = useState([]);
+    const [offices, setOffices] = useState([]);
+    const [officesLoading, setOfficesLoading] = useState(false);
 
     // API Base URL
     const API_BASE = API_ENDPOINTS.SYSTEM.USERS;
@@ -99,6 +101,9 @@ const useUsers = () => {
                     position: item.position || '', // Add position mapping
                     groupId: item.roles_id || item.group_id || '',
                     roles_id: item.roles_id || item.group_id || '',
+                    officeId: item.id_office || '',
+                    id_office: item.id_office || '',
+                    officeName: item.office_name || '',
                     groupName: item.position || item.role_detail?.nama || 'N/A',
                     emailVerified: item.email_verified_at ? 'Verified' : 'Not Verified',
                     status: item.status !== undefined ? item.status : 1,
@@ -149,9 +154,33 @@ const useUsers = () => {
         }
     }, [getAuthHeader]);
 
+    // Fetch offices for the user placement dropdown
+    const fetchOffices = useCallback(async () => {
+        setOfficesLoading(true);
+        try {
+            const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.OFFICE}/data`, {
+                params: { per_page: 100, page: 1, sort_field: 'name', sort_dir: 'asc' },
+                cache: false
+            });
+            const payload = result?.data?.data ?? result?.data ?? [];
+            const rows = Array.isArray(payload) ? payload : Array.isArray(payload.data) ? payload.data : [];
+            setOffices(
+                rows.map((office) => ({
+                    id: office.id,
+                    name: office.name,
+                    kategori: office.id_kategori
+                }))
+            );
+        } catch (err) {
+            console.error('Error fetching offices:', err);
+            setOffices([]);
+        } finally {
+            setOfficesLoading(false);
+        }
+    }, []);
+
     // Create user
-    const createUser = useCallback(async (userData) => {
-        setLoading(true);
+    const createUser = useCallback(async (userData) => {        setLoading(true);
         setError(null);
         
         try {
@@ -170,6 +199,7 @@ const useUsers = () => {
                 position: userData.position || '',
                 group_id: userData.groupId || null, // Keep for backward compatibility
                 roles_id: userData.groupId || null, // Add roles_id field that backend expects
+                id_office: userData.officeId ? parseInt(userData.officeId, 10) : null,
                 password: userData.password || 'default123'
             });
             await fetchUsers(1, 1000); // Refresh data
@@ -210,6 +240,7 @@ const useUsers = () => {
                 position: userData.position || '',
                 group_id: userData.groupId || null, // Keep for backward compatibility
                 roles_id: userData.groupId || null, // Add roles_id field that backend expects
+                id_office: userData.officeId ? parseInt(userData.officeId, 10) : null,
                 ...(userData.password && { password: userData.password }) // Only include password if provided
             });
             await fetchUsers(1, 1000); // Refresh data
@@ -402,6 +433,9 @@ const useUsers = () => {
         setFilterStatus,
         stats,
         roles,
+        offices,
+        officesLoading,
+        fetchOffices,
         serverPagination,
         fetchUsers,
         fetchRoles,

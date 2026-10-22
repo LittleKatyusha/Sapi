@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, User, Mail, Phone, MapPin, Building2, Hash, ChevronDown, Lock, Eye, EyeOff } from 'lucide-react';
 
-const AddEditUserModal = ({ isOpen, onClose, onSave, editData, loading, roles = [] }) => {
+const AddEditUserModal = ({ isOpen, onClose, onSave, editData, loading, roles = [], offices = [], officesLoading = false }) => {
     const [formData, setFormData] = useState({
         name: '',
         username: '',
@@ -10,6 +10,7 @@ const AddEditUserModal = ({ isOpen, onClose, onSave, editData, loading, roles = 
         nik: '',
         position: '',
         groupId: '',
+        officeId: '',
         phone: '',
         address: ''
     });
@@ -30,6 +31,7 @@ const AddEditUserModal = ({ isOpen, onClose, onSave, editData, loading, roles = 
                     nik: editData.nik || '',
                     position: editData.position || '',
                     groupId: editData.groupId || editData.roles_id || '',
+                    officeId: editData.officeId || editData.id_office || '',
                     phone: editData.phone || editData.kontak || '',
                     address: editData.address || editData.alamat || ''
                 });
@@ -43,6 +45,7 @@ const AddEditUserModal = ({ isOpen, onClose, onSave, editData, loading, roles = 
                     nik: '',
                     position: '',
                     groupId: '',
+                    officeId: '',
                     phone: '',
                     address: ''
                 });
@@ -126,6 +129,7 @@ const AddEditUserModal = ({ isOpen, onClose, onSave, editData, loading, roles = 
                 nik: '',
                 position: '',
                 groupId: '',
+                officeId: '',
                 phone: '',
                 address: ''
             });
@@ -308,6 +312,38 @@ const AddEditUserModal = ({ isOpen, onClose, onSave, editData, loading, roles = 
                                     </select>
                                     <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                                 </div>
+                            </div>
+
+                            {/* Office / Cabang */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <Building2 className="w-4 h-4 inline mr-2" />
+                                    Office / Cabang
+                                </label>
+                                <div className="relative">
+                                    <select
+                                        name="officeId"
+                                        value={formData.officeId || ''}
+                                        onChange={handleInputChange}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors appearance-none bg-white pr-10"
+                                        disabled={isSubmitting || officesLoading}
+                                    >
+                                        <option value="">
+                                            {officesLoading ? 'Memuat office...' : 'Pilih Office'}
+                                        </option>
+                                        {offices.map((office) => (
+                                            <option key={office.id} value={office.id}>
+                                                {office.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                                </div>
+                                {editData && String(formData.officeId || '') !== String(editData.officeId || '') && (
+                                    <p className="mt-1 text-xs text-amber-600">
+                                        Perubahan office hanya dapat dilakukan oleh Super Admin.
+                                    </p>
+                                )}
                             </div>
 
                             {/* Phone */}

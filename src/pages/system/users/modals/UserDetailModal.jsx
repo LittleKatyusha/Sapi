@@ -127,6 +127,14 @@ const UserDetailModal = ({ isOpen, onClose, user }) => {
                             </div>
 
                             <div className="flex items-start">
+                                <Building2 className="w-4 h-4 text-gray-500 mr-3 mt-0.5 flex-shrink-0" />
+                                <div>
+                                    <p className="text-sm font-medium text-gray-700">Office / Cabang</p>
+                                    <p className="text-sm text-gray-900">{user.officeName || 'Belum ada office'}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-start">
                                 <Hash className="w-4 h-4 text-gray-500 mr-3 mt-0.5 flex-shrink-0" />
                                 <div>
                                     <p className="text-sm font-medium text-gray-700">NIK</p>
