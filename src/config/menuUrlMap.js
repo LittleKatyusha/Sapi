@@ -80,6 +80,10 @@ export const MENU_URL_MAPPING = {
   'semua-supplier': '/reports/semua-supplier',
   'pajak': '/reports/pajak',
 
+  // Accounting
+  'akuntansi/panduan': '/akuntansi/panduan',
+  'akuntansi/petunjuk': '/akuntansi/panduan',
+
   // System
   'permission-management': '/system/permission-management',
   'roles': '/system/roles',

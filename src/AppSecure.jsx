@@ -32,6 +32,7 @@ const IncomeStatementPage = lazy(() => import('./pages/accounting/IncomeStatemen
 const BalanceSheetPage = lazy(() => import('./pages/accounting/BalanceSheetPage'));
 const AccountingSettingPage = lazy(() => import('./pages/accounting/SettingPage'));
 const PeriodPage = lazy(() => import('./pages/accounting/PeriodPage'));
+const AccountingGuidePage = lazy(() => import('./pages/accounting/AccountingGuidePage'));
 
 // Data Master - Lazy loaded
 const KandangOfficePage = lazy(() => import('./pages/dataMaster/KandangOfficePage'));
@@ -401,6 +402,8 @@ function AppSecure() {
               <Route path="/akuntansi/pengaturan" element={<AccountingSettingPage />} />
               <Route path="/akuntansi/setting" element={<AccountingSettingPage />} />
               <Route path="/akuntansi/periode" element={<PeriodPage />} />
+              <Route path="/akuntansi/panduan" element={<AccountingGuidePage />} />
+              <Route path="/akuntansi/petunjuk" element={<AccountingGuidePage />} />
 
               {/* Master Data Routes */}
               <Route path="/master-data/kandang-office" element={<KandangOfficePage />} />

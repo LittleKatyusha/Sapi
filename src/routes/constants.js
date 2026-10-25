@@ -110,6 +110,7 @@ export const ROUTE_PATHS = Object.freeze({
   ACCOUNTING_BALANCE_SHEET: '/akuntansi/neraca',
   ACCOUNTING_SETTING: '/akuntansi/setting',
   ACCOUNTING_PERIOD: '/akuntansi/periode',
+  ACCOUNTING_GUIDE: '/akuntansi/panduan',
 
   // Settings
   SETTINGS: '/settings',

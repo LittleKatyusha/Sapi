@@ -8,6 +8,7 @@ const IncomeStatementPage = lazy(() => import('../pages/accounting/IncomeStateme
 const BalanceSheetPage = lazy(() => import('../pages/accounting/BalanceSheetPage'));
 const SettingPage = lazy(() => import('../pages/accounting/SettingPage'));
 const PeriodPage = lazy(() => import('../pages/accounting/PeriodPage'));
+const AccountingGuidePage = lazy(() => import('../pages/accounting/AccountingGuidePage'));
 
 export const accountingRoutes = [
   { path: '/akuntansi/coa', element: <CoaPage /> },
@@ -18,4 +19,6 @@ export const accountingRoutes = [
   { path: '/akuntansi/neraca', element: <BalanceSheetPage /> },
   { path: '/akuntansi/setting', element: <SettingPage /> },
   { path: '/akuntansi/periode', element: <PeriodPage /> },
+  { path: '/akuntansi/panduan', element: <AccountingGuidePage /> },
+  { path: '/akuntansi/petunjuk', element: <AccountingGuidePage /> },
 ];
