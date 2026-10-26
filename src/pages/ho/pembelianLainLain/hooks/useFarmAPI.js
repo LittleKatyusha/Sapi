@@ -12,17 +12,18 @@ const useFarmAPI = () => {
         setError(null);
         
         try {
-            // Use ParameterSelectController to get farm data
+            // Use ParameterSelectController to get farm data (using farmlainlain to include HO/all offices)
             const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER_SELECT}/data`, {
-                params: { groups: 'farm' }
+                params: { groups: 'farmlainlain' }
             });
             
             // ParameterSelectController uses compact('data') which returns {data: [...]}
             if (result.data && Array.isArray(result.data) && result.data.length > 0) {
                 const data = result.data[0]; // First element contains all the parameter data
+                const farms = data.farmlainlain || data.farm;
                 
-                if (data.farm && Array.isArray(data.farm)) {
-                    setFarmData(data.farm);
+                if (farms && Array.isArray(farms)) {
+                    setFarmData(farms);
                 } else {
                     setFarmData([]);
                 }
