@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Building2,
   Sparkles,
+  Wallet,
 } from 'lucide-react';
 
 const MENU_SHORTCUTS = [
@@ -28,6 +29,7 @@ const MENU_SHORTCUTS = [
   { name: 'Neraca Saldo', path: '/akuntansi/neraca-saldo', icon: Scale, desc: 'Pengecekan keseimbangan debit dan kredit' },
   { name: 'Laporan Laba Rugi', path: '/akuntansi/laba-rugi', icon: TrendingUp, desc: 'Kinerja pendapatan dan beban operasional' },
   { name: 'Laporan Neraca', path: '/akuntansi/neraca', icon: BarChart3, desc: 'Posisi aset, kewajiban, dan ekuitas' },
+  { name: 'Laporan Arus Kas', path: '/akuntansi/arus-kas', icon: Wallet, desc: 'Penerimaan dan pengeluaran kas (operasi, investasi, pendanaan)' },
   { name: 'Pengaturan Akunting', path: '/akuntansi/setting', icon: Settings, desc: 'Konfigurasi entitas dan pemetaan akun' },
   { name: 'Periode Akunting', path: '/akuntansi/periode', icon: Calendar, desc: 'Pembukaan dan penutupan buku bulanan' },
 ];
@@ -409,36 +411,49 @@ export default function AccountingGuidePage() {
               <TrendingUp className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">5. Laporan Keuangan (Laba Rugi & Neraca)</h2>
-              <p className="text-xs text-gray-500">Standar pelaporan kinerja operasional dan posisi kekayaan perusahaan.</p>
+              <h2 className="text-lg font-bold text-gray-900">5. Laporan Keuangan (Laba Rugi, Neraca, & Arus Kas)</h2>
+              <p className="text-xs text-gray-500">Standar pelaporan kinerja operasional, posisi kekayaan, dan arus kas perusahaan.</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="border border-emerald-100 rounded-xl p-4 bg-emerald-50/50 space-y-3">
               <h3 className="font-bold text-emerald-950 text-sm flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-emerald-700" />
-                Laporan Laba Rugi (Income Statement)
+                Laporan Laba Rugi
               </h3>
               <div className="rounded-lg bg-white p-3 border border-emerald-200 text-xs font-mono space-y-1 text-gray-800">
                 <div className="flex justify-between"><span>Pendapatan Penjualan</span><span>(+)</span></div>
-                <div className="flex justify-between text-red-600"><span>HPP (Harga Pokok Penjualan)</span><span>(-)</span></div>
-                <div className="flex justify-between border-t border-gray-200 font-bold pt-1 text-emerald-800"><span>= Laba Kotor (Gross Profit)</span><span></span></div>
-                <div className="flex justify-between text-red-600"><span>Beban Operasional & Administrasi</span><span>(-)</span></div>
-                <div className="flex justify-between border-t-2 border-emerald-500 font-bold pt-1 text-emerald-900"><span>= Laba / Rugi Bersih (Net Income)</span><span></span></div>
+                <div className="flex justify-between text-red-600"><span>HPP (Harga Pokok)</span><span>(-)</span></div>
+                <div className="flex justify-between border-t border-gray-200 font-bold pt-1 text-emerald-800"><span>= Laba Kotor</span><span></span></div>
+                <div className="flex justify-between text-red-600"><span>Beban Operasional</span><span>(-)</span></div>
+                <div className="flex justify-between border-t-2 border-emerald-500 font-bold pt-1 text-emerald-900"><span>= Laba / Rugi Bersih</span><span></span></div>
               </div>
             </div>
 
             <div className="border border-blue-100 rounded-xl p-4 bg-blue-50/50 space-y-3">
               <h3 className="font-bold text-blue-950 text-sm flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 text-blue-700" />
-                Laporan Neraca (Balance Sheet)
+                Laporan Neraca
               </h3>
               <div className="rounded-lg bg-white p-3 border border-blue-200 text-xs font-mono space-y-1 text-gray-800">
-                <div className="flex justify-between font-bold text-blue-800"><span>Total Aset (Harta Lancar & Tetap)</span><span>[A]</span></div>
+                <div className="flex justify-between font-bold text-blue-800"><span>Total Aset (Lancar & Tetap)</span><span>[A]</span></div>
                 <div className="flex justify-between"><span>Total Kewajiban (Hutang)</span><span>[K]</span></div>
-                <div className="flex justify-between"><span>Total Ekuitas (Modal & Laba Ditahan)</span><span>[E]</span></div>
-                <div className="flex justify-between border-t-2 border-blue-500 font-bold pt-1 text-blue-900"><span>Keseimbangan: Aset = Kewajiban + Ekuitas</span><span>[A = K + E]</span></div>
+                <div className="flex justify-between"><span>Total Ekuitas (Modal)</span><span>[E]</span></div>
+                <div className="flex justify-between border-t-2 border-blue-500 font-bold pt-1 text-blue-900"><span>Keseimbangan: A = K + E</span><span></span></div>
+              </div>
+            </div>
+
+            <div className="border border-purple-100 rounded-xl p-4 bg-purple-50/50 space-y-3">
+              <h3 className="font-bold text-purple-950 text-sm flex items-center gap-2">
+                <Wallet className="w-4 h-4 text-purple-700" />
+                Laporan Arus Kas
+              </h3>
+              <div className="rounded-lg bg-white p-3 border border-purple-200 text-xs font-mono space-y-1 text-gray-800">
+                <div className="flex justify-between text-emerald-700"><span>Arus Kas Operasi</span><span>[+/-]</span></div>
+                <div className="flex justify-between text-amber-700"><span>Arus Kas Investasi</span><span>[+/-]</span></div>
+                <div className="flex justify-between text-purple-700"><span>Arus Kas Pendanaan</span><span>[+/-]</span></div>
+                <div className="flex justify-between border-t-2 border-purple-500 font-bold pt-1 text-purple-900"><span>Awal + Mutasi = Akhir</span><span></span></div>
               </div>
             </div>
           </div>

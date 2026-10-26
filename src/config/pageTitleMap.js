@@ -158,6 +158,7 @@ export const pageTitleMap = {
   '/akuntansi/neraca-saldo': 'Neraca Saldo',
   '/akuntansi/laba-rugi': 'Laporan Laba Rugi',
   '/akuntansi/neraca': 'Laporan Neraca',
+  '/akuntansi/arus-kas': 'Laporan Arus Kas (Cash Flow)',
   '/akuntansi/pengaturan': 'Pengaturan Akunting',
   '/akuntansi/setting': 'Pengaturan Akunting',
   '/akuntansi/periode': 'Periode Akunting',

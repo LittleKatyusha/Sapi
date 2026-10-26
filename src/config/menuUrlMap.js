@@ -81,6 +81,7 @@ export const MENU_URL_MAPPING = {
   'pajak': '/reports/pajak',
 
   // Accounting
+  'akuntansi/arus-kas': '/akuntansi/arus-kas',
   'akuntansi/panduan': '/akuntansi/panduan',
   'akuntansi/petunjuk': '/akuntansi/panduan',
 

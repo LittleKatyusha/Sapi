@@ -6,6 +6,7 @@ const LedgerPage = lazy(() => import('../pages/accounting/LedgerPage'));
 const TrialBalancePage = lazy(() => import('../pages/accounting/TrialBalancePage'));
 const IncomeStatementPage = lazy(() => import('../pages/accounting/IncomeStatementPage'));
 const BalanceSheetPage = lazy(() => import('../pages/accounting/BalanceSheetPage'));
+const CashFlowPage = lazy(() => import('../pages/accounting/CashFlowPage'));
 const SettingPage = lazy(() => import('../pages/accounting/SettingPage'));
 const PeriodPage = lazy(() => import('../pages/accounting/PeriodPage'));
 const AccountingGuidePage = lazy(() => import('../pages/accounting/AccountingGuidePage'));
@@ -17,6 +18,7 @@ export const accountingRoutes = [
   { path: '/akuntansi/neraca-saldo', element: <TrialBalancePage /> },
   { path: '/akuntansi/laba-rugi', element: <IncomeStatementPage /> },
   { path: '/akuntansi/neraca', element: <BalanceSheetPage /> },
+  { path: '/akuntansi/arus-kas', element: <CashFlowPage /> },
   { path: '/akuntansi/setting', element: <SettingPage /> },
   { path: '/akuntansi/periode', element: <PeriodPage /> },
   { path: '/akuntansi/panduan', element: <AccountingGuidePage /> },

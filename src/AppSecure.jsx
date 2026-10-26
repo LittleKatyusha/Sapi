@@ -30,6 +30,7 @@ const LedgerPage = lazy(() => import('./pages/accounting/LedgerPage'));
 const TrialBalancePage = lazy(() => import('./pages/accounting/TrialBalancePage'));
 const IncomeStatementPage = lazy(() => import('./pages/accounting/IncomeStatementPage'));
 const BalanceSheetPage = lazy(() => import('./pages/accounting/BalanceSheetPage'));
+const CashFlowPage = lazy(() => import('./pages/accounting/CashFlowPage'));
 const AccountingSettingPage = lazy(() => import('./pages/accounting/SettingPage'));
 const PeriodPage = lazy(() => import('./pages/accounting/PeriodPage'));
 const AccountingGuidePage = lazy(() => import('./pages/accounting/AccountingGuidePage'));
@@ -399,6 +400,7 @@ function AppSecure() {
               <Route path="/akuntansi/neraca-saldo" element={<TrialBalancePage />} />
               <Route path="/akuntansi/laba-rugi" element={<IncomeStatementPage />} />
               <Route path="/akuntansi/neraca" element={<BalanceSheetPage />} />
+              <Route path="/akuntansi/arus-kas" element={<CashFlowPage />} />
               <Route path="/akuntansi/pengaturan" element={<AccountingSettingPage />} />
               <Route path="/akuntansi/setting" element={<AccountingSettingPage />} />
               <Route path="/akuntansi/periode" element={<PeriodPage />} />
