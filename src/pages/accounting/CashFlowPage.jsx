@@ -4,29 +4,53 @@ import {
   ArrowUpRight,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   Printer,
   Download,
   Calendar,
   Wallet,
   TrendingUp,
   Building,
-  PiggyBank
+  PiggyBank,
+  Eye,
+  ChevronRight,
+  ChevronDown,
+  X
 } from 'lucide-react';
 import accountingService from '../../services/accountingService';
 
-const today = new Date().toISOString().slice(0, 10);
-const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-  .toISOString()
-  .slice(0, 10);
+const formatLocalDate = (d) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const now = new Date();
+const todayStr = formatLocalDate(now);
+const monthStartStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
 
 export default function CashFlowPage() {
   const [settings, setSettings] = useState([]);
   const [settingId, setSettingId] = useState('');
-  const [tanggalFrom, setTanggalFrom] = useState(monthStart);
-  const [tanggalTo, setTanggalTo] = useState(today);
+  const [tanggalFrom, setTanggalFrom] = useState(monthStartStr);
+  const [tanggalTo, setTanggalTo] = useState(todayStr);
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Drilldown modal state
+  const [selectedAccountModal, setSelectedAccountModal] = useState(null);
+
+  // Expanded groups state: key = `${sectionTitle}-${direction}-${groupLabel}`
+  const [expandedGroups, setExpandedGroups] = useState({});
+
+  const toggleGroup = (key) => {
+    setExpandedGroups((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -63,25 +87,25 @@ export default function CashFlowPage() {
   };
 
   const applyPreset = (preset) => {
-    const now = new Date();
+    const curr = new Date();
     if (preset === 'this_month') {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-      setTanggalFrom(start);
-      setTanggalTo(today);
+      setTanggalFrom(`${curr.getFullYear()}-${String(curr.getMonth() + 1).padStart(2, '0')}-01`);
+      setTanggalTo(formatLocalDate(curr));
     } else if (preset === 'last_month') {
-      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10);
-      const end = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().slice(0, 10);
-      setTanggalFrom(start);
-      setTanggalTo(end);
+      const lm = new Date(curr.getFullYear(), curr.getMonth() - 1, 1);
+      const lastDay = new Date(curr.getFullYear(), curr.getMonth(), 0).getDate();
+      const lmMonth = String(lm.getMonth() + 1).padStart(2, '0');
+      setTanggalFrom(`${lm.getFullYear()}-${lmMonth}-01`);
+      setTanggalTo(`${lm.getFullYear()}-${lmMonth}-${String(lastDay).padStart(2, '0')}`);
     } else if (preset === 'this_year') {
-      const start = new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10);
-      setTanggalFrom(start);
-      setTanggalTo(today);
+      setTanggalFrom(`${curr.getFullYear()}-01-01`);
+      setTanggalTo(formatLocalDate(curr));
     }
   };
 
+  // Uniform whole Rupiah without decimals (PSAK requirement)
   const formatCurrency = (value) => {
-    const num = Number(value || 0);
+    const num = Math.round(Number(value || 0));
     return (num < 0 ? '- ' : '') + 'Rp ' + Math.abs(num).toLocaleString('id-ID');
   };
 
@@ -92,34 +116,34 @@ export default function CashFlowPage() {
   const handleExportCSV = () => {
     if (!report) return;
     const lines = [
-      ['Kategori', 'Kode Akun', 'Nama Akun', 'Arus Kas (Rp)'].join(','),
-      ['"Saldo Kas Awal"', '""', '""', `"${report.opening_balance}"`].join(','),
-      ['"--- AKTIVITAS OPERASI ---"', '""', '""', '""'].join(','),
+      ['Kategori', 'Sub-Kategori / Kelompok', 'Kode Akun', 'Nama Akun', 'Arus Kas (Rp)'].join(','),
+      ['"Saldo Kas Awal"', '""', '""', '""', `"${Math.round(report.opening_balance)}"`].join(','),
+      ['"--- AKTIVITAS OPERASI ---"', '""', '""', '""', '""'].join(','),
       ...(report.operations.inflows || []).map((r) =>
-        ['"Operasi - Penerimaan"', `"${r.kode_akun}"`, `"${r.nama_akun}"`, `"${r.amount}"`].join(',')
+        ['"Operasi - Penerimaan"', `"${r.group_label || 'Penerimaan'}"`, `"${r.kode_akun}"`, `"${r.nama_akun}"`, `"${Math.round(r.amount)}"`].join(',')
       ),
       ...(report.operations.outflows || []).map((r) =>
-        ['"Operasi - Pengeluaran"', `"${r.kode_akun}"`, `"${r.nama_akun}"`, `"-${r.amount}"`].join(',')
+        ['"Operasi - Pengeluaran"', `"${r.group_label || 'Pengeluaran'}"`, `"${r.kode_akun}"`, `"${r.nama_akun}"`, `"-${Math.round(r.amount)}"`].join(',')
       ),
-      ['"Total Bersih Aktivitas Operasi"', '""', '""', `"${report.operations.net}"`].join(','),
-      ['"--- AKTIVITAS INVESTASI ---"', '""', '""', '""'].join(','),
+      ['"Total Bersih Aktivitas Operasi"', '""', '""', '""', `"${Math.round(report.operations.net)}"`].join(','),
+      ['"--- AKTIVITAS INVESTASI ---"', '""', '""', '""', '""'].join(','),
       ...(report.investing.inflows || []).map((r) =>
-        ['"Investasi - Penerimaan"', `"${r.kode_akun}"`, `"${r.nama_akun}"`, `"${r.amount}"`].join(',')
+        ['"Investasi - Penerimaan"', `"${r.group_label || 'Penerimaan'}"`, `"${r.kode_akun}"`, `"${r.nama_akun}"`, `"${Math.round(r.amount)}"`].join(',')
       ),
       ...(report.investing.outflows || []).map((r) =>
-        ['"Investasi - Pengeluaran"', `"${r.kode_akun}"`, `"${r.nama_akun}"`, `"-${r.amount}"`].join(',')
+        ['"Investasi - Pengeluaran"', `"${r.group_label || 'Pengeluaran'}"`, `"${r.kode_akun}"`, `"${r.nama_akun}"`, `"-${Math.round(r.amount)}"`].join(',')
       ),
-      ['"Total Bersih Aktivitas Investasi"', '""', '""', `"${report.investing.net}"`].join(','),
-      ['"--- AKTIVITAS PENDANAAN ---"', '""', '""', '""'].join(','),
+      ['"Total Bersih Aktivitas Investasi"', '""', '""', '""', `"${Math.round(report.investing.net)}"`].join(','),
+      ['"--- AKTIVITAS PENDANAAN ---"', '""', '""', '""', '""'].join(','),
       ...(report.financing.inflows || []).map((r) =>
-        ['"Pendanaan - Penerimaan"', `"${r.kode_akun}"`, `"${r.nama_akun}"`, `"${r.amount}"`].join(',')
+        ['"Pendanaan - Penerimaan"', `"${r.group_label || 'Penerimaan'}"`, `"${r.kode_akun}"`, `"${r.nama_akun}"`, `"${Math.round(r.amount)}"`].join(',')
       ),
       ...(report.financing.outflows || []).map((r) =>
-        ['"Pendanaan - Pengeluaran"', `"${r.kode_akun}"`, `"${r.nama_akun}"`, `"-${r.amount}"`].join(',')
+        ['"Pendanaan - Pengeluaran"', `"${r.group_label || 'Pengeluaran'}"`, `"${r.kode_akun}"`, `"${r.nama_akun}"`, `"-${Math.round(r.amount)}"`].join(',')
       ),
-      ['"Total Bersih Aktivitas Pendanaan"', '""', '""', `"${report.financing.net}"`].join(','),
-      ['"Kenaikan (Penurunan) Kas Bersih"', '""', '""', `"${report.net_change}"`].join(','),
-      ['"Saldo Kas Akhir"', '""', '""', `"${report.ending_balance}"`].join(','),
+      ['"Total Bersih Aktivitas Pendanaan"', '""', '""', '""', `"${Math.round(report.financing.net)}"`].join(','),
+      ['"Kenaikan (Penurunan) Kas Bersih"', '""', '""', '""', `"${Math.round(report.net_change)}"`].join(','),
+      ['"Saldo Kas Akhir"', '""', '""', '""', `"${Math.round(report.ending_balance)}"`].join(','),
     ];
 
     const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
@@ -132,14 +156,119 @@ export default function CashFlowPage() {
     document.body.removeChild(link);
   };
 
-  const hasSectionData = (section) =>
-    (section.inflows && section.inflows.length > 0) ||
-    (section.outflows && section.outflows.length > 0) ||
-    Math.abs(Number(section.net || 0)) > 0.01;
+  // Grouped transaction renderer with collapsible constituent accounts & journal drill-down
+  const TransactionGroupBlock = ({ sectionTitle, direction, groups, fallbackItems, totalAmount, isOutflow }) => {
+    // If backend grouped_inflows/outflows provided, use it; otherwise build from fallbackItems
+    let displayGroups = groups;
+    if (!displayGroups || displayGroups.length === 0) {
+      if (fallbackItems && fallbackItems.length > 0) {
+        const map = {};
+        fallbackItems.forEach((item) => {
+          const g = item.group_label || (isOutflow ? 'Pengeluaran Operasional' : 'Penerimaan Operasional');
+          if (!map[g]) map[g] = { label: g, total: 0, accounts: [] };
+          map[g].total += item.amount;
+          map[g].accounts.push(item);
+        });
+        displayGroups = Object.values(map);
+      } else {
+        displayGroups = [];
+      }
+    }
 
+    const hasData = displayGroups.length > 0;
+
+    return (
+      <div className="space-y-2">
+        <div className={`flex items-center justify-between text-xs font-semibold uppercase tracking-wider ${isOutflow ? 'text-red-700' : 'text-green-700'}`}>
+          <span className="flex items-center gap-1.5">
+            {isOutflow ? <ArrowDownRight className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
+            {isOutflow ? 'Arus Kas Keluar (Pengeluaran)' : 'Arus Kas Masuk (Penerimaan)'}
+          </span>
+          <span className="font-mono">{formatCurrency(totalAmount)}</span>
+        </div>
+
+        {hasData ? (
+          <div className="rounded-lg border border-gray-100 divide-y divide-gray-100 bg-gray-50/30 overflow-hidden">
+            {displayGroups.map((grp) => {
+              const groupKey = `${sectionTitle}-${direction}-${grp.label}`;
+              const isExpanded = expandedGroups[groupKey] !== false; // default open
+
+              return (
+                <div key={grp.label} className="bg-white">
+                  {/* Group Header (Business Transaction Label) */}
+                  <div
+                    onClick={() => toggleGroup(groupKey)}
+                    className="flex items-center justify-between px-3 py-2.5 cursor-pointer hover:bg-gray-50/80 transition select-none"
+                  >
+                    <div className="flex items-center gap-2">
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                      )}
+                      <span className="font-medium text-sm text-gray-800">{grp.label}</span>
+                      <span className="text-xs text-gray-400">({grp.accounts.length} akun)</span>
+                    </div>
+                    <span className={`font-mono text-sm font-semibold ${isOutflow ? 'text-red-600' : 'text-green-600'}`}>
+                      {formatCurrency(grp.total)}
+                    </span>
+                  </div>
+
+                  {/* Constituent Accounts Table */}
+                  {isExpanded && (
+                    <div className="border-t border-gray-100 bg-gray-50/40 px-3 py-2">
+                      <table className="w-full text-left text-xs">
+                        <tbody className="divide-y divide-gray-100">
+                          {grp.accounts.map((acc) => (
+                            <tr key={acc.id} className="hover:bg-white/80 transition">
+                              <td className="py-1.5 px-2 font-mono text-gray-500 w-24">
+                                {acc.kode_akun}
+                              </td>
+                              <td className="py-1.5 px-2 text-gray-700">
+                                {acc.nama_akun}
+                              </td>
+                              <td className={`py-1.5 px-2 text-right font-mono font-medium ${isOutflow ? 'text-red-600' : 'text-green-600'}`}>
+                                {formatCurrency(acc.amount)}
+                              </td>
+                              <td className="py-1.5 px-2 text-right w-24">
+                                {acc.journals && acc.journals.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedAccountModal({
+                                        ...acc,
+                                        group_label: grp.label,
+                                        isOutflow,
+                                      });
+                                    }}
+                                    className="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded transition"
+                                  >
+                                    <Eye className="h-3 w-3" /> Jurnal ({acc.journals.length})
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="py-2 px-3 text-xs italic text-gray-400 bg-gray-50 rounded">
+            Tidak ada transaksi kas pada periode ini.
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  // Activity Section (always rendered explicitly per PSAK 2)
   const ActivitySection = ({ title, icon: Icon, sectionData, badgeColor }) => {
-    const hasInflows = sectionData.inflows && sectionData.inflows.length > 0;
-    const hasOutflows = sectionData.outflows && sectionData.outflows.length > 0;
     const isNetPositive = sectionData.net >= 0;
 
     return (
@@ -149,82 +278,34 @@ export default function CashFlowPage() {
             <Icon className={`h-5 w-5 ${badgeColor}`} />
             <h2 className="font-semibold text-gray-800">{title}</h2>
           </div>
-          <span
-            className={`text-sm font-bold ${
-              isNetPositive ? 'text-green-600' : 'text-red-600'
-            }`}
-          >
+          <span className={`text-sm font-bold font-mono ${isNetPositive ? 'text-green-600' : 'text-red-600'}`}>
             {formatCurrency(sectionData.net)}
           </span>
         </div>
 
-        <div className="p-4 space-y-4">
-          {/* Arus Kas Masuk */}
-          <div>
-            <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-green-700">
-              <span className="flex items-center gap-1">
-                <ArrowUpRight className="h-4 w-4" /> Arus Kas Masuk (Penerimaan)
-              </span>
-              <span>{formatCurrency(sectionData.total_inflows)}</span>
-            </div>
-            {hasInflows ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <tbody className="divide-y divide-gray-100">
-                    {sectionData.inflows.map((row) => (
-                      <tr key={row.id} className="hover:bg-gray-50/60">
-                        <td className="py-2 px-3 font-mono text-xs text-gray-500 w-24">
-                          {row.kode_akun}
-                        </td>
-                        <td className="py-2 px-3 text-gray-800">{row.nama_akun}</td>
-                        <td className="py-2 px-3 text-right font-medium text-green-600">
-                          {formatCurrency(row.amount)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="py-1 px-3 text-xs italic text-gray-400">Tidak ada arus kas masuk.</p>
-            )}
-          </div>
+        <div className="p-4 space-y-5">
+          <TransactionGroupBlock
+            sectionTitle={title}
+            direction="inflow"
+            groups={sectionData.grouped_inflows}
+            fallbackItems={sectionData.inflows}
+            totalAmount={sectionData.total_inflows}
+            isOutflow={false}
+          />
 
-          {/* Arus Kas Keluar */}
-          <div>
-            <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-red-700">
-              <span className="flex items-center gap-1">
-                <ArrowDownRight className="h-4 w-4" /> Arus Kas Keluar (Pengeluaran)
-              </span>
-              <span>{formatCurrency(sectionData.total_outflows)}</span>
-            </div>
-            {hasOutflows ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <tbody className="divide-y divide-gray-100">
-                    {sectionData.outflows.map((row) => (
-                      <tr key={row.id} className="hover:bg-gray-50/60">
-                        <td className="py-2 px-3 font-mono text-xs text-gray-500 w-24">
-                          {row.kode_akun}
-                        </td>
-                        <td className="py-2 px-3 text-gray-800">{row.nama_akun}</td>
-                        <td className="py-2 px-3 text-right font-medium text-red-600">
-                          {formatCurrency(row.amount)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="py-1 px-3 text-xs italic text-gray-400">Tidak ada arus kas keluar.</p>
-            )}
-          </div>
+          <TransactionGroupBlock
+            sectionTitle={title}
+            direction="outflow"
+            groups={sectionData.grouped_outflows}
+            fallbackItems={sectionData.outflows}
+            totalAmount={sectionData.total_outflows}
+            isOutflow={true}
+          />
         </div>
 
-        <div className="border-t bg-gray-50/50 px-4 py-2.5 flex justify-between items-center text-sm">
+        <div className="border-t bg-gray-50/70 px-4 py-2.5 flex justify-between items-center text-sm">
           <span className="font-medium text-gray-700">Arus Kas Bersih {title}</span>
-          <span className={`font-bold ${isNetPositive ? 'text-green-600' : 'text-red-600'}`}>
+          <span className={`font-bold font-mono ${isNetPositive ? 'text-green-600' : 'text-red-600'}`}>
             {formatCurrency(sectionData.net)}
           </span>
         </div>
@@ -239,7 +320,7 @@ export default function CashFlowPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Laporan Arus Kas (Cash Flow)</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Penerimaan dan pengeluaran kas berdasarkan aktivitas operasi, investasi, dan pendanaan.
+            Metode Langsung (Direct Method) sesuai PSAK 2: Aktivitas Operasi, Investasi, dan Pendanaan.
           </p>
         </div>
         {report && (
@@ -293,8 +374,7 @@ export default function CashFlowPage() {
               value={tanggalFrom}
               onChange={(e) => setTanggalFrom(e.target.value)}
               className="mt-1 w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-indigo-500 focus:outline-none"
-            >
-            </input>
+            />
           </label>
           <label className="text-sm font-medium text-gray-700">
             Sampai Tanggal
@@ -303,8 +383,7 @@ export default function CashFlowPage() {
               value={tanggalTo}
               onChange={(e) => setTanggalTo(e.target.value)}
               className="mt-1 w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-indigo-500 focus:outline-none"
-            >
-            </input>
+            />
           </label>
           <button
             type="button"
@@ -339,10 +418,32 @@ export default function CashFlowPage() {
             onClick={() => applyPreset('this_year')}
             className="rounded bg-gray-100 px-2 py-1 hover:bg-gray-200 text-gray-700"
           >
-            Tahun Berjalan
+            Tahun Berjalan (01 Jan)
           </button>
         </div>
       </section>
+
+      {/* Negative Cash Alert Banner */}
+      {report && (report.ending_balance < 0 || report.is_negative_cash) && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 shadow-sm text-amber-900">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+            <div className="space-y-1 text-sm">
+              <p className="font-bold text-amber-950">
+                Peringatan: Saldo Kas Akhir Negatif ({formatCurrency(report.ending_balance)})
+              </p>
+              <p className="text-amber-800 leading-relaxed">
+                Secara fisik, uang kas riil tidak mungkin minus. Laporan ini cocok secara matematis dengan buku besar, namun posisi saldo kas negatif mengindikasikan adanya transaksi yang belum dicatat:
+              </p>
+              <ul className="list-disc pl-5 space-y-0.5 text-xs text-amber-900 pt-1">
+                <li><strong>Saldo Awal Belum Masuk:</strong> Saldo kas/bank per awal periode belum diinput lewat jurnal pembuka (<span className="font-mono">Kas D / Modal C</span>).</li>
+                <li><strong>Sumber Dana Vendor Belum Dicatat:</strong> Pengeluaran vendor Rp 2,62 M kemungkinan dibayar dari setoran modal, pinjaman, atau rekening bank lain yang belum masuk jurnal penerimaannya.</li>
+                <li><strong>Salah Akun Kas:</strong> Periksa apakah pengeluaran dibebankan ke akun <span className="font-mono">1010 Kas</span> padahal riilnya keluar dari bank lain.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Report Data */}
       {report && (
@@ -354,7 +455,7 @@ export default function CashFlowPage() {
                 <span className="text-xs font-medium uppercase text-gray-500">Saldo Awal</span>
                 <Wallet className="h-4 w-4 text-blue-500" />
               </div>
-              <p className="mt-2 text-lg font-bold text-gray-900">{formatCurrency(report.opening_balance)}</p>
+              <p className="mt-2 text-lg font-bold font-mono text-gray-900">{formatCurrency(report.opening_balance)}</p>
               <p className="mt-0.5 text-xs text-gray-400">Kas & bank sebelum periode</p>
             </div>
 
@@ -363,37 +464,33 @@ export default function CashFlowPage() {
                 <span className="text-xs font-medium uppercase text-gray-500">Arus Kas Operasi</span>
                 <TrendingUp className="h-4 w-4 text-emerald-500" />
               </div>
-              <p className={`mt-2 text-lg font-bold ${report.operations.net >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              <p className={`mt-2 text-lg font-bold font-mono ${report.operations.net >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                 {formatCurrency(report.operations.net)}
               </p>
               <p className="mt-0.5 text-xs text-gray-400">Aktivitas operasional</p>
             </div>
 
-            {hasSectionData(report.investing) && (
-              <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium uppercase text-gray-500">Arus Kas Investasi</span>
-                  <Building className="h-4 w-4 text-amber-500" />
-                </div>
-                <p className={`mt-2 text-lg font-bold ${report.investing.net >= 0 ? 'text-amber-600' : 'text-red-600'}`}>
-                  {formatCurrency(report.investing.net)}
-                </p>
-                <p className="mt-0.5 text-xs text-gray-400">Aset tetap & inventaris</p>
+            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium uppercase text-gray-500">Arus Kas Investasi</span>
+                <Building className="h-4 w-4 text-amber-500" />
               </div>
-            )}
+              <p className={`mt-2 text-lg font-bold font-mono ${report.investing.net >= 0 ? 'text-amber-600' : 'text-red-600'}`}>
+                {formatCurrency(report.investing.net)}
+              </p>
+              <p className="mt-0.5 text-xs text-gray-400">Aset tetap & peralatan</p>
+            </div>
 
-            {hasSectionData(report.financing) && (
-              <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium uppercase text-gray-500">Arus Kas Pendanaan</span>
-                  <PiggyBank className="h-4 w-4 text-purple-500" />
-                </div>
-                <p className={`mt-2 text-lg font-bold ${report.financing.net >= 0 ? 'text-purple-600' : 'text-red-600'}`}>
-                  {formatCurrency(report.financing.net)}
-                </p>
-                <p className="mt-0.5 text-xs text-gray-400">Modal & pinjaman</p>
+            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium uppercase text-gray-500">Arus Kas Pendanaan</span>
+                <PiggyBank className="h-4 w-4 text-purple-500" />
               </div>
-            )}
+              <p className={`mt-2 text-lg font-bold font-mono ${report.financing.net >= 0 ? 'text-purple-600' : 'text-red-600'}`}>
+                {formatCurrency(report.financing.net)}
+              </p>
+              <p className="mt-0.5 text-xs text-gray-400">Modal & pinjaman</p>
+            </div>
 
             <div className={`rounded-xl border p-4 shadow-sm ${report.is_balanced ? 'border-emerald-200 bg-emerald-50/50' : 'border-red-200 bg-red-50/50'}`}>
               <div className="flex items-center justify-between">
@@ -404,14 +501,14 @@ export default function CashFlowPage() {
                   <AlertCircle className="h-4 w-4 text-red-600" />
                 )}
               </div>
-              <p className="mt-2 text-lg font-bold text-gray-900">{formatCurrency(report.ending_balance)}</p>
+              <p className="mt-2 text-lg font-bold font-mono text-gray-900">{formatCurrency(report.ending_balance)}</p>
               <span className={`inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded ${report.is_balanced ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
-                {report.is_balanced ? 'SEIMBANG' : 'TIDAK SEIMBANG'}
+                {report.is_balanced ? 'Sesuai Buku Besar' : 'Selisih Terdeteksi'}
               </span>
             </div>
           </section>
 
-          {/* 3 Detail Activity Sections */}
+          {/* 3 Explicit PSAK 2 Detail Activity Sections */}
           <section className="space-y-4">
             <ActivitySection
               title="Aktivitas Operasi"
@@ -420,59 +517,56 @@ export default function CashFlowPage() {
               sectionData={report.operations}
             />
 
-            {hasSectionData(report.investing) && (
-              <ActivitySection
-                title="Aktivitas Investasi"
-                icon={Building}
-                badgeColor="text-amber-600"
-                sectionData={report.investing}
-              />
-            )}
+            <ActivitySection
+              title="Aktivitas Investasi"
+              icon={Building}
+              badgeColor="text-amber-600"
+              sectionData={report.investing}
+            />
 
-            {hasSectionData(report.financing) && (
-              <ActivitySection
-                title="Aktivitas Pendanaan"
-                icon={PiggyBank}
-                badgeColor="text-purple-600"
-                sectionData={report.financing}
-              />
-            )}
+            <ActivitySection
+              title="Aktivitas Pendanaan"
+              icon={PiggyBank}
+              badgeColor="text-purple-600"
+              sectionData={report.financing}
+            />
           </section>
 
           {/* Reconciliation & Account Breakdown */}
           <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* Reconciliation Card */}
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-              <h3 className="border-b bg-gray-50 px-4 py-3 font-semibold text-gray-800">
-                Rekonsiliasi Perubahan Kas
-              </h3>
+              <div className="flex items-center justify-between border-b bg-gray-50 px-4 py-3">
+                <h3 className="font-semibold text-gray-800">
+                  Rekonsiliasi Perubahan Kas
+                </h3>
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded ${report.is_balanced ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
+                  {report.is_balanced ? 'Selisih: Rp 0' : `Selisih: ${formatCurrency(report.variance)}`}
+                </span>
+              </div>
               <div className="p-4 space-y-3 text-sm">
                 <div className="flex justify-between py-1 border-b border-gray-100">
                   <span className="text-gray-600">Saldo Kas & Setara Kas Awal</span>
                   <span className="font-mono font-medium">{formatCurrency(report.opening_balance)}</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-gray-100">
-                  <span className="text-gray-600">Arus Kas Bersih dari Aktivitas Operasi</span>
+                  <span className="text-gray-600">Arus Kas Bersih Aktivitas Operasi</span>
                   <span className={`font-mono font-medium ${report.operations.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {formatCurrency(report.operations.net)}
                   </span>
                 </div>
-                {hasSectionData(report.investing) && (
-                  <div className="flex justify-between py-1 border-b border-gray-100">
-                    <span className="text-gray-600">Arus Kas Bersih dari Aktivitas Investasi</span>
-                    <span className={`font-mono font-medium ${report.investing.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatCurrency(report.investing.net)}
-                    </span>
-                  </div>
-                )}
-                {hasSectionData(report.financing) && (
-                  <div className="flex justify-between py-1 border-b border-gray-100">
-                    <span className="text-gray-600">Arus Kas Bersih dari Aktivitas Pendanaan</span>
-                    <span className={`font-mono font-medium ${report.financing.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatCurrency(report.financing.net)}
-                    </span>
-                  </div>
-                )}
+                <div className="flex justify-between py-1 border-b border-gray-100">
+                  <span className="text-gray-600">Arus Kas Bersih Aktivitas Investasi</span>
+                  <span className={`font-mono font-medium ${report.investing.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatCurrency(report.investing.net)}
+                  </span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-gray-100">
+                  <span className="text-gray-600">Arus Kas Bersih Aktivitas Pendanaan</span>
+                  <span className={`font-mono font-medium ${report.financing.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatCurrency(report.financing.net)}
+                  </span>
+                </div>
                 <div className="flex justify-between py-2 border-t-2 border-gray-200 font-bold bg-gray-50 px-2 rounded">
                   <span className="text-gray-800">Kenaikan (Penurunan) Kas Bersih</span>
                   <span className={`font-mono ${report.net_change >= 0 ? 'text-green-700' : 'text-red-700'}`}>
@@ -534,6 +628,88 @@ export default function CashFlowPage() {
               </div>
             </div>
           </section>
+        </div>
+      )}
+
+      {/* Drilldown Modal: Journal Detail Contributing to a Cash Flow Account Line */}
+      {selectedAccountModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-3xl rounded-2xl bg-white shadow-xl overflow-hidden flex flex-col max-h-[85vh]">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b px-5 py-4 bg-gray-50">
+              <div>
+                <h3 className="font-bold text-gray-900 text-base">
+                  Rincian Jurnal Kas: {selectedAccountModal.nama_akun} ({selectedAccountModal.kode_akun})
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Kelompok: {selectedAccountModal.group_label} &bull; Total Kas Terlibat: {formatCurrency(selectedAccountModal.amount)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedAccountModal(null)}
+                className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 overflow-y-auto space-y-4">
+              <div className="overflow-x-auto rounded-lg border border-gray-200">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-gray-50 text-gray-600 font-semibold border-b">
+                    <tr>
+                      <th className="py-2.5 px-3">Tanggal</th>
+                      <th className="py-2.5 px-3">Nomor Jurnal</th>
+                      <th className="py-2.5 px-3">Keterangan</th>
+                      <th className="py-2.5 px-3 text-right">Nilai Alokasi Kas</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {(selectedAccountModal.journals || []).map((jnl, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50/60">
+                        <td className="py-2 px-3 whitespace-nowrap text-gray-600">{jnl.tanggal}</td>
+                        <td className="py-2 px-3 font-mono font-medium text-indigo-700 whitespace-nowrap">
+                          {jnl.nomor_jurnal}
+                        </td>
+                        <td className="py-2 px-3 text-gray-800">{jnl.keterangan || '-'}</td>
+                        <td className={`py-2 px-3 text-right font-mono font-semibold whitespace-nowrap ${selectedAccountModal.isOutflow ? 'text-red-600' : 'text-green-600'}`}>
+                          {formatCurrency(jnl.amount)}
+                        </td>
+                      </tr>
+                    ))}
+                    {(!selectedAccountModal.journals || selectedAccountModal.journals.length === 0) && (
+                      <tr>
+                        <td colSpan="4" className="py-6 text-center text-gray-400">
+                          Tidak ada rincian jurnal tersedia.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                  <tfoot className="border-t bg-gray-50 font-bold">
+                    <tr>
+                      <td colSpan="3" className="py-2.5 px-3 text-gray-800">Total</td>
+                      <td className={`py-2.5 px-3 text-right font-mono font-bold ${selectedAccountModal.isOutflow ? 'text-red-600' : 'text-green-600'}`}>
+                        {formatCurrency(selectedAccountModal.amount)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="border-t bg-gray-50 px-5 py-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setSelectedAccountModal(null)}
+                className="rounded-lg bg-gray-200 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-300 transition"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

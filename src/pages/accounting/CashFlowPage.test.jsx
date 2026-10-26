@@ -12,8 +12,34 @@ describe('CashFlowPage', () => {
   const mockCashFlowData = {
     opening_balance: 10000000,
     operations: {
-      inflows: [{ id: 101, kode_akun: '4000', nama_akun: 'Pendapatan', amount: 15000000 }],
-      outflows: [{ id: 102, kode_akun: '6200', nama_akun: 'Beban Operasional', amount: 5000000 }],
+      inflows: [
+        {
+          id: 101,
+          kode_akun: '4000',
+          nama_akun: 'Pendapatan',
+          group_label: 'Penerimaan dari Pelanggan & Penjualan',
+          amount: 15000000,
+          journals: [
+            {
+              journal_id: 1,
+              nomor_jurnal: 'JU-2026-001',
+              tanggal: '2026-10-05',
+              keterangan: 'Penjualan sapi tunai',
+              amount: 15000000,
+            },
+          ],
+        },
+      ],
+      outflows: [
+        {
+          id: 102,
+          kode_akun: '6200',
+          nama_akun: 'Beban Operasional',
+          group_label: 'Pembayaran Beban Operasional & Karyawan',
+          amount: 5000000,
+          journals: [],
+        },
+      ],
       total_inflows: 15000000,
       total_outflows: 5000000,
       net: 10000000,
@@ -32,12 +58,14 @@ describe('CashFlowPage', () => {
       total_outflows: 0,
       net: 0,
     },
-    net_change: 14000000,
-    ending_balance: 24000000,
-    calculated_ending_balance: 24000000,
+    net_change: 10000000,
+    ending_balance: 20000000,
+    calculated_ending_balance: 20000000,
+    variance: 0,
     is_balanced: true,
+    is_negative_cash: false,
     accounts: [
-      { id: 1, kode_akun: '1010', nama_akun: 'Kas', saldo: 14000000 },
+      { id: 1, kode_akun: '1010', nama_akun: 'Kas', saldo: 10000000 },
       { id: 2, kode_akun: '1020', nama_akun: 'Bank', saldo: 10000000 },
     ],
   };
@@ -52,14 +80,14 @@ describe('CashFlowPage', () => {
     render(<CashFlowPage />);
 
     expect(screen.getByText('Laporan Arus Kas (Cash Flow)')).toBeInTheDocument();
-    expect(screen.getByText(/Penerimaan dan pengeluaran kas/i)).toBeInTheDocument();
+    expect(screen.getByText(/Metode Langsung \(Direct Method\) sesuai PSAK 2/i)).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText('PT Ternak Jaya (HO)')).toBeInTheDocument();
     });
   });
 
-  it('fetches and displays cash flow data when Tampilkan is clicked', async () => {
+  it('fetches and displays all PSAK 2 cash flow sections and status badge', async () => {
     render(<CashFlowPage />);
 
     await waitFor(() => {
@@ -76,17 +104,73 @@ describe('CashFlowPage', () => {
       );
     });
 
-    // Wait for report to render, then assert
+    // Wait for report to render
     await waitFor(() => {
       expect(screen.getByText('Aktivitas Operasi')).toBeInTheDocument();
     });
 
-    expect(screen.getAllByText('SEIMBANG').length).toBeGreaterThan(0);
-    // Investasi & Pendanaan sections hidden karena datanya kosong
-    expect(screen.queryByText('Aktivitas Investasi')).not.toBeInTheDocument();
-    expect(screen.queryByText('Arus Kas Investasi')).not.toBeInTheDocument();
-    expect(screen.queryByText('Aktivitas Pendanaan')).not.toBeInTheDocument();
+    // All 3 activities displayed explicitly per PSAK 2
+    expect(screen.getByText('Aktivitas Investasi')).toBeInTheDocument();
+    expect(screen.getByText('Aktivitas Pendanaan')).toBeInTheDocument();
+    expect(screen.getAllByText('Sesuai Buku Besar').length).toBeGreaterThan(0);
+    expect(screen.getByText('Selisih: Rp 0')).toBeInTheDocument();
     expect(screen.getByText('Rekonsiliasi Perubahan Kas')).toBeInTheDocument();
     expect(screen.getByText('Rincian Saldo Kas & Bank')).toBeInTheDocument();
+    expect(screen.getByText('Penerimaan dari Pelanggan & Penjualan')).toBeInTheDocument();
+  });
+
+  it('opens journal drill-down modal when journal button is clicked', async () => {
+    render(<CashFlowPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('PT Ternak Jaya (HO)')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Tampilkan Laporan/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Jurnal \(1\)/i)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText(/Jurnal \(1\)/i));
+
+    await waitFor(() => {
+      expect(screen.getByText('JU-2026-001')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Penjualan sapi tunai')).toBeInTheDocument();
+    expect(screen.getByText('Tutup')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Tutup'));
+
+    await waitFor(() => {
+      expect(screen.queryByText('JU-2026-001')).not.toBeInTheDocument();
+    });
+  });
+
+  it('displays warning banner when ending balance is negative', async () => {
+    accountingService.getCashFlow.mockResolvedValueOnce({
+      data: {
+        ...mockCashFlowData,
+        ending_balance: -2500000000,
+        calculated_ending_balance: -2500000000,
+        is_negative_cash: true,
+      },
+    });
+
+    render(<CashFlowPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('PT Ternak Jaya (HO)')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Tampilkan Laporan/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Peringatan: Saldo Kas Akhir Negatif/i)).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/Saldo Awal Belum Masuk/i)).toBeInTheDocument();
+    expect(screen.getByText(/Sumber Dana Vendor Belum Dicatat/i)).toBeInTheDocument();
   });
 });
