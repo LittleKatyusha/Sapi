@@ -60,7 +60,7 @@ class PermissionService {
    */
   async getDefinitions() {
     try {
-      const response = await HttpClient.get(API_ENDPOINTS.SYSTEM.PERMISSIONS + '/definitions');
+      const response = await HttpClient.get(API_ENDPOINTS.SYSTEM.PERMISSIONS + '/definitions', { cache: false });
       return response.data || [];
     } catch (error) {
       console.error('Error fetching permission definitions:', error);
