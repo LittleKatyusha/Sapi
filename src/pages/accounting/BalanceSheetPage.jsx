@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Printer, Download, FileSpreadsheet } from 'lucide-react';
 import accountingService from '../../services/accountingService';
+import downloadPdf from '../../utils/downloadPdf';
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -9,6 +11,7 @@ export default function BalanceSheetPage() {
   const [tanggal, setTanggal] = useState(today);
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -44,6 +47,77 @@ export default function BalanceSheetPage() {
     }
   };
 
+  const handlePrintPdf = async () => {
+    if (!settingId) return;
+    try {
+      setExporting(true);
+      setError('');
+      const blob = await accountingService.exportBalanceSheet(
+        {
+          setting_id: Number(settingId),
+          tanggal,
+        },
+        'pdf'
+      );
+      const fileUrl = URL.createObjectURL(blob);
+      const printWindow = window.open(fileUrl, '_blank');
+      if (!printWindow) {
+        await downloadPdf(blob, `laporan-neraca-${tanggal || 'kini'}.pdf`);
+      }
+    } catch (e) {
+      setError(e.message || 'Gagal mencetak PDF laporan neraca.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!settingId) return;
+    try {
+      setExporting(true);
+      setError('');
+      const blob = await accountingService.exportBalanceSheet(
+        {
+          setting_id: Number(settingId),
+          tanggal,
+        },
+        'pdf'
+      );
+      await downloadPdf(blob, `laporan-neraca-${tanggal || 'kini'}.pdf`);
+    } catch (e) {
+      setError(e.message || 'Gagal mengunduh cetakan PDF.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleDownloadExcel = async () => {
+    if (!settingId) return;
+    try {
+      setExporting(true);
+      setError('');
+      const blob = await accountingService.exportBalanceSheet(
+        {
+          setting_id: Number(settingId),
+          tanggal,
+        },
+        'xlsx'
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `laporan-neraca-${tanggal || 'kini'}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(e.message || 'Gagal mengunduh file Excel.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const formatNumber = (value) => Number(value || 0).toLocaleString('id-ID');
 
   const AccountTable = ({ title, rows, emptyText, footer }) => (
@@ -76,9 +150,42 @@ export default function BalanceSheetPage() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <header>
-        <h1 className="text-2xl font-bold text-gray-900">Laporan Neraca</h1>
-        <p className="mt-1 text-sm text-gray-500">Posisi aset, kewajiban, dan ekuitas pada tanggal tertentu.</p>
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Laporan Neraca</h1>
+          <p className="mt-1 text-sm text-gray-500">Posisi aset, kewajiban, dan ekuitas pada tanggal tertentu.</p>
+        </div>
+        {report && (
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handlePrintPdf}
+              disabled={exporting}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm disabled:opacity-50"
+            >
+              <Printer className="h-4 w-4 text-gray-500" />
+              <span>{exporting ? 'Memproses...' : 'Cetak PDF'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadPdf}
+              disabled={exporting}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm disabled:opacity-50"
+            >
+              <Download className="h-4 w-4 text-gray-500" />
+              <span>{exporting ? 'Mengunduh...' : 'Unduh PDF'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadExcel}
+              disabled={exporting}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 shadow-sm disabled:opacity-50"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              <span>{exporting ? 'Mengunduh...' : 'Unduh Excel'}</span>
+            </button>
+          </div>
+        )}
       </header>
 
       {error && <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}

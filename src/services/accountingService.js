@@ -42,6 +42,8 @@ const accountingService = {
     httpClient.get(`${BASE_URL}/reports/general-ledger`, { params: { ...params, export: format }, responseType: 'blob' }),
   exportIncomeStatement: (params, format = 'pdf') =>
     httpClient.get(`${BASE_URL}/reports/income-statement`, { params: { ...params, export: format }, responseType: 'blob' }),
+  exportBalanceSheet: (params, format = 'pdf') =>
+    httpClient.get(`${BASE_URL}/reports/balance-sheet`, { params: { ...params, export: format }, responseType: 'blob' }),
 
   getAuditLogs: (params = {}) => httpClient.get(`${BASE_URL}/audit-logs`, { params }),
   getExceptionsDashboard: (params = {}) => httpClient.get(`${BASE_URL}/dashboard/exceptions`, { params }),
