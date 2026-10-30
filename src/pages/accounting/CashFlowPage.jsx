@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   Printer,
   Download,
+  FileSpreadsheet,
   Calendar,
   Wallet,
   TrendingUp,
@@ -18,6 +19,7 @@ import {
   X
 } from 'lucide-react';
 import accountingService from '../../services/accountingService';
+import downloadPdf from '../../utils/downloadPdf';
 
 const formatLocalDate = (d) => {
   const year = d.getFullYear();
@@ -37,6 +39,7 @@ export default function CashFlowPage() {
   const [tanggalTo, setTanggalTo] = useState(todayStr);
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
 
   // Drilldown modal state
@@ -109,8 +112,78 @@ export default function CashFlowPage() {
     return (num < 0 ? '- ' : '') + 'Rp ' + Math.abs(num).toLocaleString('id-ID');
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrintPdf = async () => {
+    if (!settingId) return;
+    try {
+      setExporting(true);
+      setError('');
+      const blob = await accountingService.exportCashFlow(
+        {
+          setting_id: Number(settingId),
+          tanggal_from: tanggalFrom || undefined,
+          tanggal_to: tanggalTo || undefined,
+        },
+        'pdf'
+      );
+      const fileUrl = URL.createObjectURL(blob);
+      const printWindow = window.open(fileUrl, '_blank');
+      if (!printWindow) {
+        await downloadPdf(blob, `laporan-arus-kas-${tanggalFrom || 'awal'}-sd-${tanggalTo || 'kini'}.pdf`);
+      }
+    } catch (e) {
+      setError(e.message || 'Gagal mencetak PDF laporan arus kas.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!settingId) return;
+    try {
+      setExporting(true);
+      setError('');
+      const blob = await accountingService.exportCashFlow(
+        {
+          setting_id: Number(settingId),
+          tanggal_from: tanggalFrom || undefined,
+          tanggal_to: tanggalTo || undefined,
+        },
+        'pdf'
+      );
+      await downloadPdf(blob, `laporan-arus-kas-${tanggalFrom || 'awal'}-sd-${tanggalTo || 'kini'}.pdf`);
+    } catch (e) {
+      setError(e.message || 'Gagal mengunduh cetakan PDF.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleDownloadExcel = async () => {
+    if (!settingId) return;
+    try {
+      setExporting(true);
+      setError('');
+      const blob = await accountingService.exportCashFlow(
+        {
+          setting_id: Number(settingId),
+          tanggal_from: tanggalFrom || undefined,
+          tanggal_to: tanggalTo || undefined,
+        },
+        'xlsx'
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `laporan-arus-kas-${tanggalFrom || 'awal'}-sd-${tanggalTo || 'kini'}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(e.message || 'Gagal mengunduh file Excel.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleExportCSV = () => {
@@ -324,20 +397,42 @@ export default function CashFlowPage() {
           </p>
         </div>
         {report && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm"
+              onClick={handlePrintPdf}
+              disabled={exporting}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm disabled:opacity-50"
             >
-              <Printer className="h-4 w-4" /> Cetak
+              <Printer className="h-4 w-4 text-gray-500" />
+              <span>{exporting ? 'Memproses...' : 'Cetak PDF'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadPdf}
+              disabled={exporting}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm disabled:opacity-50"
+            >
+              <Download className="h-4 w-4 text-gray-500" />
+              <span>{exporting ? 'Mengunduh...' : 'Unduh PDF'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadExcel}
+              disabled={exporting}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 shadow-sm disabled:opacity-50"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              <span>{exporting ? 'Mengunduh...' : 'Unduh Excel'}</span>
             </button>
             <button
               type="button"
               onClick={handleExportCSV}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm"
+              disabled={exporting}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm disabled:opacity-50"
             >
-              <Download className="h-4 w-4" /> Export CSV
+              <Download className="h-4 w-4 text-gray-400" />
+              <span>CSV</span>
             </button>
           </div>
         )}

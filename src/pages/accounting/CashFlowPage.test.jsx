@@ -1,8 +1,10 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import CashFlowPage from './CashFlowPage';
 import accountingService from '../../services/accountingService';
+import downloadPdf from '../../utils/downloadPdf';
 
 jest.mock('../../services/accountingService');
+jest.mock('../../utils/downloadPdf', () => jest.fn());
 
 describe('CashFlowPage', () => {
   const mockSettings = [
@@ -74,6 +76,7 @@ describe('CashFlowPage', () => {
     jest.clearAllMocks();
     accountingService.getSettings.mockResolvedValue({ data: mockSettings });
     accountingService.getCashFlow.mockResolvedValue({ data: mockCashFlowData });
+    accountingService.exportCashFlow.mockResolvedValue(new Blob(['%PDF-1.4'], { type: 'application/pdf' }));
   });
 
   it('renders page header and filter controls', async () => {
@@ -172,5 +175,52 @@ describe('CashFlowPage', () => {
 
     expect(screen.getByText(/Saldo Awal Belum Masuk/i)).toBeInTheDocument();
     expect(screen.getByText(/Sumber Dana Vendor Belum Dicatat/i)).toBeInTheDocument();
+  });
+
+  it('triggers PDF download when Unduh PDF is clicked', async () => {
+    render(<CashFlowPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('PT Ternak Jaya (HO)')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Tampilkan Laporan/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Unduh PDF/i })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Unduh PDF/i }));
+
+    await waitFor(() => {
+      expect(accountingService.exportCashFlow).toHaveBeenCalledWith(
+        expect.objectContaining({ setting_id: 1 }),
+        'pdf'
+      );
+      expect(downloadPdf).toHaveBeenCalled();
+    });
+  });
+
+  it('triggers Excel download when Unduh Excel is clicked', async () => {
+    render(<CashFlowPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('PT Ternak Jaya (HO)')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Tampilkan Laporan/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Unduh Excel/i })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Unduh Excel/i }));
+
+    await waitFor(() => {
+      expect(accountingService.exportCashFlow).toHaveBeenCalledWith(
+        expect.objectContaining({ setting_id: 1 }),
+        'xlsx'
+      );
+    });
   });
 });
