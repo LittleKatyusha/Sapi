@@ -332,11 +332,11 @@ const SettingsPageSecure = () => {
     const file = e.target.files[0];
     if (file) {
       // Basic file validation
-      const maxSize = 2 * 1024 * 1024; // 2MB
+      const maxSize = 15 * 1024 * 1024; // 15MB
       const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
       
       if (file.size > maxSize) {
-        showNotification('File terlalu besar. Maksimal 2MB.', 'error');
+        showNotification('File terlalu besar. Maksimal 15MB.', 'error');
         return;
       }
       
@@ -522,7 +522,7 @@ const SettingsPageSecure = () => {
               {isEditing && (
                 <p className="text-xs text-gray-500 mt-2">
                   Klik ikon untuk mengubah foto.<br/>
-                  Maksimal 2MB, format JPG/PNG/GIF.
+                  Maksimal 15MB, format JPG/PNG/GIF.
                 </p>
               )}
             </div>

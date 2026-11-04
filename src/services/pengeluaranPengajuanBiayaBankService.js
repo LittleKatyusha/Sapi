@@ -383,14 +383,14 @@ class PengeluaranPengajuanBiayaBankService {
     // File validation if provided
     if (data.file) {
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
-      const maxSize = 2 * 1024 * 1024; // 2MB
+      const maxSize = 15 * 1024 * 1024; // 15MB
 
       if (!allowedTypes.includes(data.file.type)) {
         errors.push('File harus berupa JPG, JPEG, PNG, atau PDF');
       }
 
       if (data.file.size > maxSize) {
-        errors.push('Ukuran file maksimal 2MB');
+        errors.push('Ukuran file maksimal 15MB');
       }
     }
 

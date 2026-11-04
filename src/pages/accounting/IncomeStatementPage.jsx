@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Printer, Download, FileSpreadsheet } from 'lucide-react';
+import { Printer, Download, FileSpreadsheet, Eye } from 'lucide-react';
 import accountingService from '../../services/accountingService';
 import downloadPdf from '../../utils/downloadPdf';
+import AccountDetailModal from './AccountDetailModal';
 
 const today = new Date().toISOString().slice(0, 10);
 const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
@@ -17,6 +18,7 @@ export default function IncomeStatementPage() {
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
+  const [selectedAccountForDetail, setSelectedAccountForDetail] = useState(null);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -210,38 +212,94 @@ export default function IncomeStatementPage() {
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-              <h2 className="border-b bg-gray-50 p-3 font-semibold text-gray-800">Pendapatan</h2>
+              <div className="flex items-center justify-between border-b bg-gray-50 px-4 py-3">
+                <h2 className="font-semibold text-gray-800">Pendapatan</h2>
+                <span className="text-xs text-gray-500 font-medium">{(report.revenues ?? []).length} Akun</span>
+              </div>
               <table className="w-full text-left text-sm">
-                <tbody className="divide-y">
+                <thead className="bg-gray-100/60 text-xs text-gray-600 border-b border-gray-200">
+                  <tr>
+                    <th className="p-3 font-semibold w-20">Kode</th>
+                    <th className="p-3 font-semibold">Nama Akun</th>
+                    <th className="p-3 font-semibold text-right w-36">Jumlah</th>
+                    <th className="p-3 font-semibold text-center w-24">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
                   {(report.revenues ?? []).map((row) => (
-                    <tr key={row.id}>
-                      <td className="p-3 font-mono">{row.kode_akun}</td>
-                      <td className="p-3">{row.nama_akun}</td>
-                      <td className="p-3 text-right">{formatNumber(row.amount)}</td>
+                    <tr key={row.id} className="hover:bg-gray-50/60 transition-colors">
+                      <td className="p-3 font-mono text-gray-700">{row.kode_akun}</td>
+                      <td className="p-3 text-gray-900 font-medium">{row.nama_akun}</td>
+                      <td className="p-3 text-right font-mono font-semibold text-green-700">{formatNumber(row.amount)}</td>
+                      <td className="p-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedAccountForDetail({ ...row, tipe: 'Pendapatan' })}
+                          className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition-colors cursor-pointer"
+                          title="Lihat rincian transaksi & pengelompokan"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          <span>Detail</span>
+                        </button>
+                      </td>
                     </tr>
                   ))}
-                  {!(report.revenues ?? []).length && <tr><td colSpan="3" className="p-4 text-center text-gray-500">Tidak ada pendapatan.</td></tr>}
+                  {!(report.revenues ?? []).length && <tr><td colSpan="4" className="p-4 text-center text-gray-500">Tidak ada pendapatan.</td></tr>}
                 </tbody>
               </table>
             </section>
 
             <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-              <h2 className="border-b bg-gray-50 p-3 font-semibold text-gray-800">Beban</h2>
+              <div className="flex items-center justify-between border-b bg-gray-50 px-4 py-3">
+                <h2 className="font-semibold text-gray-800">Beban</h2>
+                <span className="text-xs text-gray-500 font-medium">{(report.expenses ?? []).length} Akun</span>
+              </div>
               <table className="w-full text-left text-sm">
-                <tbody className="divide-y">
+                <thead className="bg-gray-100/60 text-xs text-gray-600 border-b border-gray-200">
+                  <tr>
+                    <th className="p-3 font-semibold w-20">Kode</th>
+                    <th className="p-3 font-semibold">Nama Akun</th>
+                    <th className="p-3 font-semibold text-right w-36">Jumlah</th>
+                    <th className="p-3 font-semibold text-center w-24">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
                   {(report.expenses ?? []).map((row) => (
-                    <tr key={row.id}>
-                      <td className="p-3 font-mono">{row.kode_akun}</td>
-                      <td className="p-3">{row.nama_akun}</td>
-                      <td className="p-3 text-right">{formatNumber(row.amount)}</td>
+                    <tr key={row.id} className="hover:bg-gray-50/60 transition-colors">
+                      <td className="p-3 font-mono text-gray-700">{row.kode_akun}</td>
+                      <td className="p-3 text-gray-900 font-medium">{row.nama_akun}</td>
+                      <td className="p-3 text-right font-mono font-semibold text-red-700">{formatNumber(row.amount)}</td>
+                      <td className="p-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedAccountForDetail({ ...row, tipe: 'Beban' })}
+                          className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition-colors cursor-pointer"
+                          title="Lihat rincian transaksi & pengelompokan"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          <span>Detail</span>
+                        </button>
+                      </td>
                     </tr>
                   ))}
-                  {!(report.expenses ?? []).length && <tr><td colSpan="3" className="p-4 text-center text-gray-500">Tidak ada beban.</td></tr>}
+                  {!(report.expenses ?? []).length && <tr><td colSpan="4" className="p-4 text-center text-gray-500">Tidak ada beban.</td></tr>}
                 </tbody>
               </table>
             </section>
           </div>
         </>
+      )}
+
+      {selectedAccountForDetail && (
+        <AccountDetailModal
+          isOpen={Boolean(selectedAccountForDetail)}
+          onClose={() => setSelectedAccountForDetail(null)}
+          account={selectedAccountForDetail}
+          settingId={settingId}
+          settingName={settings.find((s) => String(s.id) === String(settingId))?.nama_perusahaan || ''}
+          tanggalFrom={tanggalFrom}
+          tanggalTo={tanggalTo}
+        />
       )}
 
       {!report && !loading && !error && (

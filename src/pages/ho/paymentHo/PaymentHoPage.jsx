@@ -137,7 +137,7 @@ const AddCicilanModal = ({ isOpen, payment, onClose, onSaved }) => {
                   </button>
                 </div>
               ) : (
-                <div><Upload className="w-5 h-5 mx-auto mb-1 text-gray-400" /><span>Klik untuk upload</span><p className="text-xs text-gray-400 mt-1">PDF, JPG, PNG — maks 5MB</p></div>
+                <div><Upload className="w-5 h-5 mx-auto mb-1 text-gray-400" /><span>Klik untuk upload</span><p className="text-xs text-gray-400 mt-1">PDF, JPG, PNG — maks 15MB</p></div>
               )}
             </div>
             <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"

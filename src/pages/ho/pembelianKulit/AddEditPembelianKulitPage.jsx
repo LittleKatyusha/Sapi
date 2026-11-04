@@ -764,12 +764,12 @@ const AddEditPembelianKulitPage = () => {
     // Handle file upload
     const handleFileUpload = (file) => {
         if (file) {
-            // Validate file size (max 2MB) - sesuai backend
-            const maxSize = 2 * 1024 * 1024; // 2MB
+            // Validate file size (max 15MB) - sesuai backend
+            const maxSize = 15 * 1024 * 1024; // 15MB
             if (file.size > maxSize) {
                 setNotification({
                     type: 'error',
-                    message: 'Ukuran file terlalu besar. Maksimal 2MB.'
+                    message: 'Ukuran file terlalu besar. Maksimal 15MB.'
                 });
                 return;
             }
@@ -1824,7 +1824,7 @@ const AddEditPembelianKulitPage = () => {
                                                     ? 'bg-white/20 text-white shadow-lg' 
                                                     : 'bg-white/80 text-gray-600 hover:bg-white hover:shadow-md'
                                             }`}>
-                                                <span className="text-xs font-medium">Maksimal 2MB</span>
+                                                <span className="text-xs font-medium">Maksimal 15MB</span>
                                             </div>
                                         </label>
                                         
@@ -1913,7 +1913,7 @@ const AddEditPembelianKulitPage = () => {
                                             <p className="text-sm text-blue-700 leading-relaxed">
                                                 Upload file dokumen terkait pembelian seperti invoice, kontrak, atau foto kulit (opsional). 
                                                 Format yang didukung: <span className="font-semibold">JPG, JPEG, PNG, atau PDF</span>. 
-                                                Maksimal ukuran file: <span className="font-semibold text-blue-800">2MB</span>.
+                                                Maksimal ukuran file: <span className="font-semibold text-blue-800">15MB</span>.
                                             </p>
                                         </div>
                                     </div>

@@ -183,8 +183,8 @@ const BayarPengeluaranFeedmilPage = () => {
   const handleFileChange = (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    if (f.size > 2 * 1024 * 1024) {
-      setFormErrors((p) => ({ ...p, file: 'Ukuran file maksimal 2MB' }));
+    if (f.size > 15 * 1024 * 1024) {
+      setFormErrors((p) => ({ ...p, file: 'Ukuran file maksimal 15MB' }));
       e.target.value = '';
       return;
     }
@@ -546,7 +546,7 @@ const BayarPengeluaranFeedmilPage = () => {
                             <span>Klik untuk upload file</span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-500">Format: JPG, JPEG, PNG, PDF (Maks. 2MB)</p>
+                        <p className="text-xs text-gray-500">Format: JPG, JPEG, PNG, PDF (Maks. 15MB)</p>
                       </div>
                     </label>
                   </div>

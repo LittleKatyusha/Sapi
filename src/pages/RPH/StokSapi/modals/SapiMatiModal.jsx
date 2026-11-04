@@ -186,8 +186,8 @@ const SapiMatiModal = ({ isOpen, onClose, onSuccess, cowData, editData = null, a
       return;
     }
 
-    if (bukti && bukti.size > 5 * 1024 * 1024) {
-      setNotification({ type: 'error', message: 'Ukuran bukti maksimal 5 MB.' });
+    if (bukti && bukti.size > 15 * 1024 * 1024) {
+      setNotification({ type: 'error', message: 'Ukuran bukti maksimal 15 MB.' });
       return;
     }
 
@@ -324,7 +324,7 @@ const SapiMatiModal = ({ isOpen, onClose, onSuccess, cowData, editData = null, a
               </div>
             </Field>
 
-            <Field label="Bukti Kematian" helperText="Opsional. JPG, PNG, atau PDF, maksimal 5 MB.">
+            <Field label="Bukti Kematian" helperText="Opsional. JPG, PNG, atau PDF, maksimal 15 MB.">
               <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50/60 px-3 py-2.5 text-sm transition-colors hover:border-slate-400 hover:bg-slate-50">
                 <Paperclip className="h-4 w-4 shrink-0 text-slate-500" />
                 <span className="min-w-0 flex-1 truncate text-slate-600">{bukti ? bukti.name : 'Pilih berkas bukti'}</span>

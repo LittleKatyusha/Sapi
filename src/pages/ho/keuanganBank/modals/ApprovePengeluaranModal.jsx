@@ -88,9 +88,9 @@ const ApprovePengeluaranModal = ({
                 return;
             }
 
-            // Validate file size (2MB)
-            if (file.size > 2 * 1024 * 1024) {
-                setErrors(prev => ({ ...prev, file: 'Ukuran file maksimal 2MB' }));
+            // Validate file size (15MB)
+            if (file.size > 15 * 1024 * 1024) {
+                setErrors(prev => ({ ...prev, file: 'Ukuran file maksimal 15MB' }));
                 return;
             }
 
@@ -320,7 +320,7 @@ const ApprovePengeluaranModal = ({
                             {/* File Upload */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Bukti Pembayaran (JPG, JPEG, PNG, PDF - Max 2MB)
+                                    Bukti Pembayaran (JPG, JPEG, PNG, PDF - Max 15MB)
                                 </label>
                                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
                                     <div className="flex items-center justify-center">

@@ -100,11 +100,11 @@ const SetorBankModal = ({ isOpen, onClose, onSave }) => {
                 return;
             }
 
-            // Validate file size (max 5MB)
-            if (file.size > 5 * 1024 * 1024) {
+            // Validate file size (max 15MB)
+            if (file.size > 15 * 1024 * 1024) {
                 setErrors(prev => ({
                     ...prev,
-                    bukti_setor: 'Ukuran file maksimal 5MB'
+                    bukti_setor: 'Ukuran file maksimal 15MB'
                 }));
                 return;
             }
@@ -325,7 +325,7 @@ const SetorBankModal = ({ isOpen, onClose, onSave }) => {
                                             )}
                                         </div>
                                         <p className="text-xs text-gray-500">
-                                            Format: JPG, PNG, PDF (Maks. 5MB)
+                                            Format: JPG, PNG, PDF (Maks. 15MB)
                                         </p>
                                     </div>
                                 </label>

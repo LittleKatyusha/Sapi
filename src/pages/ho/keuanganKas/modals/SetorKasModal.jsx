@@ -359,7 +359,7 @@ const SetorKasModal = ({
                                             )}
                                         </div>
                                         <p className="text-xs text-gray-500">
-                                            Format: JPG, PNG, PDF (Maks. 2MB)
+                                            Format: JPG, PNG, PDF (Maks. 15MB)
                                         </p>
                                     </div>
                                 </label>

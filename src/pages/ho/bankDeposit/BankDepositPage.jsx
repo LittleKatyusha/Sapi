@@ -246,7 +246,7 @@ const AddEditModal = ({ isOpen, mode, initial, bankOptions, onClose, onSaved }) 
                   <div className="text-sm text-gray-500">
                     <Upload className="w-5 h-5 mx-auto mb-1 text-gray-400" />
                     <span>Klik untuk upload bukti setoran</span>
-                    <p className="text-xs text-gray-400 mt-1">JPG, PNG, PDF — maks 2MB</p>
+                    <p className="text-xs text-gray-400 mt-1">JPG, PNG, PDF — maks 15MB</p>
                   </div>
                 )}
               </div>

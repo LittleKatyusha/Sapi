@@ -48,11 +48,11 @@ const AddPaymentKasModal = ({ isOpen, onClose, onSuccess, pembayaranId, pembayar
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            // Validate file size (max 2MB)
-            if (file.size > 2 * 1024 * 1024) {
+            // Validate file size (max 15MB)
+            if (file.size > 15 * 1024 * 1024) {
                 setNotification({
                     type: 'error',
-                    message: 'Ukuran file maksimal 2MB'
+                    message: 'Ukuran file maksimal 15MB'
                 });
                 return;
             }
@@ -343,7 +343,7 @@ const AddPaymentKasModal = ({ isOpen, onClose, onSuccess, pembayaranId, pembayar
                                             )}
                                         </div>
                                         <p className="text-xs text-gray-500">
-                                            Format: JPG, PNG, PDF (Maks. 2MB)
+                                            Format: JPG, PNG, PDF (Maks. 15MB)
                                         </p>
                                     </div>
                                 </label>

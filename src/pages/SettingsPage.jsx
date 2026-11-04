@@ -316,8 +316,8 @@ const SettingsPage = () => {
         const file = e.target.files[0];
         if (file) {
             // Validasi file
-            if (file.size > 2 * 1024 * 1024) { // 2MB
-                showNotification('Ukuran file terlalu besar. Maksimal 2MB.', 'error');
+            if (file.size > 15 * 1024 * 1024) { // 15MB
+                showNotification('Ukuran file terlalu besar. Maksimal 15MB.', 'error');
                 return;
             }
 
@@ -506,7 +506,7 @@ const SettingsPage = () => {
                             {isEditing && (
                                 <p className="text-xs text-gray-500 mt-2">
                                     Klik ikon untuk mengubah foto.<br/>
-                                    Maksimal 2MB, format JPG/PNG.
+                                    Maksimal 15MB, format JPG/PNG.
                                 </p>
                             )}
                         </div>

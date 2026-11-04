@@ -33,6 +33,7 @@ const accountingService = {
   getGeneralLedger: (params) => httpClient.get(`${BASE_URL}/reports/general-ledger`, { params }),
   getTrialBalance: (params) => httpClient.get(`${BASE_URL}/reports/trial-balance`, { params }),
   getIncomeStatement: (params) => httpClient.get(`${BASE_URL}/reports/income-statement`, { params }),
+  getIncomeStatementDetail: (params) => httpClient.get(`${BASE_URL}/reports/income-statement/detail`, { params }),
   getBalanceSheet: (params) => httpClient.get(`${BASE_URL}/reports/balance-sheet`, { params }),
   getCashFlow: (params) => httpClient.get(`${BASE_URL}/reports/cash-flow`, { params }),
   getInventoryReconciliation: (params) => httpClient.get(`${BASE_URL}/reports/inventory-reconciliation`, { params }),

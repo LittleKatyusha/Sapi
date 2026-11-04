@@ -930,8 +930,8 @@ const PembelianKonsentratPage = () => {
                             accept=".jpg,.jpeg,.png,.pdf"
                             onChange={(e) => {
                               const f = e.target.files?.[0];
-                              if (f && f.size > 5 * 1024 * 1024) {
-                                showError('Ukuran berkas maksimal 5MB');
+                              if (f && f.size > 15 * 1024 * 1024) {
+                                showError('Ukuran berkas maksimal 15MB');
                                 e.target.value = '';
                                 return;
                               }

@@ -204,8 +204,8 @@ const AddEditPembelianQurbanPage = () => {
     const handleFileChange = useCallback((e) => {
         const f = e.target.files?.[0];
         if (!f) return;
-        if (f.size > 2 * 1024 * 1024) {
-            setNotification({ type: 'error', message: 'Ukuran file maksimal 2MB' });
+        if (f.size > 15 * 1024 * 1024) {
+            setNotification({ type: 'error', message: 'Ukuran file maksimal 15MB' });
             e.target.value = '';
             return;
         }
@@ -433,7 +433,7 @@ const AddEditPembelianQurbanPage = () => {
                                             </>
                                         )}
                                         {!selectedFile && !filePreview && (
-                                            <span className="text-[10px] text-slate-400">JPG/PNG/PDF (maks 2MB)</span>
+                                            <span className="text-[10px] text-slate-400">JPG/PNG/PDF (maks 15MB)</span>
                                         )}
                                     </div>
                                 </div>

@@ -356,12 +356,12 @@ class BankDepositService {
       };
     }
 
-    // Check file size (max 2MB)
-    const maxSize = 2 * 1024 * 1024; // 2MB in bytes
+    // Check file size (max 15MB)
+    const maxSize = 15 * 1024 * 1024; // 15MB in bytes
     if (file.size > maxSize) {
       return {
         valid: false,
-        error: 'Ukuran file maksimal 2MB'
+        error: 'Ukuran file maksimal 15MB'
       };
     }
 
