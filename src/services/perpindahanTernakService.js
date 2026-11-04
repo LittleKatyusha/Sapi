@@ -95,6 +95,25 @@ const perpindahanTernakService = {
     }
   },
 
+  /**
+   * Receive perpindahan ternak (konfirmasi penerimaan di lokasi tujuan)
+   */
+  receive: async (pid) => {
+    try {
+      const response = await httpClient.post(`${API_BASE}/receive`, { pid });
+      return {
+        success: true,
+        data: response.data?.data,
+        message: response.data?.message || 'Perpindahan ternak berhasil diterima',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error?.response?.data?.message || 'Gagal menerima perpindahan ternak',
+      };
+    }
+  },
+
   downloadDocument: async (pid, type) => {
     return httpClient.get(`${API_BASE}/document`, { params: { pid, type }, responseType: 'blob', cache: false });
   },

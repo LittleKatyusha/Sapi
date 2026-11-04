@@ -1,8 +1,8 @@
 import React, { useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Edit, Trash2, FileText, Receipt, ScrollText } from 'lucide-react';
+import { Edit, Trash2, FileText, Receipt, ScrollText, CheckCircle2 } from 'lucide-react';
 
-const ActionMenu = ({ row, onEdit, onDelete, onSuratJalan, onKwitansi, onSsth, onClose, buttonRef, documentLoading = [] }) => {
+const ActionMenu = ({ row, onEdit, onDelete, onReceive, onSuratJalan, onKwitansi, onSsth, onClose, buttonRef, documentLoading = [] }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
     const positioned = Boolean(menuStyle);
@@ -60,20 +60,39 @@ const ActionMenu = ({ row, onEdit, onDelete, onSuratJalan, onKwitansi, onSsth, o
         };
     }, [onClose, buttonRef]);
 
+    const isDispatched = (row.status || 'DISPATCHED') === 'DISPATCHED';
+
     const actions = [
-        {
-            label: 'Edit Perpindahan',
-            icon: Edit,
-            onClick: () => onEdit(row),
-            className: 'text-gray-700',
-            description: 'Ubah data perpindahan',
-            bg: 'bg-amber-100',
-            hoverBg: 'group-hover:bg-amber-200',
-            text: 'text-amber-600',
-        },
-        {
-            divider: true
-        },
+        ...(row.can_receive ? [
+            {
+                label: 'Terima Ternak',
+                icon: CheckCircle2,
+                onClick: () => onReceive(row),
+                className: 'text-emerald-700',
+                description: 'Konfirmasi ternak tiba di tujuan',
+                bg: 'bg-emerald-100',
+                hoverBg: 'group-hover:bg-emerald-200',
+                text: 'text-emerald-600',
+            },
+            {
+                divider: true
+            }
+        ] : []),
+        ...(isDispatched ? [
+            {
+                label: 'Edit Perpindahan',
+                icon: Edit,
+                onClick: () => onEdit(row),
+                className: 'text-gray-700',
+                description: 'Ubah data perpindahan',
+                bg: 'bg-amber-100',
+                hoverBg: 'group-hover:bg-amber-200',
+                text: 'text-amber-600',
+            },
+            {
+                divider: true
+            }
+        ] : []),
         {
             label: 'Surat Jalan',
             type: 'surat_jalan',
@@ -107,19 +126,21 @@ const ActionMenu = ({ row, onEdit, onDelete, onSuratJalan, onKwitansi, onSsth, o
             hoverBg: 'group-hover:bg-violet-200',
             text: 'text-violet-600',
         },
-        {
-            divider: true
-        },
-        {
-            label: 'Hapus Perpindahan',
-            icon: Trash2,
-            onClick: () => onDelete(row),
-            className: 'text-red-600',
-            description: 'Hapus permanen',
-            bg: 'bg-red-100',
-            hoverBg: 'group-hover:bg-red-200',
-            text: 'text-red-600',
-        }
+        ...(isDispatched ? [
+            {
+                divider: true
+            },
+            {
+                label: 'Hapus Perpindahan',
+                icon: Trash2,
+                onClick: () => onDelete(row),
+                className: 'text-red-600',
+                description: 'Hapus permanen',
+                bg: 'bg-red-100',
+                hoverBg: 'group-hover:bg-red-200',
+                text: 'text-red-600',
+            }
+        ] : [])
     ];
 
     if (!menuStyle) return null;

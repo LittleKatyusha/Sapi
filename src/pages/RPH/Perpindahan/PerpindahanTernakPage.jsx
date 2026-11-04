@@ -4,7 +4,7 @@ import DataTable from 'react-data-table-component';
 import {
   Truck, PlusCircle, Search, ChevronUp, ChevronDown,
   RotateCcw, Filter, XCircle, Beef, Calendar, MapPin, Package, Tag,
-  ArrowRight, AlertCircle, Scale, Wallet,
+  ArrowRight, AlertCircle, Scale, Wallet, CheckCircle2, Clock,
 } from 'lucide-react';
 
 import useDocumentTitle from '../../../hooks/useDocumentTitle';
@@ -172,6 +172,22 @@ const PerpindahanTernakPage = () => {
       }
     } catch (err) {
       showError(err?.message || 'Gagal menghapus data');
+    }
+  }, [fetchData, showSuccess, showError]);
+
+  const handleReceive = useCallback(async (row) => {
+    setOpenMenuId(null);
+    if (!window.confirm(`Konfirmasi penerimaan ${row.jumlah_ekor} ekor ternak di ${row.lokasi_tujuan}?\nTernak akan otomatis masuk ke stok sapi lokasi tujuan.`)) return;
+    try {
+      const response = await perpindahanTernakService.receive(row.pubid);
+      if (response.success) {
+        showSuccess(response.message || 'Ternak berhasil diterima dan masuk ke stok');
+        fetchData();
+      } else {
+        showError(response.message || 'Gagal menerima ternak');
+      }
+    } catch (err) {
+      showError(err?.message || 'Gagal menerima ternak');
     }
   }, [fetchData, showSuccess, showError]);
 
@@ -349,6 +365,41 @@ const PerpindahanTernakPage = () => {
       ),
     },
     {
+      name: 'Status',
+      selector: (row) => row.status,
+      sortable: true,
+      width: '130px',
+      center: true,
+      cell: (row) => (
+        <div className="flex flex-col items-center gap-1 py-1">
+          {row.status === 'RECEIVED' ? (
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full border border-emerald-200">
+              <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+              Diterima
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full border border-amber-200">
+              <Clock className="w-3 h-3 text-amber-500" />
+              Dikirim
+            </span>
+          )}
+          {row.can_receive && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleReceive(row);
+              }}
+              className="inline-flex items-center gap-1 text-[10px] font-bold bg-blue-600 text-white px-2 py-0.5 rounded shadow-sm hover:bg-blue-700 transition"
+              title="Konfirmasi sapi sudah tiba di lokasi tujuan"
+            >
+              <CheckCircle2 className="w-2.5 h-2.5" />
+              Terima
+            </button>
+          )}
+        </div>
+      ),
+    },
+    {
       name: 'Aksi',
       center: true,
       width: '70px',
@@ -359,6 +410,7 @@ const PerpindahanTernakPage = () => {
           setOpenMenuId={setOpenMenuId}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onReceive={handleReceive}
           onSuratJalan={handleSuratJalan}
           onKwitansi={handleKwitansi}
           onSsth={handleSsth}
@@ -367,7 +419,7 @@ const PerpindahanTernakPage = () => {
         />
       ),
     },
-  ], [handleEdit, handleDelete, handleSuratJalan, handleKwitansi, handleSsth, openMenuId, documentLoading]);
+  ], [handleEdit, handleDelete, handleReceive, handleSuratJalan, handleKwitansi, handleSsth, openMenuId, documentLoading]);
 
   const customTableStyles = {
     table: { style: { borderRadius: '16px', overflow: 'hidden' } },
