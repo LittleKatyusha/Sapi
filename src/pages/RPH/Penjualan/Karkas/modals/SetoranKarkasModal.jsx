@@ -173,6 +173,7 @@ const SetoranKarkasModal = ({
                 <option value="TRANSFER BCA">Transfer BCA</option>
                 <option value="TRANSFER BNI">Transfer BNI</option>
                 <option value="TRANSFER BRI">Transfer BRI</option>
+                <option value="TRANSFER MANDIRI">Transfer Mandiri</option>
               </select>
             </div>
 

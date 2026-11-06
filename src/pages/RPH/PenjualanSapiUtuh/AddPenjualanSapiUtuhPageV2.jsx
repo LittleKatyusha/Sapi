@@ -38,6 +38,7 @@ const METODE_PEMBAYARAN_OPTIONS = [
   { value: 'transfer_bca', label: 'Transfer BCA' },
   { value: 'transfer_bni', label: 'Transfer BNI' },
   { value: 'transfer_bri', label: 'Transfer BRI' },
+  { value: 'transfer_mandiri', label: 'Transfer Mandiri' },
 ];
 
 const defaultFormData = {
