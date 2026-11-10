@@ -35,6 +35,7 @@ const accountingService = {
   getIncomeStatement: (params) => httpClient.get(`${BASE_URL}/reports/income-statement`, { params }),
   getIncomeStatementDetail: (params) => httpClient.get(`${BASE_URL}/reports/income-statement/detail`, { params }),
   getBalanceSheet: (params) => httpClient.get(`${BASE_URL}/reports/balance-sheet`, { params }),
+  getBalanceSheetDetail: (params) => httpClient.get(`${BASE_URL}/reports/balance-sheet/detail`, { params }),
   getCashFlow: (params) => httpClient.get(`${BASE_URL}/reports/cash-flow`, { params }),
   getInventoryReconciliation: (params) => httpClient.get(`${BASE_URL}/reports/inventory-reconciliation`, { params }),
   getBankReconciliation: (params) => httpClient.get(`${BASE_URL}/reports/bank-reconciliation`, { params }),
