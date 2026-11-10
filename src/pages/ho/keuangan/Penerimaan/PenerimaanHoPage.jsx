@@ -316,6 +316,11 @@ const PenerimaanHoPage = () => {
           selector: (r) => r.nama_pembayar,
           cell: (r) => <span className="text-sm text-gray-600">{r.nama_pembayar || '-'}</span>,
         },
+        {
+          name: 'Keterangan',
+          selector: (r) => r.keterangan || r.note,
+          cell: (r) => <span className="text-sm text-gray-600">{r.keterangan || r.note || '-'}</span>,
+        },
       ];
     }
 

@@ -32,6 +32,7 @@ const BayarPenerimaanHoPage = () => {
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [metode, setMetode] = useState('');
   const [namaPembayar, setNamaPembayar] = useState('');
+  const [keterangan, setKeterangan] = useState('');
   const [formErrors, setFormErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -122,6 +123,8 @@ const BayarPenerimaanHoPage = () => {
       payment_date: paymentDate,
       metode_pembayaran: metode,
       nama_pembayar: namaPembayar || undefined,
+      keterangan: keterangan ? String(keterangan).trim() : undefined,
+      note: keterangan ? String(keterangan).trim() : undefined,
       file: selectedFile || undefined,
     });
     setSubmitLoading(false);
@@ -132,6 +135,7 @@ const BayarPenerimaanHoPage = () => {
       setPaymentDate(new Date().toISOString().split('T')[0]);
       setMetode('');
       setNamaPembayar('');
+      setKeterangan('');
       setSelectedFile(null);
       const input = document.getElementById('file-penerimaan');
       if (input) input.value = '';
@@ -171,6 +175,11 @@ const BayarPenerimaanHoPage = () => {
       name: 'Pembayar',
       selector: (r) => r.nama_pembayar,
       cell: (r) => <span className="text-sm text-gray-600">{r.nama_pembayar || '-'}</span>,
+    },
+    {
+      name: 'Keterangan',
+      selector: (r) => r.keterangan || r.note,
+      cell: (r) => <span className="text-sm text-gray-600">{r.keterangan || r.note || '-'}</span>,
     },
     {
       name: 'Bukti',
@@ -319,6 +328,20 @@ const BayarPenerimaanHoPage = () => {
                     value={namaPembayar}
                     onChange={(e) => setNamaPembayar(e.target.value)}
                     placeholder="Nama orang yang membayar"
+                    disabled={submitLoading || sisa <= 0}
+                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100"
+                  />
+                </div>
+
+                <div className="mb-5">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Keterangan <span className="text-gray-400 font-normal">(opsional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={keterangan}
+                    onChange={(e) => setKeterangan(e.target.value)}
+                    placeholder="Keterangan atau catatan pembayaran"
                     disabled={submitLoading || sisa <= 0}
                     className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100"
                   />

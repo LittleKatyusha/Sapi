@@ -478,7 +478,10 @@ const PenerimaanFeedmillPage = () => {
                       <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg text-sm">
                         <div>
                           <p className="font-medium text-gray-800">{formatRupiah(d.amount)}</p>
-                          <p className="text-xs text-gray-500">{formatDate(d.payment_date)} — {d.metode_pembayaran || '-'} — {d.nama_pembayar || '-'}</p>
+                          <p className="text-xs text-gray-500">
+                            {formatDate(d.payment_date)} — {d.metode_pembayaran || '-'} — {d.nama_pembayar || '-'}
+                            {(d.keterangan || d.note) ? ` — ${d.keterangan || d.note}` : ''}
+                          </p>
                         </div>
                       </div>
                     ))}
