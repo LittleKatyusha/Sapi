@@ -119,9 +119,9 @@ export default function AccountDetailModal({
   if (!isOpen || !account) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-gray-900/60 backdrop-blur-sm animate-fadeIn">
       <div
-        className="flex flex-col w-full max-w-4xl max-h-[90vh] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
+        className="flex flex-col w-full max-w-6xl xl:max-w-7xl max-h-[92vh] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
         role="dialog"
         aria-modal="true"
       >
@@ -314,6 +314,7 @@ export default function AccountDetailModal({
                                     <th className="p-2.5 font-semibold w-24">Tanggal</th>
                                     <th className="p-2.5 font-semibold w-36">No. Jurnal</th>
                                     <th className="p-2.5 font-semibold w-36">Nama Item</th>
+                                    <th className="p-2.5 font-semibold text-right w-24">Qty</th>
                                     <th className="p-2.5 font-semibold">Keterangan / Uraian</th>
                                     <th className="p-2.5 font-semibold text-right w-32">Nominal</th>
                                   </tr>
@@ -329,6 +330,15 @@ export default function AccountDetailModal({
                                         {item.nama_item && item.nama_item !== '-' ? (
                                           <span className="inline-block px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-medium text-xs">
                                             {item.nama_item}
+                                          </span>
+                                        ) : (
+                                          <span className="text-gray-400">-</span>
+                                        )}
+                                      </td>
+                                      <td className="p-2.5 text-right whitespace-nowrap">
+                                        {item.qty != null ? (
+                                          <span className="inline-block px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-semibold text-xs">
+                                            {formatNumber(item.qty)} {item.satuan || ''}
                                           </span>
                                         ) : (
                                           <span className="text-gray-400">-</span>
@@ -362,6 +372,7 @@ export default function AccountDetailModal({
                         <th className="p-3 font-semibold w-24">Tanggal</th>
                         <th className="p-3 font-semibold w-36">No. Jurnal</th>
                         <th className="p-3 font-semibold w-32">Nama Item</th>
+                        <th className="p-3 font-semibold text-right w-24">Qty</th>
                         <th className="p-3 font-semibold w-32">Kelompok</th>
                         <th className="p-3 font-semibold">Keterangan</th>
                         <th className="p-3 font-semibold text-right w-28">Debit</th>
@@ -372,7 +383,7 @@ export default function AccountDetailModal({
                     <tbody className="divide-y divide-gray-100">
                       {filteredAllItems.length === 0 ? (
                         <tr>
-                          <td colSpan="8" className="p-8 text-center text-gray-400">
+                          <td colSpan="9" className="p-8 text-center text-gray-400">
                             <FileText className="h-6 w-6 mx-auto mb-1 text-gray-300" />
                             Tidak ada transaksi.
                           </td>
@@ -386,6 +397,15 @@ export default function AccountDetailModal({
                               {item.nama_item && item.nama_item !== '-' ? (
                                 <span className="inline-block px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-medium text-[11px]">
                                   {item.nama_item}
+                                </span>
+                              ) : (
+                                <span className="text-gray-400">-</span>
+                              )}
+                            </td>
+                            <td className="p-2.5 text-right whitespace-nowrap">
+                              {item.qty != null ? (
+                                <span className="inline-block px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-semibold text-[11px]">
+                                  {formatNumber(item.qty)} {item.satuan || ''}
                                 </span>
                               ) : (
                                 <span className="text-gray-400">-</span>

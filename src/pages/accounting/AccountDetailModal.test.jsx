@@ -28,7 +28,10 @@ describe('AccountDetailModal', () => {
             id: 101,
             nomor_jurnal: 'PURCHAE3/HO/202610/00007',
             tanggal: '2026-10-01',
+            no_nota: 'NOTA-001',
             nama_item: 'Pajak',
+            qty: 16,
+            satuan: 'ekor',
             keterangan: 'Pembelian beban biaya HO PI3202610150007',
             kategori: 'Pajak & Retribusi',
             debit: 520000,
@@ -43,7 +46,10 @@ describe('AccountDetailModal', () => {
         id: 101,
         nomor_jurnal: 'PURCHAE3/HO/202610/00007',
         tanggal: '2026-10-01',
+        no_nota: 'NOTA-001',
         nama_item: 'Pajak',
+        qty: 16,
+        satuan: 'ekor',
         keterangan: 'Pembelian beban biaya HO PI3202610150007',
         kategori: 'Pajak & Retribusi',
         debit: 520000,
@@ -74,6 +80,7 @@ describe('AccountDetailModal', () => {
     await waitFor(() => {
       expect(screen.getByText('Beban Operasional')).toBeInTheDocument();
       expect(screen.getByText('PURCHAE3/HO/202610/00007')).toBeInTheDocument();
+      expect(screen.getByText('16 ekor')).toBeInTheDocument();
       expect(screen.getByText('Pajak')).toBeInTheDocument();
       expect(screen.getByText('Nama Item')).toBeInTheDocument();
       expect(screen.getByText('Pembelian beban biaya HO PI3202610150007')).toBeInTheDocument();
