@@ -84,6 +84,7 @@ export default function AccountDetailModal({
         const filteredItems = group.items.filter(
           (item) =>
             matchesCategory ||
+            (item.nama_item && item.nama_item.toLowerCase().includes(q)) ||
             (item.keterangan && item.keterangan.toLowerCase().includes(q)) ||
             (item.nomor_jurnal && item.nomor_jurnal.toLowerCase().includes(q)) ||
             String(item.amount).includes(q)
@@ -107,6 +108,7 @@ export default function AccountDetailModal({
     const q = search.toLowerCase();
     return data.items.filter(
       (item) =>
+        (item.nama_item && item.nama_item.toLowerCase().includes(q)) ||
         (item.kategori && item.kategori.toLowerCase().includes(q)) ||
         (item.keterangan && item.keterangan.toLowerCase().includes(q)) ||
         (item.nomor_jurnal && item.nomor_jurnal.toLowerCase().includes(q)) ||
@@ -187,7 +189,7 @@ export default function AccountDetailModal({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari keterangan, nomor jurnal, kategori..."
+              placeholder="Cari item, keterangan, nomor jurnal, kategori..."
               className="w-full pl-9 pr-3 py-1.5 text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             />
           </div>
@@ -311,6 +313,7 @@ export default function AccountDetailModal({
                                   <tr>
                                     <th className="p-2.5 font-semibold w-24">Tanggal</th>
                                     <th className="p-2.5 font-semibold w-36">No. Jurnal</th>
+                                    <th className="p-2.5 font-semibold w-36">Nama Item</th>
                                     <th className="p-2.5 font-semibold">Keterangan / Uraian</th>
                                     <th className="p-2.5 font-semibold text-right w-32">Nominal</th>
                                   </tr>
@@ -321,6 +324,15 @@ export default function AccountDetailModal({
                                       <td className="p-2.5 text-gray-600 whitespace-nowrap">{item.tanggal}</td>
                                       <td className="p-2.5 font-mono text-gray-700 whitespace-nowrap">
                                         {item.nomor_jurnal}
+                                      </td>
+                                      <td className="p-2.5 whitespace-nowrap">
+                                        {item.nama_item && item.nama_item !== '-' ? (
+                                          <span className="inline-block px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-medium text-xs">
+                                            {item.nama_item}
+                                          </span>
+                                        ) : (
+                                          <span className="text-gray-400">-</span>
+                                        )}
                                       </td>
                                       <td className="p-2.5 text-gray-800">
                                         <p className="line-clamp-2">{item.keterangan || '-'}</p>
@@ -349,7 +361,8 @@ export default function AccountDetailModal({
                       <tr>
                         <th className="p-3 font-semibold w-24">Tanggal</th>
                         <th className="p-3 font-semibold w-36">No. Jurnal</th>
-                        <th className="p-3 font-semibold w-36">Kelompok</th>
+                        <th className="p-3 font-semibold w-32">Nama Item</th>
+                        <th className="p-3 font-semibold w-32">Kelompok</th>
                         <th className="p-3 font-semibold">Keterangan</th>
                         <th className="p-3 font-semibold text-right w-28">Debit</th>
                         <th className="p-3 font-semibold text-right w-28">Kredit</th>
@@ -359,7 +372,7 @@ export default function AccountDetailModal({
                     <tbody className="divide-y divide-gray-100">
                       {filteredAllItems.length === 0 ? (
                         <tr>
-                          <td colSpan="7" className="p-8 text-center text-gray-400">
+                          <td colSpan="8" className="p-8 text-center text-gray-400">
                             <FileText className="h-6 w-6 mx-auto mb-1 text-gray-300" />
                             Tidak ada transaksi.
                           </td>
@@ -369,6 +382,15 @@ export default function AccountDetailModal({
                           <tr key={item.id} className="hover:bg-gray-50/50">
                             <td className="p-2.5 text-gray-600 whitespace-nowrap">{item.tanggal}</td>
                             <td className="p-2.5 font-mono text-gray-700 whitespace-nowrap">{item.nomor_jurnal}</td>
+                            <td className="p-2.5 whitespace-nowrap">
+                              {item.nama_item && item.nama_item !== '-' ? (
+                                <span className="inline-block px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-medium text-[11px]">
+                                  {item.nama_item}
+                                </span>
+                              ) : (
+                                <span className="text-gray-400">-</span>
+                              )}
+                            </td>
                             <td className="p-2.5 whitespace-nowrap">
                               <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 font-medium text-[11px]">
                                 {item.kategori}
