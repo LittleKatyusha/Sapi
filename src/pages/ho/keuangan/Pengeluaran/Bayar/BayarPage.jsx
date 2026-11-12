@@ -28,6 +28,7 @@ const BayarPengeluaranHoPage = () => {
   const [error, setError] = useState(null);
   const [nominal, setNominal] = useState('');
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [metode, setMetode] = useState('transfer_bank');
   const [note, setNote] = useState('');
   const [formErrors, setFormErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -41,6 +42,7 @@ const BayarPengeluaranHoPage = () => {
       rowNumber: index + 1,
       amount: parseFloat(item.amount ?? item.nominal_pembayaran ?? item.nominal) || 0,
       payment_date: item.payment_date || item.tanggal_pembayaran || item.created_at || '',
+      metode_pembayaran: item.metode_pembayaran || item.metode || '',
       note: item.note || item.description || item.catatan || '',
       bukti_pembayaran_url: item.bukti_pembayaran_url || item.bukti_url || null,
     }));
@@ -218,6 +220,7 @@ const BayarPengeluaranHoPage = () => {
       submitData.append('amount', nominalValue);
       submitData.append('payment_date', paymentDate);
       submitData.append('tanggal_pembayaran', paymentDate);
+      submitData.append('metode_pembayaran', metode || 'transfer_bank');
       submitData.append('note', note ? String(note).trim() : '');
       if (selectedFile) {
         submitData.append('file_upload', selectedFile);
@@ -266,6 +269,21 @@ const BayarPengeluaranHoPage = () => {
       sortable: true,
       right: true,
       cell: (r) => <span className="text-sm font-bold text-emerald-600">{formatRupiah(r.amount)}</span>,
+    },
+    {
+      name: 'Metode',
+      selector: (r) => r.metode_pembayaran,
+      cell: (r) => {
+        const m = (r.metode_pembayaran || '').toLowerCase();
+        const isCash = m === 'tunai' || m === 'kas';
+        return (
+          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+            isCash ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'
+          }`}>
+            {r.metode_pembayaran ? r.metode_pembayaran.replace('_', ' ').toUpperCase() : '-'}
+          </span>
+        );
+      },
     },
     {
       name: 'Catatan',
@@ -431,6 +449,27 @@ const BayarPengeluaranHoPage = () => {
                       <AlertCircle className="w-3 h-3" /> {formErrors.payment_date}
                     </p>
                   )}
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Metode Pembayaran
+                  </label>
+                  <select
+                    value={metode}
+                    onChange={(e) => setMetode(e.target.value)}
+                    disabled={submitLoading || sisa <= 0}
+                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100 font-medium text-gray-800"
+                  >
+                    <option value="transfer_bank">Transfer Bank (Umum)</option>
+                    <option value="transfer_bca">Transfer BCA</option>
+                    <option value="transfer_mandiri">Transfer Mandiri</option>
+                    <option value="transfer_bri">Transfer BRI</option>
+                    <option value="tunai">Kas Tunai</option>
+                  </select>
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Pilih rekening kas atau bank untuk pengeluaran ini
+                  </p>
                 </div>
 
                 <div className="mb-5">

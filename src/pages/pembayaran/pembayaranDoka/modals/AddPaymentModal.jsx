@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, DollarSign, Calendar, Save, AlertCircle, FileText } from 'lucide-react';
+import { X, DollarSign, Calendar, Save, AlertCircle, FileText, CreditCard } from 'lucide-react';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 
@@ -7,6 +7,7 @@ const AddPaymentModal = ({ isOpen, onClose, onSuccess, pembayaranId, pembayaranD
     const [formData, setFormData] = useState({
         amount: '',
         payment_date: new Date().toISOString().split('T')[0],
+        metode_pembayaran: 'transfer_bca',
         note: ''
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -18,6 +19,7 @@ const AddPaymentModal = ({ isOpen, onClose, onSuccess, pembayaranId, pembayaranD
             setFormData({
                 amount: '',
                 payment_date: new Date().toISOString().split('T')[0],
+                metode_pembayaran: 'transfer_bca',
                 note: ''
             });
             setNotification(null);
@@ -91,6 +93,7 @@ const AddPaymentModal = ({ isOpen, onClose, onSuccess, pembayaranId, pembayaranD
                 id_pembayaran: pembayaranId,
                 amount: parseNumber(formData.amount),
                 payment_date: formData.payment_date,
+                metode_pembayaran: formData.metode_pembayaran || 'transfer_bca',
                 note: formData.note ? String(formData.note).trim() : ''
             };
 
@@ -244,6 +247,30 @@ const AddPaymentModal = ({ isOpen, onClose, onSuccess, pembayaranId, pembayaranD
                             />
                             <p className="text-xs text-green-600 mt-1">
                                 Tanggal ketika pembayaran dilakukan
+                            </p>
+                        </div>
+
+                        {/* Metode Pembayaran Field */}
+                        <div className="mb-6">
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <CreditCard className="w-4 h-4" />
+                                Metode Pembayaran *
+                            </label>
+                            <select
+                                value={formData.metode_pembayaran}
+                                onChange={(e) => handleInputChange('metode_pembayaran', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white"
+                                disabled={isSubmitting}
+                                required
+                            >
+                                <option value="transfer_bca">Transfer BCA</option>
+                                <option value="transfer_mandiri">Transfer Mandiri</option>
+                                <option value="transfer_bri">Transfer BRI</option>
+                                <option value="transfer_bank">Transfer Bank (Lainnya)</option>
+                                <option value="tunai">Kas Tunai</option>
+                            </select>
+                            <p className="text-xs text-gray-500 mt-1">
+                                Pilih rekening pengeluaran kas atau bank
                             </p>
                         </div>
 
