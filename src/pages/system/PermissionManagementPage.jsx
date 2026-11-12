@@ -216,8 +216,12 @@ const PermissionManagementPage = () => {
         definitions = Array.from(uniqueMap.values());
       }
 
-      const capability = { service_name: 'rph.inventory', function_name: 'all-rph', method: 'GET', value: 'rph.inventory.all-rph' };
-      const options = [...(definitions || []).filter(option => option.value !== capability.value), capability].sort(
+      const capabilities = [
+        { service_name: 'rph.inventory', function_name: 'all-rph', method: 'GET', value: 'rph.inventory.all-rph' },
+        { service_name: 'accounting.settings', function_name: 'allEntities', method: 'GET', value: 'accounting.settings.allEntities' }
+      ];
+      const capValues = new Set(capabilities.map(c => c.value));
+      const options = [...(definitions || []).filter(option => !capValues.has(option.value)), ...capabilities].sort(
         (a, b) => a.value.localeCompare(b.value) || a.method.localeCompare(b.method)
       );
       setPermissionOptions(options);
@@ -871,7 +875,11 @@ const PermissionManagementPage = () => {
                                             {opt.method}
                                           </span>
                                           <span className="text-xs font-semibold text-gray-900 truncate">
-                                            {opt.value === 'rph.inventory.all-rph' ? 'Persediaan lintas kantor (ALL RPH)' : opt.function_name}
+                                            {opt.value === 'rph.inventory.all-rph'
+                                              ? 'Persediaan lintas kantor (ALL RPH)'
+                                              : opt.value === 'accounting.settings.allEntities'
+                                              ? 'Akses Semua Entitas Akuntansi (All Entities)'
+                                              : opt.function_name}
                                           </span>
                                           {isDirty && (
                                             <span className="text-[10px] bg-amber-100 text-amber-800 px-1 rounded font-medium">
@@ -882,6 +890,7 @@ const PermissionManagementPage = () => {
                                         <div className="text-[11px] font-mono text-gray-500 truncate" title={opt.value}>
                                           {opt.value}
                                           {opt.value === 'rph.inventory.all-rph' && <p className="font-sans whitespace-normal">Tanpa izin ini: kantor sendiri. Tidak memberikan izin aksi atau modul lain. ALL hanya baca; tindakan wajib memilih RPH.</p>}
+                                          {opt.value === 'accounting.settings.allEntities' && <p className="font-sans whitespace-normal">Memberikan akses ke seluruh entitas akunting (HO, Feedmill, RPH lain) tanpa dibatasi id_office.</p>}
                                         </div>
                                       </div>
                                     </div>
