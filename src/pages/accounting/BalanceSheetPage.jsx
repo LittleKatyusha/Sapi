@@ -266,6 +266,10 @@ export default function BalanceSheetPage() {
                         <td colSpan="2" className="p-3">TOTAL EKUITAS</td>
                         <td className="p-3 text-right">{formatNumber(Number(report.total_equity || 0) + Number(report.current_earnings || 0))}</td>
                       </tr>
+                      <tr className="border-t-2 border-indigo-200 bg-indigo-50/75 font-bold text-indigo-950">
+                        <td colSpan="2" className="p-3">TOTAL KEWAJIBAN &amp; EKUITAS</td>
+                        <td className="p-3 text-right text-indigo-900">{formatNumber(report.total_liability_equity)}</td>
+                      </tr>
                     </tfoot>
                   </table>
                 </div>
