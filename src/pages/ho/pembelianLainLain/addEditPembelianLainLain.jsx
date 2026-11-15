@@ -127,6 +127,8 @@ const AddEditPembelianLainLainPage = () => {
         fileName: '',
         tipe_pembayaran: '', // Added: Tipe pembayaran
         due_date: '', // Added: Jatuh tempo payment
+        isLeasing: false, // Skema: false = Hutang Vendor (2110), true = Hutang Leasing (2520)
+        namaLeasing: '', // Nama leasing jika isLeasing true
         note: '' // Added: Required note field
     });
 
@@ -315,6 +317,15 @@ const AddEditPembelianLainLainPage = () => {
                             fileName: headerData.file ? headerData.file.split('/').pop() : '',
                             tipe_pembayaran: headerData.tipe_pembayaran ? parseInt(headerData.tipe_pembayaran) : '',
                             due_date: safeGetString(headerData.due_date),
+                            isLeasing: (() => {
+                                const n = (safeGetString(headerData.note) || safeGetString(headerData.catatan)).toLowerCase();
+                                return /\[leasing/i.test(n) || /kredit leasing|via leasing/i.test(n);
+                            })(),
+                            namaLeasing: (() => {
+                                const n = safeGetString(headerData.note) || safeGetString(headerData.catatan);
+                                const match = /\[LEASING(?::\s*([^\]]+))?\]/i.exec(n);
+                                return match ? (match[1] || '').trim() : '';
+                            })(),
                             note: safeGetString(headerData.note) || safeGetString(headerData.catatan)
                         });
 
@@ -1151,7 +1162,14 @@ const AddEditPembelianLainLainPage = () => {
                 tipe_pembelian: parseInt(headerData.tipePembelian),
                 tipe_pembayaran: parseInt(headerData.tipe_pembayaran),
                 due_date: headerData.due_date,
-                note: headerData.note,
+                note: (() => {
+                    const rawNote = (headerData.note || '').replace(/\[LEASING[^\]]*\]/gi, '').trim();
+                    if (headerData.isLeasing) {
+                        const leasingTag = headerData.namaLeasing?.trim() ? `[LEASING: ${headerData.namaLeasing.trim().toUpperCase()}]` : '[LEASING]';
+                        return `${leasingTag} ${rawNote}`.trim();
+                    }
+                    return rawNote;
+                })(),
                 // Ensure file is properly passed - prioritize selectedFile over headerData.file
                 // Only pass file if it's a File object (new upload) or if we have existing file name but no new file
                 file: selectedFile || (headerData.file && headerData.file instanceof File ? headerData.file : null),
@@ -1413,16 +1431,60 @@ const AddEditPembelianLainLainPage = () => {
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <Building2 className="w-4 h-4" />
-                                Supplier *
+                                Supplier / Dealer Penjual *
                             </label>
                             <input
                                 type="text"
                                 value={headerData.idSupplier}
                                 onChange={(e) => handleHeaderChange('idSupplier', e.target.value)}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="Masukkan nama supplier"
+                                placeholder="Contoh: AUTO2000, UNITED TRACTORS, TOKO BESI"
                             />
+                            <p className="text-xs text-gray-500 mt-1">
+                                💡 Nama toko/dealer tempat fisik barang atau aset dibeli
+                            </p>
                         </div>
+
+                        {/* Skema Pembelian Aset */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <DollarSign className="w-4 h-4 text-emerald-600" />
+                                Skema Pembelian Aset *
+                            </label>
+                            <select
+                                value={headerData.isLeasing ? 'leasing' : 'biasa'}
+                                onChange={(e) => handleHeaderChange('isLeasing', e.target.value === 'leasing')}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200 text-sm font-medium text-gray-800"
+                            >
+                                <option value="biasa">Pembelian Biasa / Tempo Supplier (&lt; 1 Tahun - Hutang Vendor)</option>
+                                <option value="leasing">Kredit Leasing / Pembiayaan (&gt; 1 Tahun - Hutang Leasing)</option>
+                            </select>
+                            <p className="text-xs text-gray-500 mt-1">
+                                {headerData.isLeasing
+                                    ? '📌 Hutang masuk ke COA 2520 (Kewajiban Jangka Panjang / Leasing)'
+                                    : '📌 Hutang masuk ke COA 2110 (Kewajiban Lancar / Hutang Vendor)'}
+                            </p>
+                        </div>
+
+                        {/* Nama Lembaga Leasing */}
+                        {headerData.isLeasing && (
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-medium text-indigo-700 mb-2">
+                                    <Building2 className="w-4 h-4 text-indigo-600" />
+                                    Nama Lembaga Leasing / Pembiayaan *
+                                </label>
+                                <input
+                                    type="text"
+                                    value={headerData.namaLeasing || ''}
+                                    onChange={(e) => handleHeaderChange('namaLeasing', e.target.value)}
+                                    className="w-full px-4 py-3 border border-indigo-300 bg-indigo-50/40 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                                    placeholder="Contoh: ADIRA FINANCE, CLIPAN, MUF, BCA FINANCE"
+                                />
+                                <p className="text-xs text-indigo-600 mt-1">
+                                    💡 Masukkan nama leasing penerbit akad kredit/pembiayaan
+                                </p>
+                            </div>
+                        )}
 
                         {/* Tanggal Masuk */}
                         <div>
