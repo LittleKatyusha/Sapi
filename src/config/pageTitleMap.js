@@ -162,6 +162,7 @@ export const pageTitleMap = {
   '/akuntansi/pengaturan': 'Pengaturan Akunting',
   '/akuntansi/setting': 'Pengaturan Akunting',
   '/akuntansi/periode': 'Periode Akunting',
+  '/akuntansi/aset-tetap': 'Aset Tetap & Investasi',
   '/akuntansi/panduan': 'Petunjuk Penggunaan Akuntansi',
   '/akuntansi/petunjuk': 'Petunjuk Penggunaan Akuntansi',
   };

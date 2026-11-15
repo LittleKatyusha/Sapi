@@ -29,7 +29,7 @@ export default function AccountDetailModal({
         setSearch('');
         setCollapsedGroups({});
         const res = await accountingService.getIncomeStatementDetail({
-          setting_id: Number(settingId),
+          setting_id: settingId === 'all' ? 'all' : Number(settingId),
           coa_id: Number(account.id),
           tanggal_from: tanggalFrom || undefined,
           tanggal_to: tanggalTo || undefined,

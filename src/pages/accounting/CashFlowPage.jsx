@@ -76,7 +76,7 @@ export default function CashFlowPage() {
       setLoading(true);
       setError('');
       const response = await accountingService.getCashFlow({
-        setting_id: Number(settingId),
+        setting_id: settingId === 'all' ? 'all' : Number(settingId),
         tanggal_from: tanggalFrom || undefined,
         tanggal_to: tanggalTo || undefined,
       });
@@ -119,7 +119,7 @@ export default function CashFlowPage() {
       setError('');
       const blob = await accountingService.exportCashFlow(
         {
-          setting_id: Number(settingId),
+          setting_id: settingId === 'all' ? 'all' : Number(settingId),
           tanggal_from: tanggalFrom || undefined,
           tanggal_to: tanggalTo || undefined,
         },
@@ -144,7 +144,7 @@ export default function CashFlowPage() {
       setError('');
       const blob = await accountingService.exportCashFlow(
         {
-          setting_id: Number(settingId),
+          setting_id: settingId === 'all' ? 'all' : Number(settingId),
           tanggal_from: tanggalFrom || undefined,
           tanggal_to: tanggalTo || undefined,
         },
@@ -165,7 +165,7 @@ export default function CashFlowPage() {
       setError('');
       const blob = await accountingService.exportCashFlow(
         {
-          setting_id: Number(settingId),
+          setting_id: settingId === 'all' ? 'all' : Number(settingId),
           tanggal_from: tanggalFrom || undefined,
           tanggal_to: tanggalTo || undefined,
         },
@@ -455,6 +455,9 @@ export default function CashFlowPage() {
               className="mt-1 w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-indigo-500 focus:outline-none"
             >
               <option value="">Pilih entitas</option>
+              {settings.length > 1 && (
+                <option value="all">★ Semua Entitas (Konsolidasi)</option>
+              )}
               {settings.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.nama_perusahaan} ({s.entitas})

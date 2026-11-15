@@ -74,6 +74,7 @@ const accountingService = {
   getAssets: (params = {}) => httpClient.get(`${BASE_URL}/assets`, { params }),
   createAsset: (data) => httpClient.post(`${BASE_URL}/assets`, data),
   updateAsset: (id, data) => httpClient.put(`${BASE_URL}/assets/${id}`, data),
+  revalueAsset: (id, data) => httpClient.post(`${BASE_URL}/assets/${id}/revalue`, data),
   runDepreciation: (data) => httpClient.post(`${BASE_URL}/assets/depreciation`, data),
   disposeAsset: (id, data) => httpClient.post(`${BASE_URL}/assets/${id}/dispose`, data),
 

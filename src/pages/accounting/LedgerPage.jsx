@@ -51,7 +51,7 @@ export default function LedgerPage() {
   }, []);
 
   const buildParams = () => ({
-    setting_id: Number(settingId),
+    setting_id: settingId === 'all' ? 'all' : Number(settingId),
     coa_id: Number(coaId),
     tanggal_from: tanggalFrom || undefined,
     tanggal_to: tanggalTo || undefined,
@@ -103,6 +103,9 @@ export default function LedgerPage() {
           Entitas Akunting
           <select value={settingId} onChange={(e) => setSettingId(e.target.value)} className="mt-1 w-full rounded-lg border p-2">
             <option value="">Pilih entitas</option>
+            {settings.length > 1 && (
+              <option value="all">★ Semua Entitas (Konsolidasi)</option>
+            )}
             {settings.map((s) => <option key={s.id} value={s.id}>{s.nama_perusahaan} ({s.entitas})</option>)}
           </select>
         </label>

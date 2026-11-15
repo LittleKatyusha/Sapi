@@ -111,6 +111,7 @@ export const ROUTE_PATHS = Object.freeze({
   ACCOUNTING_CASH_FLOW: '/akuntansi/arus-kas',
   ACCOUNTING_SETTING: '/akuntansi/setting',
   ACCOUNTING_PERIOD: '/akuntansi/periode',
+  ACCOUNTING_FIXED_ASSET: '/akuntansi/aset-tetap',
   ACCOUNTING_GUIDE: '/akuntansi/panduan',
 
   // Settings

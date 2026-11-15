@@ -9,6 +9,7 @@ const BalanceSheetPage = lazy(() => import('../pages/accounting/BalanceSheetPage
 const CashFlowPage = lazy(() => import('../pages/accounting/CashFlowPage'));
 const SettingPage = lazy(() => import('../pages/accounting/SettingPage'));
 const PeriodPage = lazy(() => import('../pages/accounting/PeriodPage'));
+const FixedAssetPage = lazy(() => import('../pages/accounting/FixedAssetPage'));
 const AccountingGuidePage = lazy(() => import('../pages/accounting/AccountingGuidePage'));
 
 export const accountingRoutes = [
@@ -21,6 +22,7 @@ export const accountingRoutes = [
   { path: '/akuntansi/arus-kas', element: <CashFlowPage /> },
   { path: '/akuntansi/setting', element: <SettingPage /> },
   { path: '/akuntansi/periode', element: <PeriodPage /> },
+  { path: '/akuntansi/aset-tetap', element: <FixedAssetPage /> },
   { path: '/akuntansi/panduan', element: <AccountingGuidePage /> },
   { path: '/akuntansi/petunjuk', element: <AccountingGuidePage /> },
 ];

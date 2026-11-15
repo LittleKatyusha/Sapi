@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import accountingService from '../../services/accountingService';
+
 const fmt = (v) => Number(v || 0).toLocaleString('id-ID');
 
 export default function FixedAssetPage() {
@@ -9,55 +10,530 @@ export default function FixedAssetPage() {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ kode_aset:'', nama_aset:'', coa_aset_id:'', coa_depresiasi_id:'', coa_beban_id:'', tanggal_perolehan:'', harga_perolehan:'', nilai_residu:0, umur_bulan:12 });
-  const [depDate, setDepDate] = useState(new Date().toISOString().slice(0,10));
+  const [success, setSuccess] = useState('');
 
-  useEffect(() => { (async () => {
-    const [sr, cr] = await Promise.all([accountingService.getSettings(), accountingService.getCoa()]);
-    setSettings(sr?.data ?? []); setAccounts((cr?.data ?? []).filter(a => a.is_posting));
-    if (sr?.data?.length) setSid(String(sr.data[0].id));
-  })(); }, []);
+  const [form, setForm] = useState({
+    kode_aset: '',
+    nama_aset: '',
+    kategori: 'kendaraan',
+    tipe_valuasi: 'depresiasi',
+    coa_aset_id: '',
+    coa_depresiasi_id: '',
+    coa_beban_id: '',
+    tanggal_perolehan: new Date().toISOString().slice(0, 10),
+    harga_perolehan: '',
+    nilai_residu: 0,
+    umur_bulan: 48,
+    keterangan: '',
+  });
 
-  const load = async () => { if (!sid) return; setLoading(true); setError('');
-    try { const r = await accountingService.getAssets({ setting_id: Number(sid) }); setAssets(r?.data ?? []); } catch (e) { setError(e.message); }
+  const [depDate, setDepDate] = useState(new Date().toISOString().slice(0, 10));
+
+  // Revaluation modal state
+  const [revalueModal, setRevalueModal] = useState({ open: false, asset: null, nilai_baru: '', catatan: '' });
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [sr, cr] = await Promise.all([accountingService.getSettings(), accountingService.getCoa()]);
+        setSettings(sr?.data ?? []);
+        setAccounts((cr?.data ?? []).filter((a) => a.is_posting));
+        if (sr?.data?.length) setSid(String(sr.data[0].id));
+      } catch (err) {
+        setError(err.message || 'Gagal memuat data master akuntansi.');
+      }
+    })();
+  }, []);
+
+  const load = async () => {
+    if (!sid) return;
+    setLoading(true);
+    setError('');
+    try {
+      const r = await accountingService.getAssets({ setting_id: Number(sid) });
+      setAssets(r?.data ?? []);
+    } catch (e) {
+      setError(e.message);
+    }
     setLoading(false);
   };
-  useEffect(() => { load(); }, [sid]);
 
-  const save = async (e) => { e.preventDefault(); setError('');
-    try { await accountingService.createAsset({ setting_id: Number(sid), ...form }); load();
-      setForm({ kode_aset:'', nama_aset:'', coa_aset_id:'', coa_depresiasi_id:'', coa_beban_id:'', tanggal_perolehan:'', harga_perolehan:'', nilai_residu:0, umur_bulan:12 });
-    } catch (e) { setError(e.message); }
+  useEffect(() => {
+    load();
+  }, [sid]);
+
+  const handleValuationChange = (e) => {
+    const val = e.target.value;
+    let defKategori = form.kategori;
+    if (val === 'apresiasi') defKategori = 'logam_mulia';
+    else if (val === 'tetap') defKategori = 'properti';
+    else defKategori = 'kendaraan';
+
+    setForm({
+      ...form,
+      tipe_valuasi: val,
+      kategori: defKategori,
+      umur_bulan: val === 'depresiasi' ? 48 : 0,
+    });
   };
 
-  const depreciate = async () => { setError('');
-    try { const r = await accountingService.runDepreciation({ setting_id: Number(sid), tanggal: depDate }); alert(`Depresiasi: ${r?.data?.posted ?? 0} jurnal diposting.`); load(); } catch (e) { setError(e.message); }
-  };
+  const save = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    try {
+      const payload = {
+        setting_id: Number(sid),
+        kode_aset: form.kode_aset,
+        nama_aset: form.nama_aset,
+        kategori: form.kategori,
+        tipe_valuasi: form.tipe_valuasi,
+        coa_aset_id: Number(form.coa_aset_id),
+        tanggal_perolehan: form.tanggal_perolehan,
+        harga_perolehan: Number(form.harga_perolehan),
+        nilai_pasar_terkini: Number(form.harga_perolehan),
+        keterangan: form.keterangan || null,
+      };
 
-  const Sel = ({v, onChange, label}) => <select value={v} onChange={onChange} className="border rounded px-2 py-1" required><option value="">{label}</option>{accounts.map(a => <option key={a.id} value={a.id}>{a.kode_akun} {a.nama_akun}</option>)}</select>;
+      if (form.tipe_valuasi === 'depresiasi') {
+        payload.coa_depresiasi_id = Number(form.coa_depresiasi_id);
+        payload.coa_beban_id = Number(form.coa_beban_id);
+        payload.umur_bulan = Number(form.umur_bulan);
+        payload.nilai_residu = Number(form.nilai_residu || 0);
+      }
 
-  return (<div className="p-6 max-w-6xl mx-auto">
-    <h1 className="text-2xl font-bold mb-4">Aset Tetap & Depresiasi</h1>
-    {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4">{error}</div>}
-    <div className="flex gap-4 mb-4">
-      <select value={sid} onChange={e => setSid(e.target.value)} className="border rounded px-3 py-2">{settings.map(s => <option key={s.id} value={s.id}>{s.nama_perusahaan}</option>)}</select>
-      <input type="date" value={depDate} onChange={e => setDepDate(e.target.value)} className="border rounded px-2 py-1" />
-      <button onClick={depreciate} className="bg-orange-600 text-white px-4 py-1 rounded">Jalankan Depresiasi</button>
-    </div>
-    <form onSubmit={save} className="flex gap-2 mb-4 flex-wrap items-end">
-      <input value={form.kode_aset} onChange={e => setForm({...form, kode_aset: e.target.value})} className="border rounded px-2 py-1 w-24" placeholder="Kode" required />
-      <input value={form.nama_aset} onChange={e => setForm({...form, nama_aset: e.target.value})} className="border rounded px-2 py-1 w-48" placeholder="Nama Aset" required />
-      <Sel v={form.coa_aset_id} onChange={e => setForm({...form, coa_aset_id: e.target.value})} label="Akun Aset" />
-      <Sel v={form.coa_depresiasi_id} onChange={e => setForm({...form, coa_depresiasi_id: e.target.value})} label="Akum Depr" />
-      <Sel v={form.coa_beban_id} onChange={e => setForm({...form, coa_beban_id: e.target.value})} label="Beban Depr" />
-      <input type="date" value={form.tanggal_perolehan} onChange={e => setForm({...form, tanggal_perolehan: e.target.value})} className="border rounded px-2 py-1" required />
-      <input type="number" value={form.harga_perolehan} onChange={e => setForm({...form, harga_perolehan: e.target.value})} className="border rounded px-2 py-1 w-32" placeholder="Harga" required />
-      <input type="number" value={form.umur_bulan} onChange={e => setForm({...form, umur_bulan: e.target.value})} className="border rounded px-2 py-1 w-20" placeholder="Bulan" required />
-      <button type="submit" className="bg-blue-600 text-white px-4 py-1 rounded">Tambah</button>
-    </form>
-    {loading ? <p>Memuat...</p> : assets.length === 0 ? <p className="text-gray-400">Belum ada aset.</p> :
-      <table className="w-full text-sm border"><thead><tr className="bg-gray-100"><th className="p-2 text-left">Kode</th><th className="p-2 text-left">Nama</th><th className="p-2 text-right">Harga</th><th className="p-2 text-right">Akum Depr</th><th className="p-2 text-right">NBV</th><th className="p-2">Status</th></tr></thead>
-      <tbody>{assets.map(a => <tr key={a.id} className="border-t"><td className="p-2">{a.kode_aset}</td><td className="p-2">{a.nama_aset}</td><td className="p-2 text-right">{fmt(a.harga_perolehan)}</td><td className="p-2 text-right">{fmt(a.akumulasi_depresiasi)}</td><td className="p-2 text-right">{fmt(a.harga_perolehan - a.akumulasi_depresiasi)}</td><td className="p-2 text-center"><span className={`px-2 py-0.5 text-xs rounded ${a.status === 'active' ? 'bg-green-100 text-green-700' : a.status === 'disposed' ? 'bg-red-100 text-red-700' : 'bg-gray-100'}`}>{a.status}</span></td></tr>)}</tbody></table>
+      await accountingService.createAsset(payload);
+      setSuccess('Aset berhasil ditambahkan.');
+      load();
+      setForm({
+        kode_aset: '',
+        nama_aset: '',
+        kategori: 'kendaraan',
+        tipe_valuasi: 'depresiasi',
+        coa_aset_id: '',
+        coa_depresiasi_id: '',
+        coa_beban_id: '',
+        tanggal_perolehan: new Date().toISOString().slice(0, 10),
+        harga_perolehan: '',
+        nilai_residu: 0,
+        umur_bulan: 48,
+        keterangan: '',
+      });
+    } catch (e) {
+      setError(e.message || 'Gagal menyimpan aset.');
     }
-  </div>);
+  };
+
+  const depreciate = async () => {
+    setError('');
+    setSuccess('');
+    try {
+      const r = await accountingService.runDepreciation({ setting_id: Number(sid), tanggal: depDate });
+      setSuccess(`Depresiasi selesai: ${r?.data?.posted ?? 0} jurnal aset susut diposting.`);
+      load();
+    } catch (e) {
+      setError(e.message || 'Gagal menjalankan depresiasi.');
+    }
+  };
+
+  const handleOpenRevalue = (asset) => {
+    setRevalueModal({
+      open: true,
+      asset,
+      nilai_baru: asset.nilai_pasar_terkini ?? asset.harga_perolehan,
+      catatan: '',
+    });
+  };
+
+  const submitRevalue = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    try {
+      await accountingService.revalueAsset(revalueModal.asset.id, {
+        nilai_pasar_terkini: Number(revalueModal.nilai_baru),
+        catatan: revalueModal.catatan,
+      });
+      setSuccess(`Nilai pasar aset ${revalueModal.asset.nama_aset} berhasil diperbarui.`);
+      setRevalueModal({ open: false, asset: null, nilai_baru: '', catatan: '' });
+      load();
+    } catch (err) {
+      setError(err.message || 'Gagal memperbarui nilai pasar.');
+    }
+  };
+
+  const Sel = ({ v, onChange, label, required = false }) => (
+    <select value={v} onChange={onChange} className="border border-gray-300 rounded px-2.5 py-1.5 text-sm w-full" required={required}>
+      <option value="">-- {label} --</option>
+      {accounts.map((a) => (
+        <option key={a.id} value={a.id}>
+          {a.kode_akun} - {a.nama_akun}
+        </option>
+      ))}
+    </select>
+  );
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Manajemen Aset (Aset Tetap & Investasi)</h1>
+          <p className="text-sm text-gray-500">
+            Pencatatan aset dengan penyusutan berkala (mobil/mesin) atau kenaikan nilai pasar (emas/tanah).
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <select
+            value={sid}
+            onChange={(e) => setSid(e.target.value)}
+            className="border border-gray-300 rounded px-3 py-2 text-sm bg-white font-medium"
+          >
+            {settings.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.nama_perusahaan}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>}
+      {success && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">{success}</div>}
+
+      {/* Eksekusi Depresiasi Bulanan */}
+      <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h3 className="font-semibold text-amber-900 text-sm">Hitung Penyusutan Bulanan (Aset Susut Saja)</h3>
+          <p className="text-xs text-amber-700">Otomatis membuat jurnal beban depresiasi untuk kendaraan/mesin aktif.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={depDate}
+            onChange={(e) => setDepDate(e.target.value)}
+            className="border border-amber-300 rounded px-2.5 py-1 text-sm bg-white"
+          />
+          <button
+            onClick={depreciate}
+            className="bg-amber-600 hover:bg-amber-700 text-white font-medium px-4 py-1.5 rounded text-sm transition"
+          >
+            Jalankan Depresiasi
+          </button>
+        </div>
+      </div>
+
+      {/* Form Tambah Aset */}
+      <div className="bg-white border rounded-xl p-5 shadow-sm space-y-4">
+        <h2 className="font-semibold text-gray-800 text-base">Tambah Aset Baru</h2>
+        <form onSubmit={save} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Tipe Valuasi</label>
+              <select
+                value={form.tipe_valuasi}
+                onChange={handleValuationChange}
+                className="border border-gray-300 rounded px-2.5 py-1.5 text-sm w-full bg-white font-medium"
+              >
+                <option value="depresiasi">📉 Susut / Depresiasi (Mobil, Mesin)</option>
+                <option value="apresiasi">📈 Kenaikan / Apresiasi (Emas, Investasi)</option>
+                <option value="tetap">⏹️ Nilai Tetap (Tanah)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Kategori</label>
+              <select
+                value={form.kategori}
+                onChange={(e) => setForm({ ...form, kategori: e.target.value })}
+                className="border border-gray-300 rounded px-2.5 py-1.5 text-sm w-full bg-white"
+              >
+                <option value="kendaraan">Kendaraan</option>
+                <option value="logam_mulia">Logam Mulia (Emas/Perak)</option>
+                <option value="properti">Tanah / Properti</option>
+                <option value="bangunan">Bangunan</option>
+                <option value="peralatan">Peralatan & Mesin</option>
+                <option value="lainnya">Lainnya</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Kode Aset</label>
+              <input
+                value={form.kode_aset}
+                onChange={(e) => setForm({ ...form, kode_aset: e.target.value })}
+                className="border border-gray-300 rounded px-2.5 py-1.5 text-sm w-full"
+                placeholder="Contoh: AST-001"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Nama Aset</label>
+              <input
+                value={form.nama_aset}
+                onChange={(e) => setForm({ ...form, nama_aset: e.target.value })}
+                className="border border-gray-300 rounded px-2.5 py-1.5 text-sm w-full"
+                placeholder="Contoh: Toyota Hilux / Emas Antam 50gr"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Akun Aset di Neraca (COA)</label>
+              <Sel
+                v={form.coa_aset_id}
+                onChange={(e) => setForm({ ...form, coa_aset_id: e.target.value })}
+                label="Pilih Akun Aset"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Tanggal Perolehan</label>
+              <input
+                type="date"
+                value={form.tanggal_perolehan}
+                onChange={(e) => setForm({ ...form, tanggal_perolehan: e.target.value })}
+                className="border border-gray-300 rounded px-2.5 py-1.5 text-sm w-full"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Harga Beli / Perolehan (Rp)</label>
+              <input
+                type="number"
+                value={form.harga_perolehan}
+                onChange={(e) => setForm({ ...form, harga_perolehan: e.target.value })}
+                className="border border-gray-300 rounded px-2.5 py-1.5 text-sm w-full"
+                placeholder="Rp"
+                required
+                min="0"
+              />
+            </div>
+          </div>
+
+          {/* Kolom Khusus Depresiasi */}
+          {form.tipe_valuasi === 'depresiasi' && (
+            <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-3">
+              <div className="text-xs font-semibold text-gray-700">Parameter Penyusutan (Garis Lurus)</div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Masa Manfaat (Bulan)</label>
+                  <input
+                    type="number"
+                    value={form.umur_bulan}
+                    onChange={(e) => setForm({ ...form, umur_bulan: e.target.value })}
+                    className="border border-gray-300 rounded px-2.5 py-1.5 text-sm w-full"
+                    placeholder="Contoh: 48 (4 thn)"
+                    required
+                    min="1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Nilai Residu / Sisa (Rp)</label>
+                  <input
+                    type="number"
+                    value={form.nilai_residu}
+                    onChange={(e) => setForm({ ...form, nilai_residu: e.target.value })}
+                    className="border border-gray-300 rounded px-2.5 py-1.5 text-sm w-full"
+                    placeholder="0"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Akun Akumulasi Penyusutan</label>
+                  <Sel
+                    v={form.coa_depresiasi_id}
+                    onChange={(e) => setForm({ ...form, coa_depresiasi_id: e.target.value })}
+                    label="Pilih Akumulasi Depresiasi"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Akun Beban Penyusutan</label>
+                  <Sel
+                    v={form.coa_beban_id}
+                    onChange={(e) => setForm({ ...form, coa_beban_id: e.target.value })}
+                    label="Pilih Beban Depresiasi"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2">
+            <button
+              type="submit"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-lg text-sm transition"
+            >
+              Simpan Aset
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Tabel Aset */}
+      <div className="bg-white border rounded-xl overflow-hidden shadow-sm">
+        <div className="p-4 border-b flex justify-between items-center">
+          <h2 className="font-semibold text-gray-800 text-base">Daftar Kepemilikan Aset</h2>
+          <span className="text-xs text-gray-500 font-medium">Total: {assets.length} aset</span>
+        </div>
+        {loading ? (
+          <p className="p-6 text-sm text-gray-500">Memuat data aset...</p>
+        ) : assets.length === 0 ? (
+          <p className="p-6 text-sm text-gray-400 text-center">Belum ada aset terdaftar pada entitas ini.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-gray-50 text-gray-600 font-semibold border-b">
+                <tr>
+                  <th className="p-3">Kode & Nama</th>
+                  <th className="p-3">Kategori</th>
+                  <th className="p-3">Tipe Valuasi</th>
+                  <th className="p-3 text-right">Harga Beli</th>
+                  <th className="p-3 text-right">Akum. Susut</th>
+                  <th className="p-3 text-right">Nilai Sekarang</th>
+                  <th className="p-3 text-center">Status</th>
+                  <th className="p-3 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y text-gray-700">
+                {assets.map((a) => {
+                  const isSusut = !a.tipe_valuasi || a.tipe_valuasi === 'depresiasi';
+                  const isNaik = a.tipe_valuasi === 'apresiasi';
+                  const currentVal = isNaik
+                    ? (a.nilai_pasar_terkini ?? a.harga_perolehan)
+                    : isSusut
+                    ? (a.harga_perolehan - (a.akumulasi_depresiasi || 0))
+                    : a.harga_perolehan;
+
+                  return (
+                    <tr key={a.id} className="hover:bg-gray-50/80 transition">
+                      <td className="p-3">
+                        <div className="font-medium text-gray-900">{a.nama_aset}</div>
+                        <div className="text-xs text-gray-500">{a.kode_aset}</div>
+                      </td>
+                      <td className="p-3 capitalize text-gray-600">{a.kategori || 'Lainnya'}</td>
+                      <td className="p-3">
+                        {isSusut && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            📉 Susut ({a.umur_bulan || 0} bln)
+                          </span>
+                        )}
+                        {isNaik && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+                            📈 Apresiasi / Naik
+                          </span>
+                        )}
+                        {a.tipe_valuasi === 'tetap' && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                            ⏹️ Nilai Tetap
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-3 text-right font-medium">{fmt(a.harga_perolehan)}</td>
+                      <td className="p-3 text-right text-gray-500">
+                        {isSusut ? fmt(a.akumulasi_depresiasi) : '-'}
+                      </td>
+                      <td className="p-3 text-right font-semibold text-gray-900">
+                        {fmt(currentVal)}
+                      </td>
+                      <td className="p-3 text-center">
+                        <span
+                          className={`px-2 py-0.5 text-xs font-medium rounded ${
+                            a.status === 'active'
+                              ? 'bg-green-100 text-green-700'
+                              : a.status === 'disposed'
+                              ? 'bg-red-100 text-red-700'
+                              : 'bg-gray-100 text-gray-700'
+                          }`}
+                        >
+                          {a.status}
+                        </span>
+                      </td>
+                      <td className="p-3 text-center">
+                        {isNaik && a.status === 'active' && (
+                          <button
+                            onClick={() => handleOpenRevalue(a)}
+                            className="bg-amber-500 hover:bg-amber-600 text-white text-xs px-2.5 py-1 rounded transition"
+                          >
+                            Update Harga Pasar
+                          </button>
+                        )}
+                        {!isNaik && <span className="text-xs text-gray-400">-</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Modal Revaluasi Nilai Pasar */}
+      {revalueModal.open && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-5 space-y-4">
+            <h3 className="text-lg font-bold text-gray-900">Update Nilai Pasar (Revaluasi)</h3>
+            <p className="text-sm text-gray-600">
+              Aset: <strong className="text-gray-800">{revalueModal.asset?.nama_aset}</strong> ({revalueModal.asset?.kode_aset})
+            </p>
+            <form onSubmit={submitRevalue} className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Harga Beli Awal (Rp)</label>
+                <input
+                  type="text"
+                  disabled
+                  value={fmt(revalueModal.asset?.harga_perolehan)}
+                  className="bg-gray-100 border border-gray-300 rounded px-3 py-1.5 text-sm w-full text-gray-500 font-medium"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Nilai Pasar Baru (Rp)</label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  value={revalueModal.nilai_baru}
+                  onChange={(e) => setRevalueModal({ ...revalueModal, nilai_baru: e.target.value })}
+                  className="border border-gray-300 rounded px-3 py-1.5 text-sm w-full font-semibold"
+                  placeholder="Masukkan estimasi harga pasar terkini"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Catatan / Alasan Penyesuaian</label>
+                <textarea
+                  rows="2"
+                  value={revalueModal.catatan}
+                  onChange={(e) => setRevalueModal({ ...revalueModal, catatan: e.target.value })}
+                  placeholder="Misal: Penyesuaian harga Antam per gram hari ini"
+                  className="border border-gray-300 rounded px-3 py-1.5 text-sm w-full"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setRevalueModal({ open: false, asset: null, nilai_baru: '', catatan: '' })}
+                  className="px-4 py-1.5 rounded text-sm text-gray-600 hover:bg-gray-100 transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-medium px-4 py-1.5 rounded text-sm transition"
+                >
+                  Simpan Nilai Baru
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

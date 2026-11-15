@@ -41,7 +41,7 @@ export default function IncomeStatementPage() {
       setLoading(true);
       setError('');
       const response = await accountingService.getIncomeStatement({
-        setting_id: Number(settingId),
+        setting_id: settingId === 'all' ? 'all' : Number(settingId),
         tanggal_from: tanggalFrom || undefined,
         tanggal_to: tanggalTo || undefined,
       });
@@ -61,7 +61,7 @@ export default function IncomeStatementPage() {
       setError('');
       const blob = await accountingService.exportIncomeStatement(
         {
-          setting_id: Number(settingId),
+          setting_id: settingId === 'all' ? 'all' : Number(settingId),
           tanggal_from: tanggalFrom || undefined,
           tanggal_to: tanggalTo || undefined,
         },
@@ -86,7 +86,7 @@ export default function IncomeStatementPage() {
       setError('');
       const blob = await accountingService.exportIncomeStatement(
         {
-          setting_id: Number(settingId),
+          setting_id: settingId === 'all' ? 'all' : Number(settingId),
           tanggal_from: tanggalFrom || undefined,
           tanggal_to: tanggalTo || undefined,
         },
@@ -107,7 +107,7 @@ export default function IncomeStatementPage() {
       setError('');
       const blob = await accountingService.exportIncomeStatement(
         {
-          setting_id: Number(settingId),
+          setting_id: settingId === 'all' ? 'all' : Number(settingId),
           tanggal_from: tanggalFrom || undefined,
           tanggal_to: tanggalTo || undefined,
         },
@@ -177,6 +177,9 @@ export default function IncomeStatementPage() {
           Entitas Akunting
           <select value={settingId} onChange={(e) => setSettingId(e.target.value)} className="mt-1 w-full rounded-lg border p-2">
             <option value="">Pilih entitas</option>
+            {settings.length > 1 && (
+              <option value="all">★ Semua Entitas (Konsolidasi)</option>
+            )}
             {settings.map((s) => <option key={s.id} value={s.id}>{s.nama_perusahaan} ({s.entitas})</option>)}
           </select>
         </label>
@@ -296,7 +299,7 @@ export default function IncomeStatementPage() {
           onClose={() => setSelectedAccountForDetail(null)}
           account={selectedAccountForDetail}
           settingId={settingId}
-          settingName={settings.find((s) => String(s.id) === String(settingId))?.nama_perusahaan || ''}
+          settingName={settingId === 'all' ? 'Konsolidasi Semua Entitas' : (settings.find((s) => String(s.id) === String(settingId))?.nama_perusahaan || '')}
           tanggalFrom={tanggalFrom}
           tanggalTo={tanggalTo}
         />

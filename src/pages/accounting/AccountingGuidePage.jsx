@@ -32,6 +32,7 @@ const MENU_SHORTCUTS = [
   { name: 'Laporan Arus Kas', path: '/akuntansi/arus-kas', icon: Wallet, desc: 'Penerimaan dan pengeluaran kas (operasi, investasi, pendanaan)' },
   { name: 'Pengaturan Akunting', path: '/akuntansi/setting', icon: Settings, desc: 'Konfigurasi entitas dan pemetaan akun' },
   { name: 'Periode Akunting', path: '/akuntansi/periode', icon: Calendar, desc: 'Pembukaan dan penutupan buku bulanan' },
+  { name: 'Aset Tetap & Investasi', path: '/akuntansi/aset-tetap', icon: Building2, desc: 'Pencatatan aset susut (mobil/mesin) & apresiasi (emas/tanah)' },
 ];
 
 const SECTIONS = [
