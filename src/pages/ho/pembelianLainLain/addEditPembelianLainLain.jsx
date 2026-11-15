@@ -1142,12 +1142,12 @@ const AddEditPembelianLainLainPage = () => {
                 nota: headerData.nota,
                 nama_supplier: headerData.idSupplier, // Now using text directly
                 tgl_masuk: headerData.tgl_masuk,
-                jumlah: parseFloat(headerData.jumlah) || null,
+                jumlah: parseFloat(headerData.jumlah) || totals.totalJumlah || null,
                 biaya_lain: headerData.biaya_lain !== null && headerData.biaya_lain !== undefined && headerData.biaya_lain !== '' ? parseFloat(headerData.biaya_lain) : 0,
                 id_farm: isFeedmillContext ? parseInt(feedmillFarm.value) : (headerData.farm ? parseInt(headerData.farm) : null),
                 id_syarat_pembelian: headerData.syarat_pembelian ? parseInt(headerData.syarat_pembelian) : null,
                 nota_ho: headerData.nota_ho || '',
-                biaya_total: parseFloat(headerData.biaya_total) || null,
+                biaya_total: parseFloat(headerData.biaya_total) || (totals.totalHargaItems > 0 ? totals.totalHargaItems : null),
                 tipe_pembelian: parseInt(headerData.tipePembelian),
                 tipe_pembayaran: parseInt(headerData.tipe_pembayaran),
                 due_date: headerData.due_date,
@@ -1483,10 +1483,10 @@ const AddEditPembelianLainLainPage = () => {
                             </label>
                             <input
                                 type="text"
-                                value={formatNumber(headerData.biaya_total)}
+                                value={formatNumber(headerData.biaya_total !== '' && headerData.biaya_total !== null && headerData.biaya_total !== undefined ? headerData.biaya_total : (totals.totalHargaItems > 0 ? totals.totalHargaItems : ''))}
                                 onChange={(e) => handleHeaderChange('biaya_total', parseNumber(e.target.value))}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder=""
+                                placeholder={formatNumber(totals.totalHargaItems) || ""}
                             />
                             <p className="text-xs text-blue-600 mt-1">
                                 💡 Total seluruh biaya (truck + lain-lain + pembelian)
