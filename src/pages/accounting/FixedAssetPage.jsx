@@ -415,7 +415,14 @@ export default function FixedAssetPage() {
                     <tr key={a.id} className="hover:bg-gray-50/80 transition">
                       <td className="p-3">
                         <div className="font-medium text-gray-900">{a.nama_aset}</div>
-                        <div className="text-xs text-gray-500">{a.kode_aset}</div>
+                        <div className="text-xs text-gray-500 flex items-center gap-1.5">
+                          <span>{a.kode_aset}</span>
+                          {a.ref_table === 'tr_pembelian_ho_lainlain' && (
+                            <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              Auto dari Pembelian
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="p-3 capitalize text-gray-600">{a.kategori || 'Lainnya'}</td>
                       <td className="p-3">
