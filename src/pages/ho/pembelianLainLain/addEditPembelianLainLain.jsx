@@ -14,6 +14,11 @@ import HttpClient from '../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../config/api';
 import AddEditDetailModal from './modals/AddEditDetailModal';
 
+const SKEMA_PEMBELIAN_ASET_OPTIONS = [
+    { value: 'biasa', label: 'Pembelian Biasa / Tempo Supplier (< 1 Tahun - Hutang Vendor)' },
+    { value: 'leasing', label: 'Kredit Leasing / Pembiayaan (> 1 Tahun - Hutang Leasing)' },
+];
+
 const AddEditPembelianLainLainPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -1451,14 +1456,16 @@ const AddEditPembelianLainLainPage = () => {
                                 <DollarSign className="w-4 h-4 text-emerald-600" />
                                 Skema Pembelian Aset *
                             </label>
-                            <select
+                            <SearchableSelect
+                                options={SKEMA_PEMBELIAN_ASET_OPTIONS}
                                 value={headerData.isLeasing ? 'leasing' : 'biasa'}
-                                onChange={(e) => handleHeaderChange('isLeasing', e.target.value === 'leasing')}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200 text-sm font-medium text-gray-800"
-                            >
-                                <option value="biasa">Pembelian Biasa / Tempo Supplier (&lt; 1 Tahun - Hutang Vendor)</option>
-                                <option value="leasing">Kredit Leasing / Pembiayaan (&gt; 1 Tahun - Hutang Leasing)</option>
-                            </select>
+                                onChange={(value) => handleHeaderChange('isLeasing', value === 'leasing')}
+                                placeholder="Pilih skema pembelian aset..."
+                                isClearable={false}
+                                required={true}
+                                className="w-full"
+                                accentColor="blue"
+                            />
                             <p className="text-xs text-gray-500 mt-1">
                                 {headerData.isLeasing
                                     ? '📌 Hutang masuk ke COA 2520 (Kewajiban Jangka Panjang / Leasing)'
