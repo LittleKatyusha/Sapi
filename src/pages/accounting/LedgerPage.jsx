@@ -113,7 +113,7 @@ export default function LedgerPage() {
           Akun COA
           <select value={coaId} onChange={(e) => setCoaId(e.target.value)} className="mt-1 w-full rounded-lg border p-2">
             <option value="">Pilih akun</option>
-            {accounts.map((a) => <option key={a.id} value={a.id}>{a.kode_akun} — {a.nama_akun}</option>)}
+            {accounts.map((a) => <option key={a.id} value={a.id}>{a.kode_akun} - {a.nama_akun}</option>)}
           </select>
         </label>
         <label className="text-sm text-gray-700">

@@ -1,12 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { Plus } from 'lucide-react';
 import accountingService from '../../services/accountingService';
-
-const JOURNAL_TYPES = [
-  'MEMORIAL', 'ADJUSTMENT', 'YEAR_END', 'PURCHASE', 'PURCHASE_RETURN',
-  'PURCHASE_PAYMENT', 'SALES', 'SALES_RETURN', 'SALES_PAYMENT',
-  'INVENTORY_IN', 'INVENTORY_COGS', 'INVENTORY_ADJUSTMENT',
-  'BANK_CHARGE', 'CASH_TRANSFER', 'BANK_INTEREST',
-];
+import CreateJournalModal, { JOURNAL_TYPES } from './CreateJournalModal';
 
 const STATUS_OPTIONS = ['', 'draft', 'submitted', 'posted', 'void'];
 
@@ -22,24 +17,16 @@ const statusClass = (status) => {
 
 const formatNumber = (value) => Number(value || 0).toLocaleString('id-ID');
 
-const emptyLine = { coa_id: '', debit: 0, credit: 0, keterangan: '' };
-const emptyForm = () => ({
-  tanggal: new Date().toISOString().slice(0, 10),
-  tipe_jurnal: 'MEMORIAL',
-  keterangan: '',
-  lines: [{ ...emptyLine }, { ...emptyLine }],
-});
-
 export default function JournalPage() {
   const [settings, setSettings] = useState([]);
   const [selectedSettingId, setSelectedSettingId] = useState('');
   const [accounts, setAccounts] = useState([]);
   const [journals, setJournals] = useState([]);
-  const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [expandedId, setExpandedId] = useState(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // Filters
   const [filterStatus, setFilterStatus] = useState('');
@@ -95,51 +82,6 @@ export default function JournalPage() {
     loadJournals(selectedSettingId);
   }, [selectedSettingId, loadPeriods, loadJournals]);
 
-  const updateLine = (i, f, v) => {
-    const lines = [...form.lines];
-    lines[i] = { ...lines[i], [f]: v };
-    setForm({ ...form, lines });
-  };
-  const addLine = () => setForm({ ...form, lines: [...form.lines, { ...emptyLine }] });
-  const removeLine = (i) => {
-    if (form.lines.length <= 2) return;
-    setForm({ ...form, lines: form.lines.filter((_, idx) => idx !== i) });
-  };
-
-  const totalDebit = form.lines.reduce((s, l) => s + Number(l.debit || 0), 0);
-  const totalCredit = form.lines.reduce((s, l) => s + Number(l.credit || 0), 0);
-  const isBalanced = totalDebit === totalCredit && totalDebit > 0;
-
-  const submitDraft = async (e) => {
-    e.preventDefault();
-    if (!selectedSettingId || !isBalanced) {
-      setError('Pilih entitas. Total debit dan kredit wajib seimbang serta > 0.');
-      return;
-    }
-    try {
-      setSaving(true);
-      setError('');
-      await accountingService.createJournal({
-        setting_id: Number(selectedSettingId),
-        tanggal: form.tanggal,
-        tipe_jurnal: form.tipe_jurnal,
-        keterangan: form.keterangan || null,
-        lines: form.lines.map((l) => ({
-          coa_id: Number(l.coa_id),
-          debit: Number(l.debit || 0),
-          credit: Number(l.credit || 0),
-          keterangan: l.keterangan || null,
-        })),
-      });
-      setForm(emptyForm());
-      await loadJournals(selectedSettingId);
-    } catch (ex) {
-      setError(ex.message || 'Gagal menyimpan draft jurnal.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const runAction = async (action, id) => {
     try {
       setSaving(true);
@@ -161,6 +103,11 @@ export default function JournalPage() {
 
   const isReadOnly = (status) => status === 'posted' || status === 'void';
 
+  const currentSetting = useMemo(
+    () => settings.find((s) => String(s.id) === String(selectedSettingId)),
+    [settings, selectedSettingId]
+  );
+
   return (
     <div className="space-y-6 p-4 md:p-6">
       <header className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
@@ -168,10 +115,30 @@ export default function JournalPage() {
           <h1 className="text-2xl font-bold text-gray-900">Jurnal Umum</h1>
           <p className="mt-1 text-sm text-gray-500">Buat, kelola, dan posting jurnal akunting.</p>
         </div>
-        <select value={selectedSettingId} onChange={(e) => setSelectedSettingId(e.target.value)} className="rounded-lg border p-2 text-sm">
-          <option value="">Pilih entitas</option>
-          {settings.map((s) => <option key={s.id} value={s.id}>{s.nama_perusahaan} ({s.entitas})</option>)}
-        </select>
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            value={selectedSettingId}
+            onChange={(e) => setSelectedSettingId(e.target.value)}
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+          >
+            <option value="">Pilih entitas</option>
+            {settings.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.nama_perusahaan} ({s.entitas})
+              </option>
+            ))}
+          </select>
+
+          <button
+            type="button"
+            onClick={() => setIsCreateModalOpen(true)}
+            disabled={!selectedSettingId}
+            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 shadow-sm transition-all cursor-pointer"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Buat Jurnal Draft</span>
+          </button>
+        </div>
       </header>
 
       {error && <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
@@ -204,54 +171,6 @@ export default function JournalPage() {
           </button>
         </div>
       </section>
-
-      {/* Create Draft Form */}
-      <form onSubmit={submitDraft} className="space-y-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:p-6">
-        <h2 className="text-lg font-semibold text-gray-800">Buat Jurnal Draft</h2>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <label className="text-sm text-gray-700">
-            Tanggal
-            <input type="date" required value={form.tanggal} onChange={(e) => setForm({ ...form, tanggal: e.target.value })} className="mt-1 w-full rounded-lg border p-2" />
-          </label>
-          <label className="text-sm text-gray-700">
-            Tipe Jurnal
-            <select value={form.tipe_jurnal} onChange={(e) => setForm({ ...form, tipe_jurnal: e.target.value })} className="mt-1 w-full rounded-lg border p-2">
-              {JOURNAL_TYPES.map((t) => <option key={t}>{t}</option>)}
-            </select>
-          </label>
-          <label className="text-sm text-gray-700">
-            Keterangan
-            <input value={form.keterangan} onChange={(e) => setForm({ ...form, keterangan: e.target.value })} className="mt-1 w-full rounded-lg border p-2" placeholder="Memo jurnal" />
-          </label>
-        </div>
-
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-700">Baris Jurnal</p>
-          {form.lines.map((line, index) => (
-            <div key={index} className="grid grid-cols-1 gap-2 md:grid-cols-8">
-              <select value={line.coa_id} onChange={(e) => updateLine(index, 'coa_id', e.target.value)} className="rounded-lg border p-2 text-sm md:col-span-2">
-                <option value="">Pilih akun</option>
-                {accounts.map((a) => <option key={a.id} value={a.id}>{a.kode_akun} \u2014 {a.nama_akun}</option>)}
-              </select>
-              <input type="number" min="0" value={line.debit || ''} onChange={(e) => updateLine(index, 'debit', e.target.value)} className="rounded-lg border p-2 text-sm md:col-span-2" placeholder="Debit" />
-              <input type="number" min="0" value={line.credit || ''} onChange={(e) => updateLine(index, 'credit', e.target.value)} className="rounded-lg border p-2 text-sm md:col-span-2" placeholder="Kredit" />
-              <input value={line.keterangan} onChange={(e) => updateLine(index, 'keterangan', e.target.value)} className="rounded-lg border p-2 text-sm" placeholder="Memo" />
-              <button type="button" onClick={() => removeLine(index)} disabled={form.lines.length <= 2} className="text-sm text-red-600 disabled:opacity-30">Hapus</button>
-            </div>
-          ))}
-          <button type="button" onClick={addLine} className="text-sm font-medium text-indigo-600 hover:underline">+ Tambah Baris</button>
-        </div>
-
-        <div className="flex flex-col justify-between gap-3 border-t pt-4 text-sm md:flex-row md:items-center">
-          <div>
-            Debit: <strong>{formatNumber(totalDebit)}</strong> | Kredit: <strong>{formatNumber(totalCredit)}</strong> |{' '}
-            <span className={isBalanced ? 'font-semibold text-green-600' : 'font-semibold text-red-600'}>{isBalanced ? 'Balanced' : 'Unbalanced'}</span>
-          </div>
-          <button type="submit" disabled={saving || !isBalanced || !selectedSettingId} className="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
-            {saving ? 'Menyimpan...' : 'Simpan Draft'}
-          </button>
-        </div>
-      </form>
 
       {/* Journals Table */}
       <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -304,7 +223,11 @@ export default function JournalPage() {
                       <tbody className="divide-y divide-gray-200">
                         {(j.details ?? j.lines ?? []).map((l, idx) => (
                           <tr key={l.id ?? idx}>
-                            <td className="py-1 font-mono">{l.coa?.kode_akun ?? l.kode_akun ?? '-'} {l.coa?.nama_akun ?? l.nama_akun ?? ''}</td>
+                            <td className="py-1 font-mono">
+                              {(l.coa?.kode_akun ?? l.kode_akun)
+                                ? `${l.coa?.kode_akun ?? l.kode_akun} - ${l.coa?.nama_akun ?? l.nama_akun ?? ''}`
+                                : '-'}
+                            </td>
                             <td className="py-1 text-right">{formatNumber(l.debit)}</td>
                             <td className="py-1 text-right">{formatNumber(l.credit)}</td>
                             <td className="py-1">{l.keterangan || '-'}</td>
@@ -322,6 +245,16 @@ export default function JournalPage() {
           </table>
         </div>
       </section>
+
+      {/* Modal Buat Jurnal Draft */}
+      <CreateJournalModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => loadJournals(selectedSettingId)}
+        selectedSettingId={selectedSettingId}
+        settingName={currentSetting ? `${currentSetting.nama_perusahaan} (${currentSetting.entitas})` : ''}
+        accounts={accounts}
+      />
     </div>
   );
 }
