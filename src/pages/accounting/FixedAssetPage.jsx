@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { Plus } from 'lucide-react';
 import accountingService from '../../services/accountingService';
+import CreateAssetModal from './CreateAssetModal';
 
 const fmt = (v) => Number(v || 0).toLocaleString('id-ID');
 
@@ -11,21 +13,7 @@ export default function FixedAssetPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
-  const [form, setForm] = useState({
-    kode_aset: '',
-    nama_aset: '',
-    kategori: 'kendaraan',
-    tipe_valuasi: 'depresiasi',
-    coa_aset_id: '',
-    coa_depresiasi_id: '',
-    coa_beban_id: '',
-    tanggal_perolehan: new Date().toISOString().slice(0, 10),
-    harga_perolehan: '',
-    nilai_residu: 0,
-    umur_bulan: 48,
-    keterangan: '',
-  });
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const [depDate, setDepDate] = useState(new Date().toISOString().slice(0, 10));
 
@@ -61,68 +49,6 @@ export default function FixedAssetPage() {
   useEffect(() => {
     load();
   }, [sid]);
-
-  const handleValuationChange = (e) => {
-    const val = e.target.value;
-    let defKategori = form.kategori;
-    if (val === 'apresiasi') defKategori = 'logam_mulia';
-    else if (val === 'tetap') defKategori = 'properti';
-    else defKategori = 'kendaraan';
-
-    setForm({
-      ...form,
-      tipe_valuasi: val,
-      kategori: defKategori,
-      umur_bulan: val === 'depresiasi' ? 48 : 0,
-    });
-  };
-
-  const save = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    try {
-      const payload = {
-        setting_id: Number(sid),
-        kode_aset: form.kode_aset,
-        nama_aset: form.nama_aset,
-        kategori: form.kategori,
-        tipe_valuasi: form.tipe_valuasi,
-        coa_aset_id: Number(form.coa_aset_id),
-        tanggal_perolehan: form.tanggal_perolehan,
-        harga_perolehan: Number(form.harga_perolehan),
-        nilai_pasar_terkini: Number(form.harga_perolehan),
-        keterangan: form.keterangan || null,
-      };
-
-      if (form.tipe_valuasi === 'depresiasi') {
-        payload.coa_depresiasi_id = Number(form.coa_depresiasi_id);
-        payload.coa_beban_id = Number(form.coa_beban_id);
-        payload.umur_bulan = Number(form.umur_bulan);
-        payload.nilai_residu = Number(form.nilai_residu || 0);
-      }
-
-      await accountingService.createAsset(payload);
-      setSuccess('Aset berhasil ditambahkan.');
-      load();
-      setForm({
-        kode_aset: '',
-        nama_aset: '',
-        kategori: 'kendaraan',
-        tipe_valuasi: 'depresiasi',
-        coa_aset_id: '',
-        coa_depresiasi_id: '',
-        coa_beban_id: '',
-        tanggal_perolehan: new Date().toISOString().slice(0, 10),
-        harga_perolehan: '',
-        nilai_residu: 0,
-        umur_bulan: 48,
-        keterangan: '',
-      });
-    } catch (e) {
-      setError(e.message || 'Gagal menyimpan aset.');
-    }
-  };
 
   const depreciate = async () => {
     setError('');
@@ -162,15 +88,9 @@ export default function FixedAssetPage() {
     }
   };
 
-  const Sel = ({ v, onChange, label, required = false }) => (
-    <select value={v} onChange={onChange} className="border border-gray-300 rounded px-2.5 py-1.5 text-sm w-full" required={required}>
-      <option value="">-- {label} --</option>
-      {accounts.map((a) => (
-        <option key={a.id} value={a.id}>
-          {a.kode_akun} - {a.nama_akun}
-        </option>
-      ))}
-    </select>
+  const currentSetting = useMemo(
+    () => settings.find((s) => String(s.id) === String(sid)),
+    [settings, sid]
   );
 
   return (
@@ -182,18 +102,28 @@ export default function FixedAssetPage() {
             Pencatatan aset dengan penyusutan berkala (mobil/mesin) atau kenaikan nilai pasar (emas/tanah).
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <select
             value={sid}
             onChange={(e) => setSid(e.target.value)}
-            className="border border-gray-300 rounded px-3 py-2 text-sm bg-white font-medium"
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white font-medium shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           >
             {settings.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.nama_perusahaan}
+                {s.nama_perusahaan} ({s.entitas})
               </option>
             ))}
           </select>
+
+          <button
+            type="button"
+            onClick={() => setIsCreateModalOpen(true)}
+            disabled={!sid}
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 shadow-sm transition-all cursor-pointer"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Tambah Aset Baru</span>
+          </button>
         </div>
       </div>
 
@@ -215,165 +145,11 @@ export default function FixedAssetPage() {
           />
           <button
             onClick={depreciate}
-            className="bg-amber-600 hover:bg-amber-700 text-white font-medium px-4 py-1.5 rounded text-sm transition"
+            className="bg-amber-600 hover:bg-amber-700 text-white font-medium px-4 py-1.5 rounded text-sm transition cursor-pointer"
           >
             Jalankan Depresiasi
           </button>
         </div>
-      </div>
-
-      {/* Form Tambah Aset */}
-      <div className="bg-white border rounded-xl p-5 shadow-sm space-y-4">
-        <h2 className="font-semibold text-gray-800 text-base">Tambah Aset Baru</h2>
-        <form onSubmit={save} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Tipe Valuasi</label>
-              <select
-                value={form.tipe_valuasi}
-                onChange={handleValuationChange}
-                className="border border-gray-300 rounded px-2.5 py-1.5 text-sm w-full bg-white font-medium"
-              >
-                <option value="depresiasi">📉 Susut / Depresiasi (Mobil, Mesin)</option>
-                <option value="apresiasi">📈 Kenaikan / Apresiasi (Emas, Investasi)</option>
-                <option value="tetap">⏹️ Nilai Tetap (Tanah)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Kategori</label>
-              <select
-                value={form.kategori}
-                onChange={(e) => setForm({ ...form, kategori: e.target.value })}
-                className="border border-gray-300 rounded px-2.5 py-1.5 text-sm w-full bg-white"
-              >
-                <option value="kendaraan">Kendaraan</option>
-                <option value="logam_mulia">Logam Mulia (Emas/Perak)</option>
-                <option value="properti">Tanah / Properti</option>
-                <option value="bangunan">Bangunan</option>
-                <option value="peralatan">Peralatan & Mesin</option>
-                <option value="lainnya">Lainnya</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Kode Aset</label>
-              <input
-                value={form.kode_aset}
-                onChange={(e) => setForm({ ...form, kode_aset: e.target.value })}
-                className="border border-gray-300 rounded px-2.5 py-1.5 text-sm w-full"
-                placeholder="Contoh: AST-001"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Nama Aset</label>
-              <input
-                value={form.nama_aset}
-                onChange={(e) => setForm({ ...form, nama_aset: e.target.value })}
-                className="border border-gray-300 rounded px-2.5 py-1.5 text-sm w-full"
-                placeholder="Contoh: Toyota Hilux / Emas Antam 50gr"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Akun Aset di Neraca (COA)</label>
-              <Sel
-                v={form.coa_aset_id}
-                onChange={(e) => setForm({ ...form, coa_aset_id: e.target.value })}
-                label="Pilih Akun Aset"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Tanggal Perolehan</label>
-              <input
-                type="date"
-                value={form.tanggal_perolehan}
-                onChange={(e) => setForm({ ...form, tanggal_perolehan: e.target.value })}
-                className="border border-gray-300 rounded px-2.5 py-1.5 text-sm w-full"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Harga Beli / Perolehan (Rp)</label>
-              <input
-                type="number"
-                value={form.harga_perolehan}
-                onChange={(e) => setForm({ ...form, harga_perolehan: e.target.value })}
-                className="border border-gray-300 rounded px-2.5 py-1.5 text-sm w-full"
-                placeholder="Rp"
-                required
-                min="0"
-              />
-            </div>
-          </div>
-
-          {/* Kolom Khusus Depresiasi */}
-          {form.tipe_valuasi === 'depresiasi' && (
-            <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-3">
-              <div className="text-xs font-semibold text-gray-700">Parameter Penyusutan (Garis Lurus)</div>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Masa Manfaat (Bulan)</label>
-                  <input
-                    type="number"
-                    value={form.umur_bulan}
-                    onChange={(e) => setForm({ ...form, umur_bulan: e.target.value })}
-                    className="border border-gray-300 rounded px-2.5 py-1.5 text-sm w-full"
-                    placeholder="Contoh: 48 (4 thn)"
-                    required
-                    min="1"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Nilai Residu / Sisa (Rp)</label>
-                  <input
-                    type="number"
-                    value={form.nilai_residu}
-                    onChange={(e) => setForm({ ...form, nilai_residu: e.target.value })}
-                    className="border border-gray-300 rounded px-2.5 py-1.5 text-sm w-full"
-                    placeholder="0"
-                    min="0"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Akun Akumulasi Penyusutan</label>
-                  <Sel
-                    v={form.coa_depresiasi_id}
-                    onChange={(e) => setForm({ ...form, coa_depresiasi_id: e.target.value })}
-                    label="Pilih Akumulasi Depresiasi"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Akun Beban Penyusutan</label>
-                  <Sel
-                    v={form.coa_beban_id}
-                    onChange={(e) => setForm({ ...form, coa_beban_id: e.target.value })}
-                    label="Pilih Beban Depresiasi"
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-end gap-2">
-            <button
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-lg text-sm transition"
-            >
-              Simpan Aset
-            </button>
-          </div>
-        </form>
       </div>
 
       {/* Tabel Aset */}
@@ -541,6 +317,19 @@ export default function FixedAssetPage() {
           </div>
         </div>
       )}
+
+      {/* Modal Tambah Aset Baru */}
+      <CreateAssetModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => {
+          setSuccess('Aset berhasil ditambahkan.');
+          load();
+        }}
+        selectedSettingId={sid}
+        settingName={currentSetting ? `${currentSetting.nama_perusahaan} (${currentSetting.entitas})` : ''}
+        accounts={accounts}
+      />
     </div>
   );
 }
