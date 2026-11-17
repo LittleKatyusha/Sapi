@@ -1,7 +1,8 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { Plus, RefreshCw, Trash2, Pencil } from 'lucide-react';
 import accountingService from '../../services/accountingService';
 import CreateAssetModal from './CreateAssetModal';
+import EditAssetModal from './EditAssetModal';
 
 const fmt = (v) => Number(v || 0).toLocaleString('id-ID');
 
@@ -42,6 +43,9 @@ export default function FixedAssetPage() {
 
   // Disposal modal state
   const [disposeModal, setDisposeModal] = useState({ open: false, asset: null, tanggal: '', nilai_disposal: '', reason: '' });
+
+  // Edit / configure asset modal state
+  const [editModal, setEditModal] = useState({ open: false, asset: null });
 
   useEffect(() => {
     (async () => {
@@ -158,6 +162,10 @@ export default function FixedAssetPage() {
     } catch (err) {
       setError(err.message || 'Gagal melepas aset.');
     }
+  };
+
+  const handleOpenEdit = (asset) => {
+    setEditModal({ open: true, asset });
   };
 
   const currentSetting = useMemo(
@@ -302,9 +310,15 @@ export default function FixedAssetPage() {
                       <td className="p-3 capitalize text-gray-600">{a.kategori || 'Lainnya'}</td>
                       <td className="p-3">
                         {isSusut && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                            Susut ({a.umur_bulan || 0} bln)
-                          </span>
+                          a.umur_bulan && Number(a.umur_bulan) > 0 ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                              Susut ({a.umur_bulan} bln)
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-300">
+                              ⚠️ Belum Diatur
+                            </span>
+                          )
                         )}
                         {isNaik && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
@@ -334,6 +348,18 @@ export default function FixedAssetPage() {
                           <span className="text-xs text-gray-400">-</span>
                         ) : (
                           <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={() => handleOpenEdit(a)}
+                              className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded transition cursor-pointer font-medium border ${
+                                (!a.umur_bulan || Number(a.umur_bulan) <= 0) && isSusut
+                                  ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-300 font-semibold shadow-xs'
+                                  : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-200'
+                              }`}
+                              title="Atur / Edit parameter aset"
+                            >
+                              <Pencil className="h-3 w-3" />
+                              {(!a.umur_bulan || Number(a.umur_bulan) <= 0) && isSusut ? 'Atur Umur' : 'Edit'}
+                            </button>
                             {isNaik && (
                               <button
                                 onClick={() => handleOpenRevalue(a)}
@@ -501,6 +527,18 @@ export default function FixedAssetPage() {
         }}
         selectedSettingId={sid}
         settingName={currentSetting ? `${currentSetting.nama_perusahaan} (${currentSetting.entitas})` : ''}
+        accounts={accounts}
+      />
+
+      {/* Modal Edit / Atur Parameter Aset */}
+      <EditAssetModal
+        isOpen={editModal.open}
+        onClose={() => setEditModal({ open: false, asset: null })}
+        onSuccess={() => {
+          setSuccess(`Parameter aset ${editModal.asset?.nama_aset} berhasil diperbarui.`);
+          load();
+        }}
+        asset={editModal.asset}
         accounts={accounts}
       />
     </div>

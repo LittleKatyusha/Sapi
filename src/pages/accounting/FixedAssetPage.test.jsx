@@ -36,6 +36,19 @@ describe('FixedAssetPage', () => {
       status: 'active',
       ref_table: null,
     },
+    {
+      id: 3,
+      kode_aset: 'AST-003',
+      nama_aset: 'Mesin Chopper Pakan',
+      kategori: 'mesin',
+      tipe_valuasi: 'depresiasi',
+      harga_perolehan: '200000000',
+      akumulasi_depresiasi: '0',
+      nilai_buku: 200000000,
+      umur_bulan: null, // Auto from purchase, not yet configured
+      status: 'active',
+      ref_table: 'tr_pembelian_ho_lainlain',
+    },
   ];
 
   beforeEach(() => {
@@ -51,7 +64,19 @@ describe('FixedAssetPage', () => {
     expect(await screen.findByText('Manajemen Aset (Aset Tetap & Investasi)')).toBeInTheDocument();
     expect(await screen.findByText('Toyota Hilux')).toBeInTheDocument();
     expect(await screen.findByText('Emas Batangan')).toBeInTheDocument();
-    expect(screen.getByText(/Total: 2 aset/)).toBeInTheDocument();
+    expect(await screen.findByText('Mesin Chopper Pakan')).toBeInTheDocument();
+    expect(screen.getByText(/Total: 3 aset/)).toBeInTheDocument();
+    expect(screen.getByText(/Belum Diatur/)).toBeInTheDocument();
+  });
+
+  it('opens edit modal on atur umur button click for unconfigured assets', async () => {
+    render(<FixedAssetPage />);
+
+    const aturBtn = await screen.findByText('Atur Umur');
+    fireEvent.click(aturBtn);
+
+    expect(screen.getByText('Atur Parameter & Umur Aset')).toBeInTheDocument();
+    expect(screen.getByText(/Masa manfaat aset belum diatur/)).toBeInTheDocument();
   });
 
   it('opens revaluation modal on button click for appreciation assets', async () => {
