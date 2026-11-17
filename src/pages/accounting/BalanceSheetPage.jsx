@@ -54,7 +54,7 @@ export default function BalanceSheetPage() {
       setError('');
       const blob = await accountingService.exportBalanceSheet(
         {
-          setting_id: Number(settingId),
+          setting_id: settingId === 'all' ? 'all' : Number(settingId),
           tanggal,
         },
         'pdf'
@@ -78,7 +78,7 @@ export default function BalanceSheetPage() {
       setError('');
       const blob = await accountingService.exportBalanceSheet(
         {
-          setting_id: Number(settingId),
+          setting_id: settingId === 'all' ? 'all' : Number(settingId),
           tanggal,
         },
         'pdf'

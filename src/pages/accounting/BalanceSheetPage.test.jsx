@@ -6,6 +6,11 @@ import downloadPdf from '../../utils/downloadPdf';
 jest.mock('../../services/accountingService');
 jest.mock('../../utils/downloadPdf', () => jest.fn());
 
+global.URL.createObjectURL = jest.fn(() => 'blob:mock-url');
+global.URL.revokeObjectURL = jest.fn();
+window.open = jest.fn();
+HTMLAnchorElement.prototype.click = jest.fn();
+
 describe('BalanceSheetPage', () => {
   const mockSettings = [
     { id: 1, nama_perusahaan: 'PT Ternak Jaya', entitas: 'HO' },
@@ -94,12 +99,43 @@ describe('BalanceSheetPage', () => {
       expect(screen.getByRole('button', { name: /Unduh Excel/i })).toBeInTheDocument();
     });
 
+    accountingService.exportBalanceSheet.mockClear();
     fireEvent.click(screen.getByRole('button', { name: /Unduh Excel/i }));
 
     await waitFor(() => {
       expect(accountingService.exportBalanceSheet).toHaveBeenCalledWith(
         expect.objectContaining({ setting_id: 1 }),
         'xlsx'
+      );
+    });
+  });
+
+  it('passes "all" for setting_id when all entities is selected', async () => {
+    const multiSettings = [
+      { id: 1, nama_perusahaan: 'PT Ternak Jaya', entitas: 'HO' },
+      { id: 2, nama_perusahaan: 'RPH Depok', entitas: 'RPH' },
+    ];
+    accountingService.getSettings.mockResolvedValue({ data: multiSettings });
+
+    render(<BalanceSheetPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Semua Entitas \(Konsolidasi\)/)).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'all' } });
+    fireEvent.click(screen.getByRole('button', { name: /Tampilkan/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Unduh PDF/i })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Unduh PDF/i }));
+
+    await waitFor(() => {
+      expect(accountingService.exportBalanceSheet).toHaveBeenCalledWith(
+        expect.objectContaining({ setting_id: 'all' }),
+        'pdf'
       );
     });
   });
