@@ -18,20 +18,31 @@ const KATEGORI_OPTIONS = [
   { value: 'lainnya', label: 'Lainnya' },
 ];
 
-const emptyForm = () => ({
-  kode_aset: '',
-  nama_aset: '',
-  kategori: 'kendaraan',
-  tipe_valuasi: 'depresiasi',
-  coa_aset_id: '',
-  coa_depresiasi_id: '',
-  coa_beban_id: '',
-  tanggal_perolehan: new Date().toISOString().slice(0, 10),
-  harga_perolehan: '',
-  nilai_residu: 0,
-  umur_bulan: 48,
-  keterangan: '',
-});
+const emptyForm = () => {
+  const d = new Date();
+  const offset = d.getTimezoneOffset() * 60000;
+  const today = new Date(d.getTime() - offset).toISOString().slice(0, 10);
+
+  return {
+    kode_aset: '',
+    nama_aset: '',
+    kategori: 'kendaraan',
+    tipe_valuasi: 'depresiasi',
+    coa_aset_id: '',
+    coa_depresiasi_id: '',
+    coa_beban_id: '',
+    credit_coa_id: '',
+    tanggal_perolehan: today,
+    harga_perolehan: '',
+    nilai_residu: 0,
+    umur_bulan: 48,
+    keterangan: '',
+  };
+};
+
+/** Accumulated depreciation accounts are contra-asset: normal balance kredit. */
+const isContraAsset = (account) =>
+  account.tipe === 'Aset' && String(account.normal_balance).toUpperCase() === 'C';
 
 export default function CreateAssetModal({
   isOpen,
@@ -62,18 +73,24 @@ export default function CreateAssetModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, saving, onClose]);
 
-  // Formatted COA options for SearchableSelect
-  const accountOptions = useMemo(() => {
-    return (accounts || []).map((a) => ({
-      value: Number(a.id),
-      label: `${a.kode_akun} - ${a.nama_akun}`,
-      tipe: a.tipe,
-    }));
+  /** Asset accounts only: exclude contra-asset (accumulated depreciation). */
+  const assetAccountOptions = useMemo(() => {
+    return (accounts || [])
+      .filter((a) => a.tipe === 'Aset' && !isContraAsset(a))
+      .map((a) => ({
+        value: Number(a.id),
+        label: `${a.kode_akun} - ${a.nama_akun}`,
+        tipe: a.tipe,
+      }));
   }, [accounts]);
 
-  const assetAccountOptions = useMemo(() => {
-    const filtered = (accounts || []).filter((a) => a.tipe === 'Aset');
-    return (filtered.length ? filtered : accounts).map((a) => ({
+  /** Accumulated depreciation: contra-asset, or explicitly named akumulasi. */
+  const accumulatedAccountOptions = useMemo(() => {
+    const filtered = (accounts || []).filter(
+      (a) => isContraAsset(a) || /akumulasi|accumulated/i.test(a.nama_akun || '')
+    );
+
+    return (filtered.length ? filtered : accounts || []).map((a) => ({
       value: Number(a.id),
       label: `${a.kode_akun} - ${a.nama_akun}`,
       tipe: a.tipe,
@@ -83,6 +100,19 @@ export default function CreateAssetModal({
   const expenseAccountOptions = useMemo(() => {
     const filtered = (accounts || []).filter((a) => a.tipe === 'Beban');
     return (filtered.length ? filtered : accounts).map((a) => ({
+      value: Number(a.id),
+      label: `${a.kode_akun} - ${a.nama_akun}`,
+      tipe: a.tipe,
+    }));
+  }, [accounts]);
+
+  /** Funding source: cash/bank first, payable accounts accepted as well. */
+  const creditAccountOptions = useMemo(() => {
+    const filtered = (accounts || []).filter(
+      (a) => a.tipe === 'Aset' || a.tipe === 'Kewajiban'
+    );
+
+    return (filtered.length ? filtered : accounts || []).map((a) => ({
       value: Number(a.id),
       label: `${a.kode_akun} - ${a.nama_akun}`,
       tipe: a.tipe,
@@ -120,6 +150,11 @@ export default function CreateAssetModal({
       return;
     }
 
+    if (form.tipe_valuasi === 'depresiasi' && Number(form.nilai_residu) >= Number(form.harga_perolehan)) {
+      setError('Nilai residu harus lebih kecil dari harga perolehan.');
+      return;
+    }
+
     try {
       setSaving(true);
       setError('');
@@ -136,6 +171,10 @@ export default function CreateAssetModal({
         nilai_pasar_terkini: Number(form.harga_perolehan),
         keterangan: form.keterangan || null,
       };
+
+      if (form.credit_coa_id) {
+        payload.credit_coa_id = Number(form.credit_coa_id);
+      }
 
       if (form.tipe_valuasi === 'depresiasi') {
         payload.coa_depresiasi_id = Number(form.coa_depresiasi_id);
@@ -308,6 +347,25 @@ export default function CreateAssetModal({
               </div>
             </div>
 
+            {/* Row 4: Funding source */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
+                Sumber Dana / Akun Lawan
+              </label>
+              <SearchableSelect
+                options={creditAccountOptions}
+                value={form.credit_coa_id ? Number(form.credit_coa_id) : ''}
+                onChange={(val) => setForm({ ...form, credit_coa_id: val ? Number(val) : '' })}
+                placeholder="Kas / Bank / Hutang (default: mapping Kas)"
+                accentColor="blue"
+                className="w-full text-sm"
+                isClearable={true}
+              />
+              <p className="text-[11px] text-gray-500 mt-1">
+                Jurnal perolehan otomatis: Dr akun aset / Cr sumber dana. Kosongkan untuk memakai mapping Kas entitas.
+              </p>
+            </div>
+
             {/* Parameter Penyusutan (Khusus Depresiasi) */}
             {form.tipe_valuasi === 'depresiasi' && (
               <div className="p-4 bg-gray-50/80 border border-gray-200 rounded-xl space-y-4">
@@ -358,7 +416,7 @@ export default function CreateAssetModal({
                       Akun Akumulasi Penyusutan (COA) *
                     </label>
                     <SearchableSelect
-                      options={accountOptions}
+                      options={accumulatedAccountOptions}
                       value={form.coa_depresiasi_id ? Number(form.coa_depresiasi_id) : ''}
                       onChange={(val) => setForm({ ...form, coa_depresiasi_id: val ? Number(val) : '' })}
                       placeholder="Pilih akun akumulasi penyusutan..."

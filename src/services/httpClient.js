@@ -298,8 +298,9 @@ const handleResponseError = async (response) => {
       errorMessage = 'Token tidak valid. Silakan login ulang.';
     }
     
-    // Handle 500 Internal Server Error with more specific messaging
-    if (response.status === 500) {
+    // Handle 500 Internal Server Error with more specific messaging:
+    // Only fall back to generic copy when the API did not provide a message.
+    if (response.status === 500 && !errorDetails?.message && !errorDetails?.error) {
       if (!errorMessage.includes('Server mengalami kesalahan')) {
         errorMessage = 'Server mengalami kesalahan internal. Silakan coba lagi atau hubungi administrator.';
       }
