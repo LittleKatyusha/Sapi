@@ -275,8 +275,9 @@ const PotongSapiBiasaModal = ({
         return;
       }
 
-      if (!detail.berat || Number.isNaN(Number(detail.berat)) || Number(detail.berat) < 1) {
-        setNotification({ type: 'error', message: `Detail #${i + 1}: Berat wajib diisi dengan angka minimal 1.` });
+      const beratVal = Number(String(detail.berat).replace(',', '.'));
+      if (!detail.berat || Number.isNaN(beratVal) || beratVal <= 0) {
+        setNotification({ type: 'error', message: `Detail #${i + 1}: Berat wajib diisi dengan angka lebih dari 0.` });
         return;
       }
     }
@@ -295,7 +296,7 @@ const PotongSapiBiasaModal = ({
       return;
     }
 
-    const totalBeratInput = details.reduce((sum, detail) => sum + Number(detail.berat), 0);
+    const totalBeratInput = Math.round(details.reduce((sum, detail) => sum + Number(String(detail.berat).replace(',', '.') || 0), 0) * 1000) / 1000;
     if (beratSapi > 0 && totalBeratInput > beratSapi) {
       setNotification({ type: 'error', message: `Total berat hasil potong (${totalBeratInput} kg) tidak boleh melebihi berat sapi (${beratSapi} kg).` });
       return;
@@ -309,11 +310,11 @@ const PotongSapiBiasaModal = ({
       tgl_potong: tglPotong,
       alasan_backdate: backdate ? alasanBackdate.trim() : null,
       berat_sapi: Number(beratSapi),
-      berat_karkas: Number(beratKarkas),
+      berat_karkas: Number(String(beratKarkas).replace(',', '.')),
       detail: details.map(detail => ({
         id_jenis_potong: Number(detail.id_jenis_potong),
         id_item_potong: Number(detail.id_item_potong),
-        berat: Number(detail.berat),
+        berat: Number(String(detail.berat).replace(',', '.')),
       })),
     };
 
@@ -350,9 +351,9 @@ const PotongSapiBiasaModal = ({
     };
   });
 
-  const totalBerat = details.reduce((sum, detail) => sum + (Number(detail.berat) || 0), 0);
+  const totalBerat = Math.round(details.reduce((sum, detail) => sum + (Number(String(detail.berat).replace(',', '.')) || 0), 0) * 1000) / 1000;
   const totalDetail = details.length;
-  const sisaBerat = beratSapi - totalBerat;
+  const sisaBerat = Math.round((Number(beratSapi) - totalBerat) * 1000) / 1000;
 
   return (
     <>
@@ -520,7 +521,8 @@ const PotongSapiBiasaModal = ({
                                 value={detail.berat}
                                 onChange={(e) => handleDetailChange(index, 'berat', e.target.value)}
                                 placeholder="0"
-                                min="1"
+                                min="0.001"
+                                step="0.001"
                                 max={beratSapi || undefined}
                                 className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                                 required
