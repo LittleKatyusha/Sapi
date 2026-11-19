@@ -40,7 +40,7 @@ const OpnameStokModal = ({ isOpen, onClose, onSuccess, type = 'boning', item }) 
   if (!isOpen) return null;
 
   const round3 = (n) => Math.round(n * 1000) / 1000;
-  const numericDiff = Number(jumlahSelisih || 0);
+  const numericDiff = Number(String(jumlahSelisih || 0).replace(',', '.'));
   const finalStock = tipeOpname === 'PENGURANGAN'
     ? round3(currentStock - numericDiff)
     : round3(currentStock + numericDiff);

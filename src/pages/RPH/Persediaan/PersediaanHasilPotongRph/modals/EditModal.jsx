@@ -158,8 +158,9 @@ const EditModal = ({ isOpen, onClose, onSuccess, data, type, item }) => {
   };
 
   const handleKulitSubmit = async () => {
-    if (!beratKulit || parseInt(beratKulit) < 1) {
-      setError('Berat kulit harus diisi minimal 1');
+    const parsedBerat = parseFloat(String(beratKulit).replace(',', '.'));
+    if (!beratKulit || isNaN(parsedBerat) || parsedBerat <= 0) {
+      setError('Berat kulit harus diisi angka lebih dari 0');
       return;
     }
 
@@ -168,7 +169,7 @@ const EditModal = ({ isOpen, onClose, onSuccess, data, type, item }) => {
     try {
       const res = await PersediaanHasilPotongService.updateKulit({
         pid: item.pid,
-        berat_kulit: parseInt(beratKulit),
+        berat_kulit: parsedBerat,
         tgl_potong: tglPotong || null,
       });
       if (res.success) {
@@ -194,7 +195,7 @@ const EditModal = ({ isOpen, onClose, onSuccess, data, type, item }) => {
           id_header_boning_karkas: parseInt(g.id_header_boning_karkas) || 0,
           detail: g.detail.map(d => ({
             id_jenis_boning_karkas: parseInt(d.id_jenis_boning_karkas) || 0,
-            berat: parseInt(d.berat) || 0,
+            berat: parseFloat(String(d.berat).replace(',', '.')) || 0,
           })),
         })),
       };
@@ -326,7 +327,8 @@ const EditModal = ({ isOpen, onClose, onSuccess, data, type, item }) => {
                     </label>
                     <input
                       type="number"
-                      min="1"
+                      min="0.001"
+                      step="0.001"
                       value={beratKulit}
                       onChange={(e) => setBeratKulit(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
@@ -420,7 +422,8 @@ const EditModal = ({ isOpen, onClose, onSuccess, data, type, item }) => {
                             </div>
                             <input
                               type="number"
-                              min="1"
+                              min="0.001"
+                              step="0.001"
                               value={detail.berat}
                               onChange={(e) => handleDetailChange(groupIndex, detailIndex, 'berat', e.target.value)}
                               className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
