@@ -66,7 +66,7 @@ const detailToSapiOption = (detail) => {
   };
 };
 const PAYMENT_OPTIONS = [{ value: '1', label: 'Tunai' }, { value: '2', label: 'Kredit' }];
-const SKIN_TREATMENT_OPTIONS = [{ value: 'DITABUNG', label: 'Ditabung' }, { value: 'DIAMBIL', label: 'Diambil' }];
+const SKIN_TREATMENT_OPTIONS = [{ value: 'DITABUNG', label: 'Ditabung' }, { value: 'DIAMBIL', label: 'Diambil' }, { value: 'POTONG_SALDO', label: 'Langsung Potong Saldo' }];
 const SHIPPING_OPTIONS = [{ value: 'DIAMBIL', label: 'Diambil' }, { value: 'DIANTAR', label: 'Diantar' }];
 const isPedagangAtCreditLimit = (item) => Number(item?.is_dispensasi || 0) !== 1 && Number(item?.limit_kredit || 0) > 0 && Number(item?.saldo_beku || 0) >= Number(item.limit_kredit);
 const paymentStatusLabel = (row) => {
@@ -422,14 +422,14 @@ const KarkasFormModal = ({
                       <Input type="number" min="0" max={Math.max(sisaBerat - totalKarkas - totalHasilPotong, 0)} step="0.01" value={x.berat_kulit_kg} onChange={e => setItem(i, 'berat_kulit_kg', e.target.value)} />
                     </Field>
                     <Field label="Perlakuan Kulit">
-                      <SearchableSelect value={x.perlakuan_kulit || 'DITABUNG'} onChange={v => setItem(i, 'perlakuan_kulit', v || 'DITABUNG')} options={SKIN_TREATMENT_OPTIONS} placeholder="Pilih perlakuan kulit" accentColor="red" isClearable={false} />
+                      <SearchableSelect value={x.perlakuan_kulit || 'DITABUNG'} onChange={v => setItem(i, null, { ...x, perlakuan_kulit: v || 'DITABUNG', ...(v === 'DIAMBIL' ? { nominal_kulit: 0 } : {}) })} options={SKIN_TREATMENT_OPTIONS} placeholder="Pilih perlakuan kulit" accentColor="red" isClearable={false} />
                     </Field>
-                    {['DIAMBIL', 'DITABUNG'].includes(x.perlakuan_kulit) && (
-                      <Field label="Nominal Kulit">
+                    {['DIAMBIL', 'DITABUNG', 'POTONG_SALDO'].includes(x.perlakuan_kulit) && (
+                      <Field label={x.perlakuan_kulit === 'POTONG_SALDO' ? 'Nominal Kulit (Potong Tagihan)' : 'Nominal Kulit'}>
                         <MoneyInput required min="0" disabled={x.perlakuan_kulit === 'DIAMBIL'} value={x.nominal_kulit} onChange={value => setItem(i, 'nominal_kulit', value)} />
                       </Field>
                     )}
-                    <Field label="Alasan Perubahan Harga" className={x.perlakuan_kulit === 'DIAMBIL' ? '' : 'lg:col-span-2'}>
+                    <Field label="Alasan Perubahan Harga">
                       <Input value={x.alasan_perubahan_harga} onChange={e => setItem(i, 'alasan_perubahan_harga', e.target.value)} />
                     </Field>
                   </div>
@@ -454,7 +454,7 @@ const KarkasFormModal = ({
                   <div className="mt-3 grid gap-2 rounded-xl bg-slate-50 px-3 py-2 text-sm sm:grid-cols-3">
                     <div><span className="text-slate-500">Transaksi baru / sisa</span><div className={`font-semibold ${totalBerat > sisaBerat ? 'text-rose-600' : 'text-slate-800'}`}>{weight(totalBerat)} / {weight(sisaBerat)} kg</div></div>
                     <div><span className="text-slate-500">Nominal karkas</span><div className="font-semibold text-slate-800">{money(nominalKarkas)}</div></div>
-                    <div><span className="text-slate-500">Subtotal item</span><div className="font-semibold text-slate-800">{money(nominalKarkas + (x.perlakuan_kulit === 'DIAMBIL' ? nominalKulit : 0) + boningDiambil - boningTidakDiambil)}</div></div>
+                    <div><span className="text-slate-500">Subtotal item</span><div className="font-semibold text-slate-800">{money(nominalKarkas + (x.perlakuan_kulit === 'DIAMBIL' ? nominalKulit : (x.perlakuan_kulit === 'POTONG_SALDO' ? -nominalKulit : 0)) + boningDiambil - boningTidakDiambil)}</div></div>
                   </div>
                 </div>
               );
@@ -499,6 +499,7 @@ const KarkasFormModal = ({
                   <div className="text-xs font-medium text-slate-500">Subtotal Karkas</div>
                   <div className="mt-1 text-lg font-bold text-slate-900">{money(totals.n)}</div>
                   {totals.kulitDitabung > 0 && <div className="mt-1 text-[11px] text-slate-400">Tabungan kulit: {money(totals.kulitDitabung)}</div>}
+                  {totals.kulitPotongSaldo > 0 && <div className="mt-1 text-[11px] text-rose-500">Potong kulit: -{money(totals.kulitPotongSaldo)}</div>}
                 </div>
                 <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-3.5">
                   <div className="text-xs font-medium text-slate-500">Biaya Potong</div>
@@ -626,9 +627,10 @@ export default function PenjualanKarkasPage() {
       karkas: a.karkas + nominalKarkas,
       kulitDiambil: a.kulitDiambil + (x.perlakuan_kulit === 'DIAMBIL' ? nominalKulit : 0),
       kulitDitabung: a.kulitDitabung + (x.perlakuan_kulit === 'DITABUNG' ? nominalKulit : 0),
-      n: a.n + nominalKarkas + (x.perlakuan_kulit === 'DIAMBIL' ? nominalKulit : 0) + boningDiambil - boningTidakDiambil,
+      kulitPotongSaldo: a.kulitPotongSaldo + (x.perlakuan_kulit === 'POTONG_SALDO' ? nominalKulit : 0),
+      n: a.n + nominalKarkas + (x.perlakuan_kulit === 'DIAMBIL' ? nominalKulit : (x.perlakuan_kulit === 'POTONG_SALDO' ? -nominalKulit : 0)) + boningDiambil - boningTidakDiambil,
     };
-  }, { w: 0, karkas: 0, kulitDiambil: 0, kulitDitabung: 0, n: 0 }), [form.items]);
+  }, { w: 0, karkas: 0, kulitDiambil: 0, kulitDitabung: 0, kulitPotongSaldo: 0, n: 0 }), [form.items]);
   const save = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -640,6 +642,9 @@ export default function PenjualanKarkasPage() {
         throw new Error('Alasan backdate wajib diisi untuk transaksi tanggal lampau.');
       }
       const grandTotal = totals.n + Number(form.biaya_potong || 0) + Number(form.biaya_pengiriman || 0);
+      if (grandTotal < 0) throw new Error('Total tagihan tidak boleh minus.');
+      const invalidKulit = form.items.find(x => x.perlakuan_kulit === 'POTONG_SALDO' && (Number(x.nominal_kulit || 0) <= 0 || Number(x.berat_kulit_kg || 0) <= 0));
+      if (invalidKulit) throw new Error('Berat dan nominal kulit wajib lebih dari 0 jika perlakuan kulit langsung potong saldo.');
       if (form.gunakan_saldo && Number(form.penggunaan_saldo || 0) > grandTotal) throw new Error('Penggunaan saldo tidak boleh melebihi total tagihan.');
       const boningIds = form.items.flatMap(item => (item.boning_items || []).map(boning => String(boning.id_item_potong || '')).filter(Boolean));
       if (new Set(boningIds).size !== boningIds.length) throw new Error('Item hasil boning tidak boleh dipilih lebih dari satu kali dalam satu transaksi.');

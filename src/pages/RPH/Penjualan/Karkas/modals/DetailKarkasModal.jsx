@@ -51,7 +51,9 @@ const getItemPrice = (item) => Number(item.harga_karkas_aktual ?? item.harga_sat
 const getItemSubtotal = (item) => {
   if (item.total_harga !== undefined && item.total_harga !== null) return Number(item.total_harga);
   const nominalKarkas = Math.max((Number(item.berat_paha_depan_kg || 0) + Number(item.berat_paha_belakang_kg || 0)) * getItemPrice(item) - Number(item.diskon || 0), 0);
-  const nominalKulit = item.perlakuan_kulit === 'DIAMBIL' ? Number(item.nominal_kulit || 0) : 0;
+  const nominalKulit = item.perlakuan_kulit === 'DIAMBIL'
+    ? Number(item.nominal_kulit || 0)
+    : (item.perlakuan_kulit === 'POTONG_SALDO' ? -Number(item.nominal_kulit || 0) : 0);
   return nominalKarkas + nominalKulit;
 };
 
@@ -175,7 +177,14 @@ const DetailKarkasModal = ({ isOpen, onClose, data }) => {
                       <td className="px-4 py-3 text-right text-slate-700">{getItemWeight(item).toFixed(3)}</td>
                       <td className="px-4 py-3 text-right text-slate-700">{formatCurrency(getItemPrice(item))}</td>
                       <td className="px-4 py-3 text-slate-700">
-                        <div className="font-medium">{item.perlakuan_kulit || '-'}</div>
+                        <div className="font-medium">
+                          {item.perlakuan_kulit === 'POTONG_SALDO'
+                            ? 'Potong Saldo'
+                            : (item.perlakuan_kulit === 'DITABUNG' ? 'Ditabung' : (item.perlakuan_kulit === 'DIAMBIL' ? 'Diambil' : (item.perlakuan_kulit || '-')))}
+                        </div>
+                        {item.perlakuan_kulit === 'POTONG_SALDO' && Number(item.nominal_kulit || 0) > 0 && (
+                          <div className="mt-0.5 text-xs font-semibold text-rose-600">-{formatCurrency(Number(item.nominal_kulit))}</div>
+                        )}
                         <div className="mt-0.5 text-xs text-slate-500">{Number(item.berat_kulit_kg || item.berat_kulit || 0).toFixed(3)} Kg</div>
                       </td>
                       <td className="px-4 py-3 text-right text-slate-700">{Number(item.penyusutan_kg || 0) > 0 ? `${Number(item.penyusutan_kg).toFixed(2)} Kg` : '-'}</td>
