@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, AlertCircle, CheckCircle2, Loader2, Save, Calendar, Scale, Plus, Trash2, FileText } from 'lucide-react';
+import { X, AlertCircle, AlertTriangle, CheckCircle2, Loader2, Save, Calendar, Scale, Plus, Trash2, FileText } from 'lucide-react';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 import StokSapiService from '../../../../services/stokSapiService';
 
@@ -105,6 +105,7 @@ const PotongSapiBiasaModal = ({
   const [loadingItemPotong, setLoadingItemPotong] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [beratSapi, setBeratSapi] = useState('');
   const beratSapiValid = Number.isInteger(Number(beratSapi)) && Number(beratSapi) > 0 && Number(beratSapi) <= 2147483647;
 
@@ -158,6 +159,7 @@ const PotongSapiBiasaModal = ({
       setDetails([createEmptyDetail()]);
     }
     setNotification(null);
+    setShowConfirmModal(false);
   }, [isOpen, mode, initialData]);
 
   useEffect(() => {
@@ -217,6 +219,7 @@ const PotongSapiBiasaModal = ({
     setBeratKarkas('');
     setDetails([createEmptyDetail()]);
     setNotification(null);
+    setShowConfirmModal(false);
     onClose();
   };
 
@@ -297,14 +300,26 @@ const PotongSapiBiasaModal = ({
     }
 
     const totalBeratInput = Math.round(details.reduce((sum, detail) => sum + Number(String(detail.berat).replace(',', '.') || 0), 0) * 1000) / 1000;
-    if (beratSapi > 0 && totalBeratInput > beratSapi) {
-      setNotification({ type: 'error', message: `Total berat hasil potong (${totalBeratInput} kg) tidak boleh melebihi berat sapi (${beratSapi} kg).` });
-      return;
+    const numBeratSapi = Number(beratSapi);
+    if (numBeratSapi > 0) {
+      if (totalBeratInput > numBeratSapi + 10) {
+        setNotification({ type: 'error', message: `Total berat hasil potong (${totalBeratInput} kg) melebihi batas toleransi maksimal 10 kg dari berat sapi (${numBeratSapi + 10} kg).` });
+        return;
+      }
+      if (totalBeratInput > numBeratSapi) {
+        setShowConfirmModal(true);
+        return;
+      }
     }
 
+    await executeSave();
+  };
+
+  const executeSave = async () => {
     setIsSubmitting(true);
     setNotification({ type: 'info', message: mode === 'edit' ? 'Menyimpan perubahan data potong sapi...' : 'Menyimpan data potong sapi...' });
 
+    const backdate = isBackdate(tglPotong);
     const payload = {
       pid: mode === 'edit' ? recordPid : cowData?.pid,
       tgl_potong: tglPotong,
@@ -421,7 +436,7 @@ const PotongSapiBiasaModal = ({
                   </Field>
                 )}
 
-                <Field label="Berat Sapi (KG)" required helperText="Wajib diisi sebelum detail potong. Total berat detail tidak boleh melebihi berat sapi ini.">
+                <Field label="Berat Sapi (KG)" required helperText="Wajib diisi sebelum detail potong. Maksimal toleransi hasil potong adalah berat sapi + 10 kg.">
                   <input
                     aria-label="Berat Sapi (KG)"
                     type="number"
@@ -446,7 +461,6 @@ const PotongSapiBiasaModal = ({
                       placeholder="0"
                       min="0"
                       step="0.001"
-                      max={beratSapi || undefined}
                       className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                       required
                     />
@@ -523,7 +537,6 @@ const PotongSapiBiasaModal = ({
                                 placeholder="0"
                                 min="0.001"
                                 step="0.001"
-                                max={beratSapi || undefined}
                                 className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                                 required
                               />
@@ -550,9 +563,32 @@ const PotongSapiBiasaModal = ({
                   </div>
                 </div>
 
-                <div className={`rounded-xl p-3 text-sm font-semibold ${sisaBerat < 0 ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>
-                  Berat sapi: {beratSapi || '-'} kg · Sisa: {sisaBerat} kg
-                </div>
+                {(() => {
+                  const numBerat = Number(beratSapi) || 0;
+                  const isOverTolerance = numBerat > 0 && totalBerat > numBerat + 10;
+                  const isOverSapi = numBerat > 0 && totalBerat > numBerat;
+
+                  return (
+                    <div className={`rounded-xl p-3 text-sm font-semibold ${
+                      isOverTolerance
+                        ? 'bg-rose-50 text-rose-700'
+                        : isOverSapi
+                        ? 'bg-amber-50 text-amber-700'
+                        : 'bg-emerald-50 text-emerald-700'
+                    }`}>
+                      Berat sapi: {beratSapi || '-'} kg · Sisa: {sisaBerat} kg
+                      {isOverTolerance ? (
+                        <span className="mt-1 block text-xs font-normal">
+                          Melebihi batas toleransi 10 kg! Tidak dapat disimpan.
+                        </span>
+                      ) : isOverSapi ? (
+                        <span className="mt-1 block text-xs font-normal">
+                          Melebihi berat sapi sebesar {Math.round((totalBerat - numBerat) * 1000) / 1000} kg (dalam toleransi maks 10 kg).
+                        </span>
+                      ) : null}
+                    </div>
+                  );
+                })()}
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-xl bg-slate-50 p-3">
@@ -629,7 +665,7 @@ const PotongSapiBiasaModal = ({
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={isSubmitting || (beratSapi > 0 && totalBerat > beratSapi)}
+              disabled={isSubmitting || (beratSapi > 0 && totalBerat > Number(beratSapi) + 10)}
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:from-indigo-600 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting ? (
@@ -647,6 +683,46 @@ const PotongSapiBiasaModal = ({
           </div>
         </div>
       </div>
+
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900">Konfirmasi Toleransi Berat</h3>
+            </div>
+            <p className="mt-3 text-sm text-slate-600">
+              Total berat hasil potong (<span className="font-semibold text-slate-900">{totalBerat} kg</span>) melebihi berat sapi (<span className="font-semibold text-slate-900">{beratSapi} kg</span>) sebesar <span className="font-semibold text-amber-600">{Math.round((totalBerat - Number(beratSapi)) * 1000) / 1000} kg</span>.
+            </p>
+            <p className="mt-2 text-xs text-slate-500">
+              Angka ini masih dalam batas toleransi (maksimal +10 kg). Apakah Anda yakin data timbangan ini sudah benar dan ingin melanjutkan?
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                disabled={isSubmitting}
+                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+              >
+                Periksa Kembali
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setShowConfirmModal(false);
+                  await executeSave();
+                }}
+                disabled={isSubmitting}
+                className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600 disabled:opacity-50"
+              >
+                Ya, Lanjutkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
