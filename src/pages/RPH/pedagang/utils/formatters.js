@@ -48,6 +48,21 @@ export const formatDateTime = (dateString) => {
 };
 
 /**
+ * Format tanggal menjadi dd/mm/yyyy tanpa pergeseran zona waktu.
+ * Dipakai untuk tanggal dari API yang berformat Y-m-d (mis. 2026-11-23).
+ * @param {string} dateString
+ * @returns {string}
+ */
+export const formatDateOnly = (dateString) => {
+  if (!dateString) return '-';
+  const match = String(dateString).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    return `${match[3]}/${match[2]}/${match[1]}`;
+  }
+  return formatDate(dateString);
+};
+
+/**
  * Pedagang status mapping
  */
 export const PEDAGANG_STATUS = {

@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import {
   X, User, Phone, MapPin, Store, Hash,
   ChevronDown, ChevronUp, Wallet,
-  Scissors, History,
+  Scissors, History, CalendarDays,
 } from 'lucide-react';
 import { CUT_PARTS } from '../constants/cutParts';
-import { formatCurrency, formatDate, getStatusBadgeClasses, getStatusLabel } from '../utils/formatters';
+import { formatCurrency, formatDate, formatDateOnly, getStatusBadgeClasses, getStatusLabel } from '../utils/formatters';
 import PedagangService from '../../../../services/pedagangService';
 
 const PedagangDetailModal = ({ isOpen, onClose, data }) => {
@@ -238,6 +238,16 @@ const PedagangDetailModal = ({ isOpen, onClose, data }) => {
                 <Wallet className="w-4 h-4" />
                 Ringkasan Saldo
               </h4>
+
+              {d?.tanggal_terhutang && (
+                <div className="mb-3 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2">
+                  <CalendarDays className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                  <p className="text-xs text-rose-700">
+                    Terhutang sejak <span className="font-bold">{formatDateOnly(d.tanggal_terhutang)}</span>
+                    <span className="text-rose-500"> — tanggal mulai hutang berjalan</span>
+                  </p>
+                </div>
+              )}
 
               {/* Komponen Saldo */}
               <div className="mb-3">

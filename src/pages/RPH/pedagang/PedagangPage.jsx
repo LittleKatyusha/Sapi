@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import usePedagang from './hooks/usePedagang';
 import PedagangService from '../../../services/pedagangService';
-import { formatCurrency, getStatusBadgeClasses, getStatusLabel, PEDAGANG_STATUS_OPTIONS } from './utils/formatters';
+import { formatCurrency, formatDateOnly, getStatusBadgeClasses, getStatusLabel, PEDAGANG_STATUS_OPTIONS } from './utils/formatters';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import AddEditPedagangModal from './modals/AddEditPedagangModal';
 import PedagangDetailModal from './modals/PedagangDetailModal';
@@ -774,6 +774,12 @@ const PedagangPage = () => {
                     </button>
                   </th>
                   <th className="text-right text-[10px] font-bold text-gray-500 uppercase px-3 py-3">Hutang</th>
+                  <th
+                    className="text-center text-[10px] font-bold text-gray-500 uppercase px-3 py-3"
+                    title="Tanggal mulai hutang berjalan (sejak saldo beku naik dari 0)"
+                  >
+                    Tgl Terhutang
+                  </th>
                   <th className="text-right text-[10px] font-bold text-gray-500 uppercase px-3 py-3">Limit Hutang</th>
                   <th className="text-center text-[10px] font-bold text-gray-500 uppercase px-3 py-3">Dispensasi</th>
                   <th className="text-center text-[10px] font-bold text-gray-500 uppercase px-3 py-3 w-10">Aksi</th>
@@ -782,14 +788,14 @@ const PedagangPage = () => {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={9} className="py-16 text-center">
+                    <td colSpan={10} className="py-16 text-center">
                       <Loader2 className="w-6 h-6 text-emerald-500 animate-spin mx-auto mb-2" />
                       <p className="text-sm text-gray-500">Memuat data...</p>
                     </td>
                   </tr>
                 ) : sortedData.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-16 text-center">
+                    <td colSpan={10} className="py-16 text-center">
                       <Users className="w-10 h-10 text-gray-300 mx-auto mb-3" />
                       <p className="text-sm text-gray-500">Tidak ada data pedagang ditemukan</p>
                     </td>
@@ -850,6 +856,15 @@ const PedagangPage = () => {
                             {formatCurrency(row.saldo_beku)}
                           </span>
                         </span>
+                      </td>
+                      <td className="px-3 py-3 text-center">
+                        {row.tanggal_terhutang ? (
+                          <span className="text-xs font-semibold text-gray-700 tabular-nums">
+                            {formatDateOnly(row.tanggal_terhutang)}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-gray-300" title="Tidak ada hutang berjalan">-</span>
+                        )}
                       </td>
                       <td className="px-3 py-3 text-right">
                         <span className={`text-sm font-semibold tabular-nums ${isLimitHutangReached(row) ? 'text-red-600' : 'text-amber-600'}`}>
@@ -936,6 +951,11 @@ const PedagangPage = () => {
                     <p className={`${isLimitHutangReached(row) ? 'text-red-600' : 'text-rose-600'} font-bold`}>{formatCurrency(row.saldo_beku)}</p>
                     <p className="text-gray-400 mt-2">Limit Hutang</p>
                     <p className={`${isLimitHutangReached(row) ? 'text-red-600' : 'text-amber-600'} font-bold`}>{formatCurrency(row.limit_kredit)}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400">Tgl Terhutang</p>
+                    <p className="text-gray-700 font-semibold">{formatDateOnly(row.tanggal_terhutang)}</p>
+                    <p className="text-[10px] text-gray-400">{row.tanggal_terhutang ? 'Awal hutang berjalan' : 'Tidak ada hutang'}</p>
                   </div>
                   <div>
                     <p className="text-gray-400">Dispensasi</p>
