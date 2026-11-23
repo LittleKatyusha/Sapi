@@ -17,6 +17,17 @@ const shouldForwardProp = (prop) => {
   return !invalidProps.includes(prop);
 };
 
+/**
+ * Total Biaya = nilai barang (total belanja) + biaya lain-lain + biaya truk.
+ * Samakan dengan kolom "Total Biaya" (Beli + Lain + Truk) di halaman list.
+ */
+const hitungTotalBiaya = (data = {}) => {
+    const beli = Number(data.total_belanja || data.biaya_total || 0) || 0;
+    const lain = Number(data.biaya_lain) || 0;
+    const truk = Number(data.biaya_truk) || 0;
+    return beli + lain + truk;
+};
+
 const PembelianLainLainDetailPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -716,12 +727,12 @@ const PembelianLainLainDetailPage = () => {
                                 Biaya Total
                             </label>
                             <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.biaya_total ? new Intl.NumberFormat('id-ID', {
+                                {hitungTotalBiaya(pembelianData) ? new Intl.NumberFormat('id-ID', {
                                     style: 'currency',
                                     currency: 'IDR',
                                     minimumFractionDigits: 0,
                                     maximumFractionDigits: 0
-                                }).format(pembelianData.biaya_total) : 'Rp 0'}
+                                }).format(hitungTotalBiaya(pembelianData)) : 'Rp 0'}
                             </p>
                         </div>
 

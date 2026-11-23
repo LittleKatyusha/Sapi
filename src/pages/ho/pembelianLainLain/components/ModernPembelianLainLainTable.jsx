@@ -29,6 +29,17 @@ const formatCurrency = (value) => {
   }).format(value);
 };
 
+/**
+ * Total Biaya = nilai barang (total belanja) + biaya lain-lain + biaya truk.
+ * Sesuai caption kolom: "Beli + Lain + Truk".
+ */
+const getTotalBiaya = (row = {}) => {
+  const beli = Number(row.total_belanja || row.biaya_total || 0) || 0;
+  const lain = Number(row.biaya_lain) || 0;
+  const truk = Number(row.biaya_truk) || 0;
+  return beli + lain + truk;
+};
+
 const formatDate = (dateString) => {
   if (!dateString) return '-';
   return new Date(dateString).toLocaleDateString('id-ID', {
@@ -308,7 +319,7 @@ const ModernPembelianLainLainTable = ({
                         <div className="text-xs text-gray-500">item</div>
                       </td>
                       <td className="px-3 py-2 text-right">
-                        <div className="text-sm font-semibold text-gray-900">{formatCurrency(row.biaya_total)}</div>
+                        <div className="text-sm font-semibold text-gray-900">{formatCurrency(getTotalBiaya(row))}</div>
                         <div className="text-xs text-gray-500">
                           B:{formatCurrency(row.total_belanja)} L:{formatCurrency(row.biaya_lain)} T:{formatCurrency(row.biaya_truk)}
                         </div>
@@ -345,7 +356,8 @@ const ModernPembelianLainLainTable = ({
                             <InfoItem icon={Banknote} label="Total Belanja" value={formatCurrency(row.total_belanja)} valueClass="text-emerald-700" />
                             <InfoItem icon={Wallet} label="Biaya Lain" value={formatCurrency(row.biaya_lain)} valueClass="text-orange-700" />
                             <InfoItem icon={Truck} label="Biaya Truk" value={formatCurrency(row.biaya_truk)} valueClass="text-cyan-700" />
-                            <InfoItem icon={Banknote} label="Biaya Total" value={formatCurrency(row.biaya_total)} valueClass="text-green-700 font-semibold" />
+                            <InfoItem icon={Banknote} label="Total Biaya" value={formatCurrency(getTotalBiaya(row))} valueClass="text-green-700 font-semibold" />
+                            <InfoItem icon={Wallet} label="Total Tagihan" value={formatCurrency(row.total_tagihan)} valueClass="text-emerald-700 font-semibold" />
                             <InfoItem icon={MapPin} label="Farm" value={row.farm || getFarmName(row.id_farm)} />
                             <InfoItem icon={Info} label="Syarat Pembelian" value={row.syarat_pembelian || getBankName(row.id_syarat_pembelian, bankOptions)} />
                             <InfoItem icon={Package} label="Nota HO" value={row.nota_ho} />
@@ -413,7 +425,7 @@ const ModernPembelianLainLainTable = ({
                   </div>
                   <div className="text-right">
                     <div className="text-xs text-gray-500">Total Biaya</div>
-                    <div className="font-medium text-green-700">{formatCurrency(row.biaya_total)}</div>
+                    <div className="font-medium text-green-700">{formatCurrency(getTotalBiaya(row))}</div>
                   </div>
                 </div>
                 <div className="mt-3 flex items-center justify-between">

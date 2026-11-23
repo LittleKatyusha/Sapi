@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -20,12 +20,20 @@ import {
 } from 'lucide-react';
 import accountingService from '../../services/accountingService';
 import downloadPdf from '../../utils/downloadPdf';
+import SearchableSelect from '../../components/shared/SearchableSelect';
 
 const formatLocalDate = (d) => {
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+
+// dd/mm/yyyy untuk ditampilkan (tanpa pergeseran zona waktu)
+const formatTanggalId = (iso) => {
+  if (!iso) return '-';
+  const match = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : String(iso);
 };
 
 const now = new Date();
@@ -42,6 +50,18 @@ export default function CashFlowPage() {
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
 
+  // Opsi entitas untuk SearchableSelect (template selectbox aplikasi).
+  const settingOptions = useMemo(() => {
+    const options = [];
+    if (settings.length > 1) {
+      options.push({ value: 'all', label: '★ Semua Entitas (Konsolidasi)' });
+    }
+    settings.forEach((s) => {
+      options.push({ value: String(s.id), label: `${s.nama_perusahaan} (${s.entitas})` });
+    });
+    return options;
+  }, [settings]);
+
   // Drilldown modal state
   const [selectedAccountModal, setSelectedAccountModal] = useState(null);
 
@@ -54,6 +74,14 @@ export default function CashFlowPage() {
       [key]: !prev[key],
     }));
   };
+
+  // Nama entitas terpilih untuk ditampilkan pada ringkasan laporan.
+  const settingLabel = useMemo(() => {
+    if (!settingId) return '';
+    if (settingId === 'all') return 'Semua Entitas (Konsolidasi)';
+    const found = settings.find((s) => String(s.id) === String(settingId));
+    return found ? `${found.nama_perusahaan} (${found.entitas})` : '';
+  }, [settingId, settings]);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -341,7 +369,7 @@ export default function CashFlowPage() {
   };
 
   // Activity Section (always rendered explicitly per PSAK 2)
-  const ActivitySection = ({ title, icon: Icon, sectionData, badgeColor }) => {
+  const ActivitySection = ({ title, description, icon: Icon, sectionData, badgeColor }) => {
     const isNetPositive = sectionData.net >= 0;
 
     return (
@@ -349,7 +377,10 @@ export default function CashFlowPage() {
         <div className="flex items-center justify-between border-b bg-gray-50 px-4 py-3">
           <div className="flex items-center gap-2">
             <Icon className={`h-5 w-5 ${badgeColor}`} />
-            <h2 className="font-semibold text-gray-800">{title}</h2>
+            <div>
+              <h2 className="font-semibold text-gray-800">{title}</h2>
+              {description && <p className="text-[11px] text-gray-500">{description}</p>}
+            </div>
           </div>
           <span className={`text-sm font-bold font-mono ${isNetPositive ? 'text-green-600' : 'text-red-600'}`}>
             {formatCurrency(sectionData.net)}
@@ -447,24 +478,19 @@ export default function CashFlowPage() {
       {/* Filter Card */}
       <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:p-6 space-y-4">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4 md:items-end">
-          <label className="text-sm font-medium text-gray-700">
-            Entitas Akunting
-            <select
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Entitas Akunting</label>
+            <SearchableSelect
+              options={settingOptions}
               value={settingId}
-              onChange={(e) => setSettingId(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-indigo-500 focus:outline-none"
-            >
-              <option value="">Pilih entitas</option>
-              {settings.length > 1 && (
-                <option value="all">★ Semua Entitas (Konsolidasi)</option>
-              )}
-              {settings.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.nama_perusahaan} ({s.entitas})
-                </option>
-              ))}
-            </select>
-          </label>
+              onChange={(val) => setSettingId(val ?? '')}
+              placeholder="Pilih entitas"
+              isSearchable={true}
+              isClearable={true}
+              accentColor="blue"
+              className="text-sm"
+            />
+          </div>
           <label className="text-sm font-medium text-gray-700">
             Dari Tanggal
             <input
@@ -546,6 +572,37 @@ export default function CashFlowPage() {
       {/* Report Data */}
       {report && (
         <div className="space-y-6">
+          {/* Ringkasan periode + panduan singkat */}
+          <section className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-indigo-950">
+                  Periode: {formatTanggalId(tanggalFrom)} s/d {formatTanggalId(tanggalTo)}
+                </p>
+                <p className="text-xs text-indigo-700">
+                  {settingLabel || '-'} • Saldo Awal + Penerimaan − Pengeluaran = Saldo Akhir
+                </p>
+              </div>
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${report.is_balanced ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
+                {report.is_balanced ? 'Angka cocok dengan buku besar' : 'Ada selisih, perlu diperiksa'}
+              </span>
+            </div>
+
+            <details className="mt-2 rounded-lg border border-indigo-100 bg-white/70 px-3 py-2">
+              <summary className="cursor-pointer text-xs font-semibold text-indigo-800">
+                Cara membaca laporan ini
+              </summary>
+              <ul className="mt-2 list-disc pl-5 space-y-1 text-xs text-gray-600">
+                <li><strong>Saldo Awal</strong>: uang kas &amp; bank sebelum periode ini.</li>
+                <li><strong>Operasi</strong>: uang masuk/keluar dari kegiatan sehari-hari (penjualan, pembelian, gaji, listrik).</li>
+                <li><strong>Investasi</strong>: beli atau jual aset jangka panjang (kendaraan, mesin, bangunan).</li>
+                <li><strong>Pendanaan</strong>: setoran modal, pinjaman bank, prive/dividen.</li>
+                <li><strong>Saldo Akhir</strong> harus sama dengan total Kas + Bank di Neraca pada tanggal yang sama.</li>
+                <li>Klik tombol <strong>“Jurnal (n)”</strong> di tiap akun untuk melihat nomor jurnal &amp; keterangan sumber angkanya.</li>
+              </ul>
+            </details>
+          </section>
+
           {/* Executive KPI Cards */}
           <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -610,6 +667,7 @@ export default function CashFlowPage() {
           <section className="space-y-4">
             <ActivitySection
               title="Aktivitas Operasi"
+              description="Uang masuk & keluar dari kegiatan usaha sehari-hari."
               icon={TrendingUp}
               badgeColor="text-emerald-600"
               sectionData={report.operations}
@@ -617,6 +675,7 @@ export default function CashFlowPage() {
 
             <ActivitySection
               title="Aktivitas Investasi"
+              description="Pembelian atau penjualan aset jangka panjang."
               icon={Building}
               badgeColor="text-amber-600"
               sectionData={report.investing}
@@ -624,6 +683,7 @@ export default function CashFlowPage() {
 
             <ActivitySection
               title="Aktivitas Pendanaan"
+              description="Modal pemilik, pinjaman, dan pembagian ke pemilik."
               icon={PiggyBank}
               badgeColor="text-purple-600"
               sectionData={report.financing}
@@ -644,7 +704,7 @@ export default function CashFlowPage() {
               </div>
               <div className="p-4 space-y-3 text-sm">
                 <div className="flex justify-between py-1 border-b border-gray-100">
-                  <span className="text-gray-600">Saldo Kas & Setara Kas Awal</span>
+                  <span className="text-gray-600">Saldo Kas &amp; Bank Awal</span>
                   <span className="font-mono font-medium">{formatCurrency(report.opening_balance)}</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-gray-100">
@@ -672,11 +732,11 @@ export default function CashFlowPage() {
                   </span>
                 </div>
                 <div className="flex justify-between py-2 border-t border-gray-200 font-bold bg-indigo-50/60 px-2 rounded text-indigo-950">
-                  <span>Saldo Kas & Setara Kas Akhir (Terhitung)</span>
+                  <span>Saldo Akhir menurut rincian arus kas</span>
                   <span className="font-mono">{formatCurrency(report.calculated_ending_balance)}</span>
                 </div>
                 <div className="flex justify-between py-1 text-xs text-gray-500 px-2">
-                  <span>Saldo Kas & Setara Kas di Buku Besar (Neraca)</span>
+                  <span>Saldo Kas &amp; Bank menurut Neraca (buku besar)</span>
                   <span className="font-mono">{formatCurrency(report.ending_balance)}</span>
                 </div>
               </div>

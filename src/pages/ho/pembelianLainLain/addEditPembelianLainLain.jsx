@@ -15,8 +15,9 @@ import { API_ENDPOINTS } from '../../../config/api';
 import AddEditDetailModal from './modals/AddEditDetailModal';
 
 const SKEMA_PEMBELIAN_ASET_OPTIONS = [
-    { value: 'biasa', label: 'Pembelian Biasa / Tempo Supplier (< 1 Tahun - Hutang Vendor)' },
-    { value: 'leasing', label: 'Kredit Leasing / Pembiayaan (> 1 Tahun - Hutang Leasing)' },
+    { value: 'biasa', label: 'Pembelian Biasa / Tempo Supplier (< 1 Tahun - Hutang Vendor 2110)' },
+    { value: 'leasing_pendek', label: 'Kredit Leasing / Pembiayaan (< 1 Tahun - Hutang Bank Jangka Pendek 2130)' },
+    { value: 'leasing', label: 'Kredit Leasing / Pembiayaan (> 1 Tahun - Hutang Leasing 2520)' },
 ];
 
 const AddEditPembelianLainLainPage = () => {
@@ -132,8 +133,9 @@ const AddEditPembelianLainLainPage = () => {
         fileName: '',
         tipe_pembayaran: '', // Added: Tipe pembayaran
         due_date: '', // Added: Jatuh tempo payment
-        isLeasing: false, // Skema: false = Hutang Vendor (2110), true = Hutang Leasing (2520)
+        isLeasing: false, // Skema: false = Hutang Vendor (2110), true = Leasing (2130 < 1 tahun / 2520 > 1 tahun)
         namaLeasing: '', // Nama leasing jika isLeasing true
+        jangkaWaktu: '', // 'pendek' (< 1 tahun) atau 'panjang' (> 1 tahun)
         note: '' // Added: Required note field
     });
 
@@ -318,18 +320,26 @@ const AddEditPembelianLainLainPage = () => {
                             jumlah: safeGetNumber(headerData.jumlah),
                             biaya_lain: safeGetNumber(headerData.biaya_lain),
                             biaya_total: safeGetNumber(headerData.biaya_total) ?? safeGetNumber(headerData.total_belanja),
+                            biaya_truk: safeGetNumber(headerData.biaya_truk) ?? 0,
                             file: safeGetString(headerData.file), // Keep as string for display purposes
                             fileName: headerData.file ? headerData.file.split('/').pop() : '',
                             tipe_pembayaran: headerData.tipe_pembayaran ? parseInt(headerData.tipe_pembayaran) : '',
                             due_date: safeGetString(headerData.due_date),
                             isLeasing: (() => {
                                 const n = (safeGetString(headerData.note) || safeGetString(headerData.catatan)).toLowerCase();
-                                return /\[leasing/i.test(n) || /kredit leasing|via leasing/i.test(n);
+                                return /\[leasing/i.test(n) || /\[jangka:/i.test(n) || /kredit leasing|via leasing/i.test(n);
                             })(),
                             namaLeasing: (() => {
                                 const n = safeGetString(headerData.note) || safeGetString(headerData.catatan);
                                 const match = /\[LEASING(?::\s*([^\]]+))?\]/i.exec(n);
                                 return match ? (match[1] || '').trim() : '';
+                            })(),
+                            jangkaWaktu: (() => {
+                                const n = safeGetString(headerData.note) || safeGetString(headerData.catatan) || '';
+                                const match = /\[JANGKA:\s*(PENDEK|PANJANG)\]/i.exec(n);
+                                if (match) return match[1].toLowerCase();
+                                const isLeasingNote = /\[leasing/i.test(n) || /kredit leasing|via leasing/i.test(n);
+                                return isLeasingNote ? 'panjang' : '';
                             })(),
                             note: safeGetString(headerData.note) || safeGetString(headerData.catatan)
                         });
@@ -396,6 +406,17 @@ const AddEditPembelianLainLainPage = () => {
 
     // Handle header form changes
     const handleHeaderChange = (field, value) => {
+        // Skema aset menentukan akun hutang: biasa (2110), leasing < 1 tahun (2130), leasing > 1 tahun (2520).
+        if (field === 'skemaAset') {
+            setHeaderData(prev => ({
+                ...prev,
+                isLeasing: value !== 'biasa',
+                jangkaWaktu: value === 'leasing_pendek' ? 'pendek' : (value === 'leasing' ? 'panjang' : ''),
+                namaLeasing: value === 'biasa' ? '' : prev.namaLeasing
+            }));
+            return;
+        }
+
         // Special handling for tipe_pembayaran
         if (field === 'tipe_pembayaran') {
             // If payment type is "KAS" (value 1), automatically set syarat_pembelian to "KAS" (value 1) and lock it
@@ -1030,6 +1051,17 @@ const AddEditPembelianLainLainPage = () => {
         return { totalJumlah, totalBerat, totalHPP, totalHargaItems };
     }, [detailItems]);
 
+    // Biaya Total (read-only) = total harga detail item + biaya lain-lain + biaya truk.
+    // Nilai ini sama dengan "Total Biaya" (Beli + Lain + Truk) di halaman list.
+    const biayaTotalOtomatis = useMemo(() => {
+        const dasarDetail = totals.totalHargaItems > 0
+            ? totals.totalHargaItems
+            : (parseFloat(headerData.biaya_total) || 0);
+        const lain = parseFloat(headerData.biaya_lain) || 0;
+        const truk = parseFloat(headerData.biaya_truk) || 0;
+        return dasarDetail + lain + truk;
+    }, [totals.totalHargaItems, headerData.biaya_total, headerData.biaya_lain, headerData.biaya_truk]);
+
     // Form validation
     const validateForm = () => {
         const errors = [];
@@ -1163,15 +1195,19 @@ const AddEditPembelianLainLainPage = () => {
                 id_farm: isFeedmillContext ? parseInt(feedmillFarm.value) : (headerData.farm ? parseInt(headerData.farm) : null),
                 id_syarat_pembelian: headerData.syarat_pembelian ? parseInt(headerData.syarat_pembelian) : null,
                 nota_ho: headerData.nota_ho || '',
-                biaya_total: parseFloat(headerData.biaya_total) || (totals.totalHargaItems > 0 ? totals.totalHargaItems : null),
+                biaya_total: totals.totalHargaItems > 0 ? totals.totalHargaItems : (parseFloat(headerData.biaya_total) || null),
                 tipe_pembelian: parseInt(headerData.tipePembelian),
                 tipe_pembayaran: parseInt(headerData.tipe_pembayaran),
                 due_date: headerData.due_date,
                 note: (() => {
-                    const rawNote = (headerData.note || '').replace(/\[LEASING[^\]]*\]/gi, '').trim();
+                    const rawNote = (headerData.note || '')
+                        .replace(/\[LEASING[^\]]*\]/gi, '')
+                        .replace(/\[JANGKA[^\]]*\]/gi, '')
+                        .trim();
                     if (headerData.isLeasing) {
                         const leasingTag = headerData.namaLeasing?.trim() ? `[LEASING: ${headerData.namaLeasing.trim().toUpperCase()}]` : '[LEASING]';
-                        return `${leasingTag} ${rawNote}`.trim();
+                        const jangkaTag = headerData.jangkaWaktu === 'pendek' ? '[JANGKA:PENDEK]' : '[JANGKA:PANJANG]';
+                        return `${leasingTag} ${jangkaTag} ${rawNote}`.trim();
                     }
                     return rawNote;
                 })(),
@@ -1458,8 +1494,8 @@ const AddEditPembelianLainLainPage = () => {
                             </label>
                             <SearchableSelect
                                 options={SKEMA_PEMBELIAN_ASET_OPTIONS}
-                                value={headerData.isLeasing ? 'leasing' : 'biasa'}
-                                onChange={(value) => handleHeaderChange('isLeasing', value === 'leasing')}
+                                value={!headerData.isLeasing ? 'biasa' : (headerData.jangkaWaktu === 'pendek' ? 'leasing_pendek' : 'leasing')}
+                                onChange={(value) => handleHeaderChange('skemaAset', value)}
                                 placeholder="Pilih skema pembelian aset..."
                                 isClearable={false}
                                 required={true}
@@ -1467,9 +1503,11 @@ const AddEditPembelianLainLainPage = () => {
                                 accentColor="blue"
                             />
                             <p className="text-xs text-gray-500 mt-1">
-                                {headerData.isLeasing
-                                    ? '📌 Hutang masuk ke COA 2520 (Kewajiban Jangka Panjang / Leasing)'
-                                    : '📌 Hutang masuk ke COA 2110 (Kewajiban Lancar / Hutang Vendor)'}
+                                {!headerData.isLeasing
+                                    ? '📌 Hutang masuk ke COA 2110 (Kewajiban Lancar / Hutang Vendor)'
+                                    : headerData.jangkaWaktu === 'pendek'
+                                        ? '📌 Hutang masuk ke COA 2130 (Kewajiban Jangka Pendek / Hutang Bank Jangka Pendek)'
+                                        : '📌 Hutang masuk ke COA 2520 (Kewajiban Jangka Panjang / Hutang Leasing)'}
                             </p>
                         </div>
 
@@ -1552,13 +1590,14 @@ const AddEditPembelianLainLainPage = () => {
                             </label>
                             <input
                                 type="text"
-                                value={formatNumber(headerData.biaya_total !== '' && headerData.biaya_total !== null && headerData.biaya_total !== undefined ? headerData.biaya_total : (totals.totalHargaItems > 0 ? totals.totalHargaItems : ''))}
-                                onChange={(e) => handleHeaderChange('biaya_total', parseNumber(e.target.value))}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder={formatNumber(totals.totalHargaItems) || ""}
+                                readOnly
+                                value={formatNumber(biayaTotalOtomatis)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-700 cursor-not-allowed focus:outline-none"
+                                placeholder=""
+                                aria-readonly="true"
                             />
                             <p className="text-xs text-blue-600 mt-1">
-                                💡 Total seluruh biaya (truck + lain-lain + pembelian)
+                                💡 Otomatis: total detail item + biaya lain-lain{Number(headerData.biaya_truk) > 0 ? ' + biaya truk' : ''}
                             </p>
                         </div>
 
