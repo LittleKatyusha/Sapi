@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Download, FileSpreadsheet, Printer } from 'lucide-react';
 import accountingService from '../../services/accountingService';
+import downloadPdf from '../../utils/downloadPdf';
 
 const emptyForm = {
   kode_akun: '',
@@ -70,6 +72,7 @@ export default function CoaPage() {
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
   const [viewMode, setViewMode] = useState('tree'); // 'tree' | 'flat'
 
@@ -87,6 +90,56 @@ export default function CoaPage() {
   };
 
   useEffect(() => { loadAccounts(); }, []);
+
+  const handlePrintPdf = async () => {
+    try {
+      setExporting(true);
+      setError('');
+      const blob = await accountingService.exportCoa({ stream: 1 }, 'pdf');
+      const fileUrl = window.URL.createObjectURL(blob);
+      const printWindow = window.open(fileUrl, '_blank');
+      if (!printWindow) {
+        await downloadPdf(blob, 'chart-of-accounts.pdf');
+      }
+    } catch (e) {
+      setError(e.message || 'Gagal mencetak PDF Chart of Accounts.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    try {
+      setExporting(true);
+      setError('');
+      const blob = await accountingService.exportCoa({}, 'pdf');
+      await downloadPdf(blob, 'chart-of-accounts.pdf');
+    } catch (e) {
+      setError(e.message || 'Gagal mengunduh cetakan PDF.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleDownloadExcel = async () => {
+    try {
+      setExporting(true);
+      setError('');
+      const blob = await accountingService.exportCoa({}, 'xlsx');
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'chart-of-accounts.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(e.message || 'Gagal mengunduh file Excel.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const submit = async (event) => {
     event.preventDefault();
@@ -138,9 +191,50 @@ export default function CoaPage() {
           <h1 className="text-2xl font-bold text-gray-900">Chart of Accounts</h1>
           <p className="mt-1 text-sm text-gray-500">Master akun untuk pencatatan jurnal dan laporan keuangan.</p>
         </div>
-        <div className="flex gap-2">
-          <button type="button" onClick={() => setViewMode('tree')} className={`rounded-lg px-3 py-1.5 text-sm font-medium ${viewMode === 'tree' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Pohon</button>
-          <button type="button" onClick={() => setViewMode('flat')} className={`rounded-lg px-3 py-1.5 text-sm font-medium ${viewMode === 'flat' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Daftar</button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handlePrintPdf}
+            disabled={exporting || loading}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm disabled:opacity-50"
+          >
+            <Printer className="h-4 w-4 text-gray-500" />
+            <span>{exporting ? 'Memproses...' : 'Cetak PDF'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleDownloadPdf}
+            disabled={exporting || loading}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm disabled:opacity-50"
+          >
+            <Download className="h-4 w-4 text-gray-500" />
+            <span>{exporting ? 'Mengunduh...' : 'Unduh PDF'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleDownloadExcel}
+            disabled={exporting || loading}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 shadow-sm disabled:opacity-50"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            <span>{exporting ? 'Mengunduh...' : 'Unduh Excel'}</span>
+          </button>
+          <div className="ml-2 flex gap-1 rounded-lg border border-gray-200 bg-gray-100 p-0.5">
+            <button
+              type="button"
+              onClick={() => setViewMode('tree')}
+              className={`rounded-md px-3 py-1 text-sm font-medium ${viewMode === 'tree' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-700 hover:text-gray-900'}`}
+            >
+              Pohon
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('flat')}
+              className={`rounded-md px-3 py-1 text-sm font-medium ${viewMode === 'flat' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-700 hover:text-gray-900'}`}
+            >
+              Daftar
+            </button>
+          </div>
         </div>
       </header>
 

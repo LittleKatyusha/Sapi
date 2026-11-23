@@ -40,6 +40,8 @@ const accountingService = {
   getInventoryReconciliation: (params) => httpClient.get(`${BASE_URL}/reports/inventory-reconciliation`, { params }),
   getBankReconciliation: (params) => httpClient.get(`${BASE_URL}/reports/bank-reconciliation`, { params }),
 
+  exportCoa: (params = {}, format = 'pdf') =>
+    httpClient.get(`${BASE_URL}/coa`, { params: { ...params, export: format }, responseType: 'blob' }),
   exportGeneralLedger: (params, format = 'csv') =>
     httpClient.get(`${BASE_URL}/reports/general-ledger`, { params: { ...params, export: format }, responseType: 'blob' }),
   exportIncomeStatement: (params, format = 'pdf') =>
