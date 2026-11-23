@@ -29,6 +29,7 @@ class PedagangService {
         ...(params.pasar && { pasar: params.pasar }),
         ...(params.tipe_pedagang && { tipe_pedagang: params.tipe_pedagang }),
         ...(params.is_dispensasi !== undefined && params.is_dispensasi !== '' && { is_dispensasi: params.is_dispensasi }),
+        ...(params.hanya_berhutang && { hanya_berhutang: params.hanya_berhutang }),
         _ts: Date.now(),
       });
 
@@ -38,6 +39,7 @@ class PedagangService {
         data: response.data || [],
         recordsTotal: response.recordsTotal || 0,
         recordsFiltered: response.recordsFiltered || 0,
+        totals: response.totals || null,
         draw: response.draw,
       };
     } catch (error) {

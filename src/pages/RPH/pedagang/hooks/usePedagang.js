@@ -3,6 +3,7 @@ import PedagangService from '../../../../services/pedagangService';
 
 const usePedagang = () => {
   const [pedagangList, setPedagangList] = useState([]);
+  const [totals, setTotals] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -14,6 +15,7 @@ const usePedagang = () => {
   const [pasarFilter, setPasarFilter] = useState('');
   const [tipeFilter, setTipeFilter] = useState('');
   const [dispensasiFilter, setDispensasiFilter] = useState('');
+  const [hanyaBerhutang, setHanyaBerhutang] = useState('');
 
   // Server-side pagination state
   const [pagination, setPagination] = useState({
@@ -75,10 +77,12 @@ const usePedagang = () => {
         pasar: pasarFilter,
         tipe_pedagang: tipeFilter,
         is_dispensasi: dispensasiFilter,
+        hanya_berhutang: hanyaBerhutang,
       });
 
       if (result.success) {
         setPedagangList(result.data || []);
+        setTotals(result.totals || null);
         setPagination({
           currentPage: page,
           totalPages: Math.ceil((result.recordsFiltered || 0) / perPage),
@@ -88,14 +92,16 @@ const usePedagang = () => {
       } else {
         setError(result.message);
         setPedagangList([]);
+        setTotals(null);
       }
     } catch (err) {
       setError(err.message || 'Terjadi kesalahan saat mengambil data pedagang');
       setPedagangList([]);
+      setTotals(null);
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, pasarFilter, tipeFilter, dispensasiFilter]);
+  }, [statusFilter, pasarFilter, tipeFilter, dispensasiFilter, hanyaBerhutang]);
 
   /**
    * Fetch dashboard statistics
@@ -217,10 +223,12 @@ const usePedagang = () => {
     setPasarFilter('');
     setTipeFilter('');
     setDispensasiFilter('');
+    setHanyaBerhutang('');
   }, []);
 
   return {
     pedagangList,
+    totals,
     loading,
     error,
     searchTerm,
@@ -240,6 +248,8 @@ const usePedagang = () => {
     setTipeFilter,
     dispensasiFilter,
     setDispensasiFilter,
+    hanyaBerhutang,
+    setHanyaBerhutang,
     pagination,
     statistics,
     statsLoading,

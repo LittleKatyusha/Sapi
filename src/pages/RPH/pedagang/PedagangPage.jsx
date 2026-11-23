@@ -219,7 +219,9 @@ const PedagangPage = () => {
     pasarFilter, setPasarFilter,
     tipeFilter, setTipeFilter,
     dispensasiFilter, setDispensasiFilter,
+    hanyaBerhutang, setHanyaBerhutang,
     pagination, statistics, statsLoading,
+    totals,
     fetchPedagang, fetchStatistics,
     createPedagang, updatePedagang, deletePedagang,
     handlePageChange, handlePerPageChange, resetFilters,
@@ -252,7 +254,7 @@ const PedagangPage = () => {
 
   useEffect(() => {
     fetchPedagang(1, pagination.perPage);
-  }, [statusFilter, pasarFilter, tipeFilter, dispensasiFilter, fetchPedagang, pagination.perPage]);
+  }, [statusFilter, pasarFilter, tipeFilter, dispensasiFilter, hanyaBerhutang, fetchPedagang, pagination.perPage]);
 
   useEffect(() => {
     if (notification) {
@@ -414,7 +416,7 @@ const PedagangPage = () => {
     dispensasiAktif: statistics?.summary?.total_dispensasi_aktif ?? 0,
   }), [statistics, pagination.totalItems]);
 
-  const activeFilterCount = [searchId, searchName, searchHp, statusFilter, pasarFilter, tipeFilter, dispensasiFilter].filter(v => v !== '' && v !== undefined && v !== null).length;
+  const activeFilterCount = [searchId, searchName, searchHp, statusFilter, pasarFilter, tipeFilter, dispensasiFilter, hanyaBerhutang].filter(v => v !== '' && v !== undefined && v !== null).length;
 
   const SortIcon = ({ column }) => {
     if (sortConfig.key !== column) return <ArrowUpDown className="w-3 h-3 text-gray-300" />;
@@ -649,6 +651,18 @@ const PedagangPage = () => {
                   className="text-sm"
                 />
               </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Status Hutang</label>
+                <label className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm cursor-pointer hover:bg-gray-50">
+                  <input
+                    type="checkbox"
+                    checked={hanyaBerhutang === '1'}
+                    onChange={(e) => setHanyaBerhutang(e.target.checked ? '1' : '')}
+                    className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span className="text-gray-700">Hanya yang punya hutang</span>
+                </label>
+              </div>
             </div>
 
             {/* Search & Reset Buttons */}
@@ -727,6 +741,14 @@ const PedagangPage = () => {
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-full border border-emerald-100">
                       Dispensasi: {dispensasiFilter === '1' ? 'Aktif' : 'Tidak Aktif'}
                       <button onClick={() => setDispensasiFilter('')} className="hover:bg-emerald-100 rounded-full">
+                        <XCircle className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {hanyaBerhutang === '1' && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-rose-50 text-rose-700 text-[10px] font-semibold rounded-full border border-rose-100">
+                      Hutang: &gt; Rp 0
+                      <button onClick={() => setHanyaBerhutang('')} className="hover:bg-rose-100 rounded-full">
                         <XCircle className="w-3 h-3" />
                       </button>
                     </span>
@@ -894,6 +916,34 @@ const PedagangPage = () => {
                   ))
                 )}
               </tbody>
+              {!loading && sortedData.length > 0 && totals && (
+                <tfoot className="border-t-2 border-gray-300 bg-gray-100">
+                  <tr>
+                    <td colSpan={4} className="px-3 py-3">
+                      <p className="text-xs font-bold uppercase tracking-wide text-gray-700">Total</p>
+                      <p className="text-[10px] font-normal text-gray-500">
+                        {pagination.totalItems} pedagang sesuai filter (semua halaman)
+                      </p>
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span className="text-[9px] font-semibold uppercase text-gray-500">Keseluruhan</span>
+                        <span className="text-sm font-bold tabular-nums text-emerald-700">{formatCurrency(totals.saldo_keseluruhan)}</span>
+                        <span className="text-xs font-semibold tabular-nums text-gray-700">{formatCurrency(totals.saldo_akhir)}</span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      <span className="text-sm font-bold tabular-nums text-rose-600">{formatCurrency(totals.saldo_beku)}</span>
+                    </td>
+                    <td className="px-3 py-3" />
+                    <td className="px-3 py-3 text-right">
+                      <span className="text-sm font-bold tabular-nums text-amber-700">{formatCurrency(totals.limit_kredit)}</span>
+                    </td>
+                    <td className="px-3 py-3" />
+                    <td className="px-3 py-3" />
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
         </div>
@@ -974,6 +1024,28 @@ const PedagangPage = () => {
             ))
           )}
         </div>
+
+        {/* Total - Mobile */}
+        {!loading && sortedData.length > 0 && totals && (
+          <div className="md:hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm space-y-2">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-gray-600">
+              Total <span className="font-normal text-gray-400">({pagination.totalItems} pedagang, semua halaman)</span>
+            </p>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <p className="text-gray-400">Saldo Keseluruhan</p>
+                <p className="font-bold text-emerald-700 tabular-nums">{formatCurrency(totals.saldo_keseluruhan)}</p>
+                <p className="text-[10px] text-gray-500 tabular-nums">Akhir: {formatCurrency(totals.saldo_akhir)}</p>
+              </div>
+              <div>
+                <p className="text-gray-400">Hutang</p>
+                <p className="font-bold text-rose-600 tabular-nums">{formatCurrency(totals.saldo_beku)}</p>
+                <p className="text-gray-400 mt-1">Limit Hutang</p>
+                <p className="font-bold text-amber-700 tabular-nums">{formatCurrency(totals.limit_kredit)}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Pagination */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
