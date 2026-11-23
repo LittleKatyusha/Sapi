@@ -36,11 +36,28 @@ const ItemLainLainPage = () => {
     },
     {
       name: <span>Klasifikasi</span>,
-      width: '160px',
+      width: '150px',
       cell: (row) => (
         <span className="inline-flex items-center rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
           {row.klasifikasi || '-'}
         </span>
+      ),
+    },
+    {
+      name: <span>Akun COA</span>,
+      grow: 1.2,
+      minWidth: '180px',
+      cell: (row) => (
+        row.coa_kode ? (
+          <div className="py-1 min-w-0">
+            <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+              {row.coa_kode}
+            </span>
+            <div className="text-[11px] text-slate-500 truncate" title={row.coa_nama}>{row.coa_nama}</div>
+          </div>
+        ) : (
+          <span className="text-xs text-slate-400">-</span>
+        )
       ),
     },
     {
@@ -68,8 +85,9 @@ const ItemLainLainPage = () => {
       hook={mappedHook}
       filterFields={[
         { key: 'name', placeholder: 'Nama item' },
-        { key: 'description', placeholder: 'Deskripsi' },
         { key: 'klasifikasi', placeholder: 'Klasifikasi' },
+        { key: 'coa', placeholder: 'Akun COA' },
+        { key: 'description', placeholder: 'Deskripsi' },
       ]}
       extraColumns={extraColumns}
       AddEditModal={AddEditItemLainLainModal}

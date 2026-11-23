@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Save, AlertCircle, Tag } from 'lucide-react';
+import { X, Save, AlertCircle, Tag, BookOpen } from 'lucide-react';
 import useKlasifikasiLainLain from '../../klasifikasiLainLain/hooks/useKlasifikasiLainLain';
+import useItemLainLain from '../hooks/useItemLainLain';
+import SearchableSelect from '../../../../components/shared/SearchableSelect';
 
 const AddEditItemLainLainModal = ({
   item,
@@ -13,10 +15,17 @@ const AddEditItemLainLainModal = ({
     name: '',
     description: '',
     id_klasifikasi_lain_lain: null,
+    coa_id: null,
   });
   
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [coaOptions, setCoaOptions] = useState([]);
+  const [coaLoading, setCoaLoading] = useState(false);
+
+  // Hook untuk item lain-lain (opsi COA)
+  const itemLainLainHook = useItemLainLain();
+  const fetchCoaOptions = itemLainLainHook?.fetchCoaOptions;
 
   // Hook untuk klasifikasi lain-lain
   const {
@@ -25,10 +34,29 @@ const AddEditItemLainLainModal = ({
     fetchKlasifikasiLainLain
   } = useKlasifikasiLainLain();
 
-  // Fetch klasifikasi data on mount
+  // Fetch data on mount
   useEffect(() => {
     fetchKlasifikasiLainLain();
-  }, [fetchKlasifikasiLainLain]);
+
+    if (typeof fetchCoaOptions !== 'function') return;
+
+    let isMounted = true;
+    setCoaLoading(true);
+    Promise.resolve(fetchCoaOptions())
+      .then((opts) => {
+        if (isMounted) {
+          setCoaOptions(opts || []);
+          setCoaLoading(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setCoaLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchKlasifikasiLainLain, fetchCoaOptions]);
 
   // Initialize form data
   useEffect(() => {
@@ -37,17 +65,20 @@ const AddEditItemLainLainModal = ({
       const klasifikasiId = item.id_klasifikasi_lain_lain
         ? parseInt(item.id_klasifikasi_lain_lain, 10)
         : null;
+      const coaId = item.coa_id ? parseInt(item.coa_id, 10) : null;
       
       setFormData({
         name: item.name || '',
         description: item.description || '',
         id_klasifikasi_lain_lain: klasifikasiId,
+        coa_id: coaId,
       });
     } else {
       setFormData({
         name: '',
         description: '',
         id_klasifikasi_lain_lain: null,
+        coa_id: null,
       });
     }
     setErrors({});
@@ -90,11 +121,12 @@ const AddEditItemLainLainModal = ({
     if (!validateForm()) return;
     setIsSubmitting(true);
     try {
-      // Ensure id_klasifikasi_lainlain is an integer
+      // Ensure integer values
       const dataToSave = {
         name: formData.name.trim(),
         description: formData.description.trim(),
         id_klasifikasi_lain_lain: formData.id_klasifikasi_lain_lain ? parseInt(formData.id_klasifikasi_lain_lain, 10) : null,
+        coa_id: formData.coa_id ? parseInt(formData.coa_id, 10) : null,
       };
       
       // Log for debugging
@@ -192,6 +224,30 @@ const AddEditItemLainLainModal = ({
                 {klasifikasiLainLain.find(k => k.id === formData.id_klasifikasi_lain_lain)?.description}
               </p>
             )}
+          </div>
+
+          {/* Akun COA */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <span className="inline-flex items-center gap-1">
+                <BookOpen className="h-4 w-4 text-blue-600" />
+                Akun COA (Chart of Accounts)
+              </span>
+            </label>
+            <SearchableSelect
+              options={coaOptions}
+              value={formData.coa_id}
+              onChange={(val) => handleInputChange('coa_id', val ? parseInt(val, 10) : null)}
+              placeholder={coaLoading ? 'Memuat daftar akun COA...' : 'Pilih akun COA (Opsional)...'}
+              isLoading={coaLoading}
+              isDisabled={isSubmitting || coaLoading}
+              isClearable={true}
+              accentColor="blue"
+              className="w-full text-sm"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Akun COA yang akan dipasangkan otomatis ke item ini saat transaksi/jurnal akuntansi.
+            </p>
           </div>
 
           {/* Nama Item Lain-Lain */}

@@ -43,6 +43,9 @@ const useItemLainLain = () => {
         description: item.description || '',
         id_klasifikasi_lain_lain: item.id_klasifikasi_lain_lain || null,
         klasifikasi: item.klasifikasi || '',
+        coa_id: item.coa_id || null,
+        coa_kode: item.coa_kode || '',
+        coa_nama: item.coa_nama || '',
         created_at: item.created_at || null,
         updated_at: item.updated_at || null,
       }));
@@ -120,6 +123,16 @@ const useItemLainLain = () => {
     displayed: data.length,
   }), [totalRecords, data]);
 
+  const fetchCoaOptions = useCallback(async () => {
+    try {
+      const result = await HttpClient.get(`${API_BASE}/coa-options`);
+      return result?.data || [];
+    } catch (err) {
+      console.warn('Gagal memuat opsi COA:', err);
+      return [];
+    }
+  }, [API_BASE]);
+
   return {
     itemLainLain: data,
     data,
@@ -129,6 +142,7 @@ const useItemLainLain = () => {
     totalRecords,
     filteredRecords,
     fetchItemLainLain,
+    fetchCoaOptions,
     createItemLainLain,
     updateItemLainLain,
     deleteItemLainLain,
