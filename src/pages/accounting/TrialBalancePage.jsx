@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Eye } from 'lucide-react';
 import accountingService from '../../services/accountingService';
 import SearchableSelect from '../../components/shared/SearchableSelect';
+import TrialBalanceDetailModal from './TrialBalanceDetailModal';
 
 const today = new Date().toISOString().slice(0, 10);
 const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
@@ -15,6 +17,10 @@ export default function TrialBalancePage() {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [selectedAccount, setSelectedAccount] = useState(null);
+  // Parameter laporan yang sedang ditampilkan — dipakai popup detail agar angkanya
+  // selalu tie-out dengan baris pada tabel (walau filter diubah tanpa "Tampilkan").
+  const [reportParams, setReportParams] = useState(null);
 
   // Opsi entitas untuk SearchableSelect (template selectbox aplikasi).
   const settingOptions = useMemo(() => {
@@ -48,12 +54,14 @@ export default function TrialBalancePage() {
     try {
       setLoading(true);
       setError('');
-      const response = await accountingService.getTrialBalance({
+      const params = {
         setting_id: settingId === 'all' ? 'all' : Number(settingId),
         tanggal_from: tanggalFrom || undefined,
         tanggal_to: tanggalTo || undefined,
-      });
+      };
+      const response = await accountingService.getTrialBalance(params);
       setReport(response?.data ?? null);
+      setReportParams({ settingId, tanggalFrom, tanggalTo });
     } catch (e) {
       setReport(null);
       setError(e.message || 'Gagal memuat neraca saldo.');
@@ -110,6 +118,7 @@ export default function TrialBalancePage() {
                   <th className="p-3">Nama Akun</th>
                   <th className="p-3 text-right">Debit</th>
                   <th className="p-3 text-right">Kredit</th>
+                  <th className="w-24 p-3 text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -119,15 +128,27 @@ export default function TrialBalancePage() {
                     <td className="p-3">{account.nama_akun}</td>
                     <td className="p-3 text-right">{formatNumber(account.debit)}</td>
                     <td className="p-3 text-right">{formatNumber(account.credit)}</td>
+                    <td className="w-24 p-2 text-center">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedAccount(account)}
+                        className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 transition-colors hover:border-indigo-300 hover:bg-indigo-100"
+                        title="Lihat rincian transaksi pembentuk saldo akun"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        <span>Detail</span>
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 <tr className="border-t-2 bg-gray-50 font-bold">
                   <td colSpan="2" className="p-3 text-right">Total</td>
                   <td className="p-3 text-right">{formatNumber(report.total_debit)}</td>
                   <td className="p-3 text-right">{formatNumber(report.total_credit)}</td>
+                  <td className="p-3" />
                 </tr>
                 <tr className="bg-gray-100 text-xs font-semibold">
-                  <td colSpan="4" className="p-3 text-center">
+                  <td colSpan="5" className="p-3 text-center">
                     Status:{' '}
                     <span className={report.is_balanced ? 'text-green-700' : 'text-red-700'}>
                       {report.is_balanced ? 'SEIMBANG' : 'TIDAK SEIMBANG'}
@@ -145,6 +166,20 @@ export default function TrialBalancePage() {
           Pilih entitas dan rentang tanggal, lalu klik Tampilkan.
         </div>
       )}
+
+      <TrialBalanceDetailModal
+        isOpen={Boolean(selectedAccount)}
+        onClose={() => setSelectedAccount(null)}
+        account={selectedAccount}
+        settingId={reportParams?.settingId ?? settingId}
+        settingName={
+          (reportParams?.settingId ?? settingId) === 'all'
+            ? 'Konsolidasi Semua Entitas'
+            : settings.find((s) => String(s.id) === String(reportParams?.settingId ?? settingId))?.nama_perusahaan || ''
+        }
+        tanggalFrom={reportParams?.tanggalFrom ?? tanggalFrom}
+        tanggalTo={reportParams?.tanggalTo ?? tanggalTo}
+      />
     </div>
   );
 }
