@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Plus, RefreshCw, Trash2, Pencil } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { RefreshCw, Trash2, Pencil, PackagePlus } from 'lucide-react';
 import accountingService from '../../services/accountingService';
-import CreateAssetModal from './CreateAssetModal';
 import EditAssetModal from './EditAssetModal';
 
 const fmt = (v) => Number(v || 0).toLocaleString('id-ID');
@@ -33,7 +33,6 @@ export default function FixedAssetPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [running, setRunning] = useState(false);
 
   const [depDate, setDepDate] = useState(todayLocal());
@@ -168,11 +167,6 @@ export default function FixedAssetPage() {
     setEditModal({ open: true, asset });
   };
 
-  const currentSetting = useMemo(
-    () => settings.find((s) => String(s.id) === String(sid)),
-    [settings, sid]
-  );
-
   const totalBookValue = useMemo(
     () =>
       assets
@@ -199,6 +193,9 @@ export default function FixedAssetPage() {
           <p className="text-sm text-gray-500">
             Pencatatan aset dengan penyusutan berkala (mobil/mesin) atau kenaikan nilai pasar (emas/tanah).
           </p>
+          <p className="mt-1 text-xs font-medium text-indigo-600">
+            Aset baru otomatis dibuat dari menu Pembelian Lain-Lain → tab Pembelian Aset.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <select
@@ -213,15 +210,13 @@ export default function FixedAssetPage() {
             ))}
           </select>
 
-          <button
-            type="button"
-            onClick={() => setIsCreateModalOpen(true)}
-            disabled={!sid}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 shadow-sm transition-all cursor-pointer"
+          <Link
+            to="/ho/pembelian-lain-lain"
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 shadow-sm transition-all"
           >
-            <Plus className="h-4 w-4" />
-            <span>Tambah Aset Baru</span>
-          </button>
+            <PackagePlus className="h-4 w-4" />
+            <span>Input dari Pembelian Lain-Lain</span>
+          </Link>
         </div>
       </div>
 
@@ -516,19 +511,6 @@ export default function FixedAssetPage() {
           </div>
         </div>
       )}
-
-      {/* Modal Tambah Aset Baru */}
-      <CreateAssetModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={() => {
-          setSuccess('Aset berhasil ditambahkan dan jurnal perolehan diposting.');
-          load();
-        }}
-        selectedSettingId={sid}
-        settingName={currentSetting ? `${currentSetting.nama_perusahaan} (${currentSetting.entitas})` : ''}
-        accounts={accounts}
-      />
 
       {/* Modal Edit / Atur Parameter Aset */}
       <EditAssetModal

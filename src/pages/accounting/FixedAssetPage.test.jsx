@@ -1,8 +1,20 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import FixedAssetPage from './FixedAssetPage';
 import accountingService from '../../services/accountingService';
 
 jest.mock('../../services/accountingService');
+// react-router-dom v7 hanya ESM sehingga tidak bisa di-resolve Jest (CRA5).
+jest.mock(
+  'react-router-dom',
+  () => ({
+    Link: ({ to, children, ...rest }) => (
+      <a href={to} {...rest}>
+        {children}
+      </a>
+    ),
+  }),
+  { virtual: true }
+);
 
 describe('FixedAssetPage', () => {
   const mockSettings = [
@@ -95,5 +107,15 @@ describe('FixedAssetPage', () => {
     fireEvent.click(disposeButtons[0]);
 
     expect(screen.getByText('Lepas / Jual Aset')).toBeInTheDocument();
+  });
+
+  it('does not offer manual asset creation (assets come from pembelian lain-lain)', async () => {
+    render(<FixedAssetPage />);
+
+    expect(await screen.findByText('Input dari Pembelian Lain-Lain')).toBeInTheDocument();
+    expect(screen.queryByText('Tambah Aset Baru')).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Aset baru otomatis dibuat dari menu Pembelian Lain-Lain/i)
+    ).toBeInTheDocument();
   });
 });
