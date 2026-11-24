@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Save, Plus, Trash2, Edit2, Building2, Calendar, Hash, Package, X, AlertCircle, Weight, DollarSign, Upload } from 'lucide-react';
+import { ArrowLeft, Save, Edit2, Building2, Calendar, Hash, Package, X, AlertCircle, Weight, DollarSign, Upload } from 'lucide-react';
 import usePembelianLainLain from './hooks/usePembelianLainLain';
 import useParameterSelect from '../pembelian/hooks/useParameterSelect';
 import useFarmAPI from './hooks/useFarmAPI';
@@ -19,6 +19,38 @@ const SKEMA_PEMBELIAN_ASET_OPTIONS = [
     { value: 'leasing_pendek', label: 'Kredit Leasing / Pembiayaan (< 1 Tahun - Hutang Bank Jangka Pendek 2130)' },
     { value: 'leasing', label: 'Kredit Leasing / Pembiayaan (> 1 Tahun - Hutang Leasing 2520)' },
 ];
+
+/**
+ * Kategori aset tetap disimpan sebagai klasifikasi lain-lain dengan nama
+ * berawalan "Aset Tetap - ..." (lihat migration 2026_11_24_000019).
+ * Kolom `description` menandai kelompok susut / tidak susut.
+ */
+const ASET_TETAP_NAME_PREFIX = 'aset tetap';
+
+const isAsetTetapKlasifikasi = (item) => {
+    const name = String(item?.name || '').trim().toLowerCase();
+    return name.startsWith(ASET_TETAP_NAME_PREFIX);
+};
+
+const isAsetTidakDisusutkan = (item) => {
+    const description = String(item?.description || '').toUpperCase();
+    return description.includes('TIDAK DISUSUTKAN');
+};
+
+const createEmptyAsetItem = () => ({
+    id: 'aset-item-1',
+    item_name: '',
+    item_name_id: null,
+    id_klasifikasi_lainlain: null,
+    berat: 1,
+    harga: 0,
+    persentase: 0,
+    hpp: 0,
+    total_harga: 0,
+    catatan: '',
+    peruntukan: '',
+});
+
 
 const AddEditPembelianLainLainPage = () => {
     const { id } = useParams();
@@ -111,9 +143,34 @@ const AddEditPembelianLainLainPage = () => {
         return options;
     }, [klasifikasiLainLain]);
 
+    // Pilihan Kategori Aset Tetap (A. Disusutkan / B. Tidak Disusutkan)
+    const kategoriAsetOptions = useMemo(() => {
+        return (klasifikasiLainLain || [])
+            .filter(isAsetTetapKlasifikasi)
+            .sort((a, b) => {
+                const groupA = isAsetTidakDisusutkan(a) ? 1 : 0;
+                const groupB = isAsetTidakDisusutkan(b) ? 1 : 0;
+                if (groupA !== groupB) {
+                    return groupA - groupB;
+                }
+                return String(a.name || '').localeCompare(String(b.name || ''));
+            })
+            .map(item => {
+                const susut = !isAsetTidakDisusutkan(item);
+                const shortName = String(item.name || '').replace(/^aset tetap\s*-\s*/i, '');
+                return {
+                    value: item.id,
+                    label: `${shortName} (${susut ? 'disusutkan' : 'tidak disusutkan'})`,
+                    name: item.name,
+                    susut,
+                };
+            });
+    }, [klasifikasiLainLain]);
+
     // Fetch klasifikasi lain lain data on component mount
     useEffect(() => {
-        fetchKlasifikasiLainLain();
+        // length besar agar seluruh klasifikasi (termasuk kategori Aset Tetap) ikut termuat
+        fetchKlasifikasiLainLain({ length: 500 });
     }, [fetchKlasifikasiLainLain]);
 
     // Header form state
@@ -121,6 +178,7 @@ const AddEditPembelianLainLainPage = () => {
         nota: '',
         idOffice: '', // Office now selectable
         tipePembelian: '2', // Auto-set to "ASET" (value: "2")
+        kategoriAset: '', // Kategori Aset Tetap (disusutkan / tidak disusutkan)
         idSupplier: '',
         tgl_masuk: '',
         jumlah: '', // Jumlah Total (mapped to total quantity, not berat_total)
@@ -149,11 +207,35 @@ const AddEditPembelianLainLainPage = () => {
         }
     }, [feedmillFarm, feedmillOffice, isFeedmillContext]);
 
+    const selectedKategoriAset = useMemo(
+        () => kategoriAsetOptions.find(option => String(option.value) === String(headerData.kategoriAset)) || null,
+        [kategoriAsetOptions, headerData.kategoriAset]
+    );
+
     // Detail items state
     const [detailItems, setDetailItems] = useState([]);
+
+    // Pembelian aset: 1 transaksi = 1 item, jadi detail selalu tepat satu baris.
+    useEffect(() => {
+        setDetailItems(prev => (prev.length === 0 ? [createEmptyAsetItem()] : prev));
+    }, []);
+
+    // Edit mode: ambil kategori aset dari klasifikasi detail yang sudah tersimpan.
+    useEffect(() => {
+        if (!isEdit || headerData.kategoriAset) return;
+        const existingKlasifikasi = detailItems.find(item => item.id_klasifikasi_lainlain);
+        if (!existingKlasifikasi) return;
+
+        const isKnownKategori = kategoriAsetOptions.some(
+            option => String(option.value) === String(existingKlasifikasi.id_klasifikasi_lainlain)
+        );
+        if (isKnownKategori) {
+            setHeaderData(prev => ({ ...prev, kategoriAset: existingKlasifikasi.id_klasifikasi_lainlain }));
+        }
+    }, [isEdit, detailItems, headerData.kategoriAset, kategoriAsetOptions]);
+
     const [notification, setNotification] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [deletingItemId, setDeletingItemId] = useState(null);
 
     // File upload state
     const [selectedFile, setSelectedFile] = useState(null);
@@ -456,48 +538,39 @@ const AddEditPembelianLainLainPage = () => {
         return bankOptions;
     }, [bankOptions, headerData.tipe_pembayaran]);
 
-    // Handle detail item changes
-    const handleDetailChange = (itemId, field, value) => {
-        setDetailItems(prev => prev.map(item => {
-            if (item.id === itemId) {
-                if (field === 'item_name') {
-                    // Find the display name for the selected item
-                    const selectedItem = itemLainLainOptions.find(option => option.value === value);
-                    return {
-                        ...item,
-                        item_name: selectedItem ? selectedItem.label : '',
-                        item_name_id: value
-                    };
-                } else {
-                    return { ...item, [field]: value };
-                }
+    // Handle perubahan item aset (1 transaksi = 1 item, nama item teks bebas)
+    const handleSingleItemChange = (field, value) => {
+        setDetailItems(prev => {
+            const base = prev[0] || createEmptyAsetItem();
+            const next = { ...base, [field]: value };
+
+            if (field === 'item_name') {
+                // Nama item diisi manual, tidak lagi terikat master Item Lain-Lain
+                next.item_name_id = null;
             }
-            return item;
-        }));
+
+            if (field === 'harga' || field === 'berat' || field === 'persentase') {
+                const harga = parseFloat(field === 'harga' ? value : next.harga) || 0;
+                const qty = parseFloat(field === 'berat' ? value : next.berat) || 0;
+                const persentase = field === 'persentase'
+                    ? (getParsedPersentase(value) || 0)
+                    : (getParsedPersentase(next.persentase) || 0);
+                const hpp = harga + (harga * persentase / 100);
+                next.hpp = hpp;
+                next.total_harga = hpp * qty;
+            }
+
+            return [next];
+        });
     };
 
-    // Open modal for adding new detail item
-    const addDetailItem = () => {
-        setEditingDetailItem(null);
-        setIsDetailModalOpen(true);
-    };
-
-    // Open modal for editing existing detail item
-    const openEditDetailModal = (item) => {
-        // Ensure all fields are properly mapped for the modal
-        const editData = {
-            ...item,
-            // Ensure item_name_id is set for the SearchableSelect
-            item_name_id: item.item_name_id || null,
-            // Ensure id_klasifikasi_lainlain is set
-            id_klasifikasi_lainlain: item.id_klasifikasi_lainlain || null,
-            // Map keterangan back to catatan for the modal (modal uses catatan internally)
-            catatan: item.catatan || item.keterangan || '',
-            // Keep other fields as is
-            peruntukan: item.peruntukan || ''
-        };
-        setEditingDetailItem(editData);
-        setIsDetailModalOpen(true);
+    const handleKategoriAsetChange = (value) => {
+        const kategoriId = value === null || value === undefined || value === '' ? '' : parseInt(value);
+        setHeaderData(prev => ({ ...prev, kategoriAset: kategoriId || '' }));
+        setDetailItems(prev => {
+            const base = prev[0] || createEmptyAsetItem();
+            return [{ ...base, id_klasifikasi_lainlain: kategoriId || null }];
+        });
     };
 
     // Close detail modal
@@ -594,90 +667,6 @@ const AddEditPembelianLainLainPage = () => {
         }
     };
 
-
-    // Remove detail item - enhanced for edit mode (like Feedmil)
-    const removeDetailItem = async (itemId) => {
-        const item = detailItems.find(detail => detail.id === itemId);
-        if (!item) {
-            setNotification({
-                type: 'error',
-                message: 'Item detail tidak ditemukan'
-            });
-            return;
-        }
-
-        // Set loading state for this specific item
-        setDeletingItemId(itemId);
-
-        try {
-            // Check if this is an existing item from database (has encryptedPid)
-            const hasDetailIdentifier = !!(item.encryptedPid || item.pid || item.pubid || item.pubidDetail);
-            const isTimestampId = typeof item.id === 'number' && item.id > 1000000000; // Timestamp-based IDs are > 1B
-            const isSequentialId = typeof item.id === 'number' && item.id < 1000; // Sequential IDs from database are usually small
-            
-            // An item is existing if:
-            // 1. Has detail identifier (encrypted pid) AND is sequential ID (from backend mapping)
-            // 2. OR has detail identifier AND is not timestamp ID
-            const isExistingItem = hasDetailIdentifier && (isSequentialId || !isTimestampId);
-
-            if (isExistingItem && isEdit) {
-                // This is an existing database item - call backend delete API
-                const detailPid = item.encryptedPid || item.pid || item.pubid || item.pubidDetail;
-                
-                if (!detailPid) {
-                    throw new Error('ID detail tidak ditemukan untuk penghapusan');
-                }
-
-                setNotification({
-                    type: 'info',
-                    message: 'Menghapus detail dari database...'
-                });
-
-                // Call Lain-Lain delete API
-                const result = await HttpClient.post(`${API_ENDPOINTS.HO.LAINLAIN.PEMBELIAN}/hapus`, {
-                    pid: detailPid
-                });
-                
-                // Check response success with multiple possible formats
-                const isSuccess = (result.data && result.data.success) || 
-                                 (result.data && result.data.status === 'ok') || 
-                                 (result.data && result.data.status === 'success') ||
-                                 (result && result.status === 'ok') ||
-                                 (result && result.status === 'success');
-                
-                if (isSuccess) {
-                    // Remove from local state after successful backend deletion
-                    setDetailItems(prev => prev.filter(item => item.id !== itemId));
-                    
-                    setNotification({
-                        type: 'success',
-                        message: result.data?.message || result.message || 'Detail Lain-Lain berhasil dihapus dari database'
-                    });
-                } else {
-                    setNotification({
-                        type: 'error',
-                        message: result.data?.message || result.message || 'Gagal menghapus detail dari database'
-                    });
-                }
-            } else {
-                // This is a new item created in frontend - just remove from local state
-                setDetailItems(prev => prev.filter(item => item.id !== itemId));
-                
-                setNotification({
-                    type: 'success',
-                    message: 'Item detail berhasil dihapus'
-                });
-            }
-        } catch (err) {
-            setNotification({
-                type: 'error',
-                message: err.message || 'Terjadi kesalahan saat menghapus detail'
-            });
-        } finally {
-            // Clear loading state
-            setDeletingItemId(null);
-        }
-    };
 
     // Save individual detail item
     const saveDetailItem = async (itemId, itemData = null) => {
@@ -1127,35 +1116,27 @@ const AddEditPembelianLainLainPage = () => {
             errors.push('Catatan pembelian harus diisi');
         }
 
-        if (detailItems.length === 0) {
-            errors.push('Minimal harus ada 1 item Lain-Lain');
+        const kategoriAsetValid = kategoriAsetOptions.some(
+            option => String(option.value) === String(headerData.kategoriAset)
+        );
+        if (!kategoriAsetValid) {
+            errors.push('Kategori Aset Tetap harus dipilih');
         }
 
-        detailItems.forEach((item, index) => {
-            if (!item.item_name || item.item_name.trim() === '') {
-                errors.push(`Item ${index + 1}: Nama item harus diisi`);
-            }
-            // id_klasifikasi_lainlain is nullable according to backend rules - no validation needed
-            // Make detail fields optional - only validate if provided
-            if (item.berat !== null && item.berat !== undefined && item.berat !== '') {
-                const berat = parseFloat(item.berat);
-                if (isNaN(berat) || berat < 0) {
-                    errors.push(`Item ${index + 1}: Berat tidak boleh negatif`);
-                }
-            }
-            if (item.harga !== null && item.harga !== undefined && item.harga !== '') {
-                const harga = parseFloat(item.harga);
-                if (isNaN(harga) || harga < 0) {
-                    errors.push(`Item ${index + 1}: Harga tidak boleh negatif`);
-                }
-            }
-            if (item.persentase !== null && item.persentase !== undefined && item.persentase !== '') {
-                const persentase = getParsedPersentase(item.persentase);
-                if (isNaN(persentase) || persentase < 0) {
-                    errors.push(`Item ${index + 1}: Persentase tidak boleh negatif`);
-                }
-            }
-        });
+        const asetItem = detailItems[0] || {};
+        if (!String(asetItem.item_name || '').trim()) {
+            errors.push('Nama Item harus diisi');
+        }
+
+        const asetQty = parseFloat(asetItem.berat);
+        if (isNaN(asetQty) || asetQty <= 0) {
+            errors.push('Jumlah / Qty harus lebih dari 0');
+        }
+
+        const asetHarga = parseFloat(asetItem.harga);
+        if (isNaN(asetHarga) || asetHarga <= 0) {
+            errors.push('Harga Satuan harus lebih dari 0');
+        }
 
         if (errors.length > 0) {
             setNotification({
@@ -1191,6 +1172,7 @@ const AddEditPembelianLainLainPage = () => {
                 nama_supplier: headerData.idSupplier, // Now using text directly
                 tgl_masuk: headerData.tgl_masuk,
                 jumlah: parseFloat(headerData.jumlah) || totals.totalJumlah || null,
+                nama_produk: String(detailItems[0]?.item_name || '').trim() || null,
                 biaya_lain: headerData.biaya_lain !== null && headerData.biaya_lain !== undefined && headerData.biaya_lain !== '' ? parseFloat(headerData.biaya_lain) : 0,
                 id_farm: isFeedmillContext ? parseInt(feedmillFarm.value) : (headerData.farm ? parseInt(headerData.farm) : null),
                 id_syarat_pembelian: headerData.syarat_pembelian ? parseInt(headerData.syarat_pembelian) : null,
@@ -1218,57 +1200,35 @@ const AddEditPembelianLainLainPage = () => {
                 existingFileName: existingFileName,
 
                 // Detail items mapping with proper formatting - ensure all fields are correctly formatted
-                details: detailItems.map(item => {
-                    // Get klasifikasi name for the selected id
-                    const klasifikasiName = (() => {
-                        if (item.id_klasifikasi_lainlain) {
-                            const klasifikasi = klasifikasiLainLainOptions.find(k =>
-                                String(k.value) === String(item.id_klasifikasi_lainlain)
-                            );
-                            return klasifikasi ? klasifikasi.label : null;
-                        }
-                        return null;
-                    })();
-                    
-                    // Calculate HPP and total_harga if not already calculated
+                details: (() => {
+                    const item = detailItems[0] || createEmptyAsetItem();
+                    const kategori = kategoriAsetOptions.find(option => String(option.value) === String(headerData.kategoriAset)) || null;
                     const harga = parseFloat(item.harga) || 0;
                     const berat = parseFloat(item.berat) || 0;
                     const persentase = getParsedPersentase(item.persentase) || 0;
                     const hpp = item.hpp ? parseFloat(item.hpp) : (harga + (harga * persentase / 100));
-                    const total_harga = item.total_harga ? parseFloat(item.total_harga) : (hpp * berat);
-                    
-                    // Handle keterangan - use catatan or keterangan
-                    const keteranganValue = item.catatan || item.keterangan || '';
-                    
-                    // Ensure item_name is not empty
-                    const itemName = String(item.item_name || '').trim();
-                    
-                    return {
-                        // Required fields - ensure correct data types
+                    const totalHarga = item.total_harga ? parseFloat(item.total_harga) : (hpp * berat);
+                    const namaItem = String(item.item_name || '').trim();
+
+                    // 1 transaksi = 1 item, nama item berupa teks bebas
+                    return [{
                         id_office: parseInt(headerData.idOffice) || 1,
-                        item_name: itemName || 'Item Lain-Lain', // Fallback if empty
-                        id_item: item.item_name_id ? parseInt(item.item_name_id) : null, // Include id_item
-                        
-                        // Klasifikasi fields - ensure both id and name are included
-                        // Send both field names for backend compatibility
-                        id_klasifikasi_lainlain: item.id_klasifikasi_lainlain ? parseInt(item.id_klasifikasi_lainlain) : null,
-                        nama_klasifikasi_lainlain: klasifikasiName,
-                        // Also send with OVK field name for backend compatibility
-                        id_klasifikasi_ovk: item.id_klasifikasi_lainlain ? parseInt(item.id_klasifikasi_lainlain) : null,
-                        nama_klasifikasi_ovk: klasifikasiName,
-                        
-                        // Numeric fields with proper parsing and validation
+                        nama_produk: namaItem,
+                        item_name: namaItem,
+                        id_item: null,
+                        id_klasifikasi_lainlain: headerData.kategoriAset ? parseInt(headerData.kategoriAset) : null,
+                        nama_klasifikasi_lainlain: kategori ? kategori.name : null,
+                        id_klasifikasi_ovk: headerData.kategoriAset ? parseInt(headerData.kategoriAset) : null,
+                        nama_klasifikasi_ovk: kategori ? kategori.name : null,
                         berat: berat,
                         harga: harga,
                         persentase: persentase,
-                        hpp: Math.round(hpp * 100) / 100, // Round to 2 decimal places
-                        total_harga: Math.round(total_harga * 100) / 100, // Round to 2 decimal places
-                        
-                        // String fields - don't convert to null, keep as empty string if empty
+                        hpp: Math.round(hpp * 100) / 100,
+                        total_harga: Math.round(totalHarga * 100) / 100,
                         peruntukan: String(item.peruntukan || '').trim(),
-                        keterangan: keteranganValue.trim()
-                    };
-                }),
+                        keterangan: String(item.catatan || item.keterangan || '').trim(),
+                    }];
+                })(),
 
                 // Additional data for compatibility
                 totalJumlah: totals.totalJumlah,
@@ -1751,131 +1711,122 @@ const AddEditPembelianLainLainPage = () => {
                             </div>
                     </section>
 
-                {/* Detail Items Table */}
-                <section className="rounded-xl border border-slate-200 bg-white flex flex-col">
-                    <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-100">
+                {/* Item Aset (1 transaksi = 1 item) */}
+                <section className="rounded-xl border border-slate-200 bg-white">
+                    <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-100">
                         <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2">
                             <Package className="h-3.5 w-3.5 text-emerald-600" />
-                            Detail Item Lain-Lain
-                            <span className="inline-flex items-center justify-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
-                                {detailItems.length}
-                            </span>
+                            Item Aset (1 Transaksi = 1 Item)
                         </h3>
-                        <button
-                            onClick={addDetailItem}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors"
-                        >
-                            <Plus className="h-3.5 w-3.5" />
-                            Tambah
-                        </button>
+                        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${selectedKategoriAset && selectedKategoriAset.susut === false
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+                            {selectedKategoriAset
+                                ? (selectedKategoriAset.susut ? 'Aset Disusutkan' : 'Aset Tidak Disusutkan')
+                                : 'Kategori belum dipilih'}
+                        </span>
                     </div>
 
-                    {detailItems.length === 0 ? (
-                        <div className="text-center py-12 px-4">
-                            <Package className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-                            <p className="text-sm font-semibold text-slate-600">Belum ada item Lain-Lain</p>
-                            <p className="text-xs text-slate-400 mt-1">Klik "Tambah" untuk menambahkan detail</p>
+                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2">
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Package className="w-4 h-4" />
+                                Nama Item *
+                            </label>
+                            <input
+                                type="text"
+                                value={detailItems[0]?.item_name || ''}
+                                onChange={(e) => handleSingleItemChange('item_name', e.target.value)}
+                                maxLength={200}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder="Contoh: TOYOTA HILUX, Bangunan Kandang 2, AC Kantor"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                💡 Nama item berupa teks bebas, tidak perlu memilih master item.
+                            </p>
                         </div>
-                    ) : (
-                        <div className="flex-1 min-h-0 overflow-x-auto table-scroll">
-                            <table className="min-w-full border-collapse text-xs">
-                                <thead>
-                                    <tr className="bg-slate-50 border-b border-slate-200">
-                                        <th className="px-2 py-2 text-left font-semibold text-slate-600 w-10">No</th>
-                                        <th className="px-2 py-2 text-left font-semibold text-slate-600 min-w-[160px]">Nama Item</th>
-                                        <th className="px-2 py-2 text-left font-semibold text-slate-600 min-w-[120px]">Klasifikasi</th>
-                                        <th className="px-2 py-2 text-left font-semibold text-slate-600 w-20">Jumlah</th>
-                                        <th className="px-2 py-2 text-left font-semibold text-slate-600 min-w-[100px]">Harga</th>
-                                        <th className="px-2 py-2 text-left font-semibold text-slate-600 min-w-[100px]">Total</th>
-                                        <th className="px-2 py-2 text-center font-semibold text-slate-600 w-16">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {detailItems.map((item, index) => {
-                                        const harga = parseFloat(item.harga) || 0;
-                                        const persentase = getParsedPersentase(item.persentase);
-                                        const berat = parseFloat(item.berat) || 0;
-                                        const hpp = harga && persentase ? harga + (harga * persentase / 100) : harga;
-                                        const totalHarga = hpp * berat;
-                                        if (item.hpp !== hpp) {
-                                            handleDetailChange(item.id, 'hpp', hpp);
-                                        }
-                                        if (item.total_harga !== totalHarga) {
-                                            handleDetailChange(item.id, 'total_harga', totalHarga);
-                                        }
-                                        return (
-                                            <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50">
-                                                <td className="px-2 py-1.5 text-slate-600">{index + 1}</td>
-                                                <td className="px-2 py-1.5">
-                                                    <div className="text-slate-900 font-medium">{item.item_name || '-'}</div>
-                                                    {item.peruntukan && (
-                                                        <div className="text-[10px] text-slate-500 mt-0.5">📌 {item.peruntukan}</div>
-                                                    )}
-                                                </td>
-                                                <td className="px-2 py-1.5 text-slate-700">
-                                                    {(() => {
-                                                        const klasifikasi = klasifikasiLainLainOptions.find(k => k.value === item.id_klasifikasi_lainlain);
-                                                        return klasifikasi ? klasifikasi.label : '-';
-                                                    })()}
-                                                </td>
-                                                <td className="px-2 py-1.5 text-slate-700 tabular-nums">{item.berat || '-'}</td>
-                                                <td className="px-2 py-1.5 text-slate-700 tabular-nums">{formatNumber(item.harga) || '-'}</td>
-                                                <td className="px-2 py-1.5 font-semibold text-slate-900 tabular-nums">{formatNumber(totalHarga)}</td>
-                                                <td className="px-2 py-1.5 text-center">
-                                                    <div className="flex items-center justify-center gap-0.5">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => openEditDetailModal(item)}
-                                                            className="p-1 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded transition-colors"
-                                                            title="Edit item"
-                                                        >
-                                                            <Edit2 className="h-3.5 w-3.5" />
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removeDetailItem(item.id)}
-                                                            disabled={deletingItemId === item.id}
-                                                            className={`p-1 rounded transition-colors ${
-                                                                deletingItemId === item.id
-                                                                    ? 'text-slate-400 cursor-not-allowed'
-                                                                    : 'text-red-600 hover:text-red-700 hover:bg-red-50'
-                                                            }`}
-                                                            title={deletingItemId === item.id ? 'Menghapus...' : 'Hapus item'}
-                                                        >
-                                                            {deletingItemId === item.id ? (
-                                                                <div className="h-3.5 w-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                                                            ) : (
-                                                                <Trash2 className="h-3.5 w-3.5" />
-                                                            )}
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
 
-                    {/* Totals */}
-                    {detailItems.length > 0 && (
-                        <div className="shrink-0 grid grid-cols-3 gap-3 px-4 py-3 border-t border-slate-100 bg-slate-50/50">
-                            <div>
-                                <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Total Items</p>
-                                <p className="text-sm font-bold text-slate-900 tabular-nums">{totals.totalJumlah}</p>
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Jumlah Total</p>
-                                <p className="text-sm font-bold text-slate-900 tabular-nums">{totals.totalBerat.toFixed(1)}</p>
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Total Harga</p>
-                                <p className="text-sm font-bold text-indigo-700 tabular-nums">Rp {formatNumber(totals.totalHargaItems)}</p>
-                            </div>
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Building2 className="w-4 h-4 text-emerald-600" />
+                                Kategori Aset Tetap *
+                            </label>
+                            <SearchableSelect
+                                options={kategoriAsetOptions}
+                                value={headerData.kategoriAset}
+                                onChange={handleKategoriAsetChange}
+                                placeholder={kategoriAsetOptions.length === 0 ? 'Memuat kategori aset...' : 'Pilih kategori aset tetap...'}
+                                isClearable={false}
+                                required={true}
+                                className="w-full"
+                                accentColor="blue"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                Aset Tetap Disusutkan: Bangunan, Kendaraan, Mesin, Inventaris Prasarana.
+                            </p>
                         </div>
-                    )}
+
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Weight className="w-4 h-4" />
+                                Jumlah / Qty *
+                            </label>
+                            <input
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={detailItems[0]?.berat ?? ''}
+                                onChange={(e) => handleSingleItemChange('berat', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder="1"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <DollarSign className="w-4 h-4 text-emerald-600" />
+                                Harga Satuan (RP) *
+                            </label>
+                            <input
+                                type="text"
+                                value={formatNumber(detailItems[0]?.harga || 0)}
+                                onChange={(e) => handleSingleItemChange('harga', parseNumber(e.target.value))}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-right tabular-nums"
+                                placeholder="0"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Hash className="w-4 h-4" />
+                                Total Nilai Aset
+                            </label>
+                            <input
+                                type="text"
+                                value={`Rp ${formatNumber(detailItems[0]?.total_harga || 0)}`}
+                                readOnly
+                                disabled
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-slate-100 text-slate-700 cursor-not-allowed text-right tabular-nums"
+                            />
+                        </div>
+
+                        <div className="md:col-span-2">
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Edit2 className="w-4 h-4" />
+                                Keterangan
+                            </label>
+                            <textarea
+                                rows={2}
+                                value={detailItems[0]?.catatan || ''}
+                                onChange={(e) => handleSingleItemChange('catatan', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder="Keterangan tambahan (opsional)"
+                            />
+                        </div>
+                    </div>
                 </section>
+
+
                     </div>
                 </div>
             </div>
