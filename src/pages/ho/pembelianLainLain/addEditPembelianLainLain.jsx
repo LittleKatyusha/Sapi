@@ -181,7 +181,7 @@ const AddEditPembelianLainLainPage = () => {
         kategoriAset: '', // Kategori Aset Tetap (disusutkan / tidak disusutkan)
         idSupplier: '',
         tgl_masuk: '',
-        jumlah: '', // Jumlah Total (mapped to total quantity, not berat_total)
+        jumlah: '', // Jumlah item header — otomatis diisi saat submit (1 transaksi = 1 item)
         biaya_lain: '',
         biaya_total: '', // Added: Total biaya keseluruhan
         farm: '', // Farm
@@ -1521,24 +1521,6 @@ const AddEditPembelianLainLainPage = () => {
                             />
                             <p className="text-xs text-gray-500 mt-1">
                                 💡 Biaya tambahan lainnya (opsional)
-                            </p>
-                        </div>
-
-                        {/* Jumlah Total */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Weight className="w-4 h-4" />
-                                Jumlah Total
-                            </label>
-                            <input
-                                type="text"
-                                value={formatNumber(headerData.jumlah)}
-                                onChange={(e) => handleHeaderChange('jumlah', parseNumber(e.target.value))}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="Masukkan jumlah total"
-                            />
-                            <p className="text-xs text-blue-600 mt-1">
-                                💡 Jumlah total semua item Lain-Lain dalam pembelian ini
                             </p>
                         </div>
 
