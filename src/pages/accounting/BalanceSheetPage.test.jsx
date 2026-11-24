@@ -191,10 +191,18 @@ describe('BalanceSheetPage', () => {
     render(<BalanceSheetPage />);
 
     await waitFor(() => {
+      expect(screen.getByText('PT Ternak Jaya (HO)')).toBeInTheDocument();
+    });
+
+    // Entitas Akunting memakai SearchableSelect (template selectbox aplikasi):
+    // opsi hanya dirender saat dropdown dibuka.
+    fireEvent.keyDown(screen.getByRole('combobox'), { key: 'ArrowDown', code: 'ArrowDown', keyCode: 40 });
+    fireEvent.click(await screen.findByRole('option', { name: /Semua Entitas \(Konsolidasi\)/ }));
+
+    await waitFor(() => {
       expect(screen.getByText(/Semua Entitas \(Konsolidasi\)/)).toBeInTheDocument();
     });
 
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'all' } });
     fireEvent.click(screen.getByRole('button', { name: /Tampilkan/i }));
 
     await waitFor(() => {

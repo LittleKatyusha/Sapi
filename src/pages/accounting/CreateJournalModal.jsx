@@ -10,6 +10,9 @@ export const JOURNAL_TYPES = [
   'BANK_CHARGE', 'CASH_TRANSFER', 'BANK_INTEREST',
 ];
 
+// Opsi tipe jurnal untuk SearchableSelect (template selectbox aplikasi).
+const JOURNAL_TYPE_OPTIONS = JOURNAL_TYPES.map((tipe) => ({ value: tipe, label: tipe }));
+
 const emptyLine = () => ({ coa_id: '', debit: 0, credit: 0, keterangan: '' });
 const emptyForm = () => ({
   tanggal: new Date().toISOString().slice(0, 10),
@@ -183,23 +186,22 @@ export default function CreateJournalModal({
                 />
               </label>
 
-              <label className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+              <div className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
                 <span className="flex items-center gap-1.5 mb-1.5">
                   <FileText className="h-3.5 w-3.5 text-gray-500" />
                   Tipe Jurnal *
                 </span>
-                <select
+                <SearchableSelect
+                  options={JOURNAL_TYPE_OPTIONS}
                   value={form.tipe_jurnal}
-                  onChange={(e) => setForm({ ...form, tipe_jurnal: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white p-2.5 text-sm font-normal text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                >
-                  {JOURNAL_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  onChange={(val) => setForm({ ...form, tipe_jurnal: val || 'MEMORIAL' })}
+                  placeholder="Pilih tipe jurnal"
+                  isClearable={false}
+                  isSearchable={true}
+                  accentColor="blue"
+                  className="normal-case font-normal tracking-normal"
+                />
+              </div>
 
               <label className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
                 <span className="flex items-center gap-1.5 mb-1.5">

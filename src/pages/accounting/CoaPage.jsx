@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Download, FileSpreadsheet, Printer } from 'lucide-react';
 import accountingService from '../../services/accountingService';
 import downloadPdf from '../../utils/downloadPdf';
+import SearchableSelect from '../../components/shared/SearchableSelect';
 
 const emptyForm = {
   kode_akun: '',
@@ -15,6 +16,13 @@ const emptyForm = {
 };
 
 const TIPE_AKUN = ['Aset', 'Kewajiban', 'Modal', 'Pendapatan', 'Beban'];
+
+// Opsi selectbox memakai template aplikasi (SearchableSelect) => format { value, label }.
+const TIPE_OPTIONS = TIPE_AKUN.map((tipe) => ({ value: tipe, label: tipe }));
+const NORMAL_BALANCE_OPTIONS = [
+  { value: 'D', label: 'Debit' },
+  { value: 'C', label: 'Kredit' },
+];
 
 function buildTree(accounts) {
   const map = {};
@@ -183,6 +191,11 @@ export default function CoaPage() {
 
   const tree = buildTree(accounts);
   const headerAccounts = accounts.filter((a) => !a.is_posting);
+  // Opsi parent/header untuk SearchableSelect (template selectbox aplikasi).
+  const parentOptions = headerAccounts.map((a) => ({
+    value: String(a.id),
+    label: `${a.kode_akun} - ${a.nama_akun}`,
+  }));
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -251,28 +264,47 @@ export default function CoaPage() {
             Nama Akun
             <input required value={form.nama_akun} onChange={(e) => setForm({ ...form, nama_akun: e.target.value })} className="mt-1 w-full rounded-lg border p-2" placeholder="Kas Operasional" />
           </label>
-          <label className="text-sm text-gray-700">
+          <div className="text-sm text-gray-700">
             Tipe
-            <select value={form.tipe} onChange={(e) => setForm({ ...form, tipe: e.target.value })} className="mt-1 w-full rounded-lg border p-2">
-              {TIPE_AKUN.map((t) => <option key={t}>{t}</option>)}
-            </select>
-          </label>
-          <label className="text-sm text-gray-700">
+            <SearchableSelect
+              options={TIPE_OPTIONS}
+              value={form.tipe}
+              onChange={(val) => setForm({ ...form, tipe: val || 'Aset' })}
+              placeholder="Pilih tipe akun"
+              isClearable={false}
+              isSearchable={false}
+              accentColor="blue"
+              className="mt-1"
+            />
+          </div>
+          <div className="text-sm text-gray-700">
             Saldo Normal
-            <select value={form.normal_balance} onChange={(e) => setForm({ ...form, normal_balance: e.target.value })} className="mt-1 w-full rounded-lg border p-2">
-              <option value="D">Debit</option>
-              <option value="C">Kredit</option>
-            </select>
-          </label>
+            <SearchableSelect
+              options={NORMAL_BALANCE_OPTIONS}
+              value={form.normal_balance}
+              onChange={(val) => setForm({ ...form, normal_balance: val || 'D' })}
+              placeholder="Pilih saldo normal"
+              isClearable={false}
+              isSearchable={false}
+              accentColor="blue"
+              className="mt-1"
+            />
+          </div>
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          <label className="text-sm text-gray-700">
+          <div className="text-sm text-gray-700">
             Parent (Header)
-            <select value={form.parent_id} onChange={(e) => setForm({ ...form, parent_id: e.target.value })} className="mt-1 w-full rounded-lg border p-2">
-              <option value="">-- Tanpa parent --</option>
-              {headerAccounts.map((a) => <option key={a.id} value={a.id}>{a.kode_akun} - {a.nama_akun}</option>)}
-            </select>
-          </label>
+            <SearchableSelect
+              options={parentOptions}
+              value={form.parent_id ? String(form.parent_id) : ''}
+              onChange={(val) => setForm({ ...form, parent_id: val || '' })}
+              placeholder="-- Tanpa parent --"
+              isClearable={true}
+              isSearchable={true}
+              accentColor="blue"
+              className="mt-1"
+            />
+          </div>
           <label className="flex items-center gap-2 text-sm text-gray-700 pt-6">
             <input type="checkbox" checked={form.is_posting} onChange={(e) => setForm({ ...form, is_posting: e.target.checked })} />
             Akun Posting

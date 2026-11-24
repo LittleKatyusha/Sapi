@@ -1,9 +1,17 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Plus } from 'lucide-react';
 import accountingService from '../../services/accountingService';
+import SearchableSelect from '../../components/shared/SearchableSelect';
 import CreateJournalModal, { JOURNAL_TYPES } from './CreateJournalModal';
 
 const STATUS_OPTIONS = ['', 'draft', 'submitted', 'posted', 'void'];
+
+// Opsi selectbox memakai template aplikasi (SearchableSelect) => format { value, label }.
+const STATUS_SELECT_OPTIONS = STATUS_OPTIONS.map((s) => ({ value: s, label: s || 'Semua' }));
+const JOURNAL_TYPE_SELECT_OPTIONS = [
+  { value: '', label: 'Semua' },
+  ...JOURNAL_TYPES.map((t) => ({ value: t, label: t })),
+];
 
 const statusClass = (status) => {
   switch (status) {
@@ -33,6 +41,21 @@ export default function JournalPage() {
   const [filterType, setFilterType] = useState('');
   const [filterPeriodId, setFilterPeriodId] = useState('');
   const [periods, setPeriods] = useState([]);
+
+  // Opsi entitas untuk SearchableSelect (template selectbox aplikasi).
+  const settingOptions = useMemo(
+    () => settings.map((s) => ({ value: String(s.id), label: `${s.nama_perusahaan} (${s.entitas})` })),
+    [settings]
+  );
+
+  // Opsi periode untuk SearchableSelect (template selectbox aplikasi).
+  const periodOptions = useMemo(
+    () => [
+      { value: '', label: 'Semua' },
+      ...periods.map((p) => ({ value: String(p.id), label: p.nama_periode })),
+    ],
+    [periods]
+  );
 
   const loadBootstrap = async () => {
     try {
@@ -116,18 +139,18 @@ export default function JournalPage() {
           <p className="mt-1 text-sm text-gray-500">Buat, kelola, dan posting jurnal akunting.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <select
-            value={selectedSettingId}
-            onChange={(e) => setSelectedSettingId(e.target.value)}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-          >
-            <option value="">Pilih entitas</option>
-            {settings.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.nama_perusahaan} ({s.entitas})
-              </option>
-            ))}
-          </select>
+          <div className="w-full sm:w-64">
+            <SearchableSelect
+              options={settingOptions}
+              value={selectedSettingId}
+              onChange={(val) => setSelectedSettingId(val ?? '')}
+              placeholder="Pilih entitas"
+              isSearchable={true}
+              isClearable={false}
+              accentColor="blue"
+              className="text-sm"
+            />
+          </div>
 
           <button
             type="button"
@@ -145,26 +168,45 @@ export default function JournalPage() {
 
       {/* Filters */}
       <section className="grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:grid-cols-4">
-        <label className="text-sm text-gray-700">
+        <div className="text-sm text-gray-700">
           Status
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="mt-1 w-full rounded-lg border p-2">
-            {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s || 'Semua'}</option>)}
-          </select>
-        </label>
-        <label className="text-sm text-gray-700">
+          <SearchableSelect
+            options={STATUS_SELECT_OPTIONS}
+            value={filterStatus}
+            onChange={(val) => setFilterStatus(val ?? '')}
+            placeholder="Semua"
+            isClearable={false}
+            isSearchable={false}
+            accentColor="blue"
+            className="mt-1"
+          />
+        </div>
+        <div className="text-sm text-gray-700">
           Tipe Jurnal
-          <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="mt-1 w-full rounded-lg border p-2">
-            <option value="">Semua</option>
-            {JOURNAL_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </label>
-        <label className="text-sm text-gray-700">
+          <SearchableSelect
+            options={JOURNAL_TYPE_SELECT_OPTIONS}
+            value={filterType}
+            onChange={(val) => setFilterType(val ?? '')}
+            placeholder="Semua"
+            isClearable={false}
+            isSearchable={true}
+            accentColor="blue"
+            className="mt-1"
+          />
+        </div>
+        <div className="text-sm text-gray-700">
           Periode
-          <select value={filterPeriodId} onChange={(e) => setFilterPeriodId(e.target.value)} className="mt-1 w-full rounded-lg border p-2">
-            <option value="">Semua</option>
-            {periods.map((p) => <option key={p.id} value={p.id}>{p.nama_periode}</option>)}
-          </select>
-        </label>
+          <SearchableSelect
+            options={periodOptions}
+            value={filterPeriodId}
+            onChange={(val) => setFilterPeriodId(val ?? '')}
+            placeholder="Semua"
+            isClearable={false}
+            isSearchable={true}
+            accentColor="blue"
+            className="mt-1"
+          />
+        </div>
         <div className="flex items-end">
           <button type="button" onClick={() => loadJournals(selectedSettingId)} disabled={loading || !selectedSettingId} className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
             {loading ? 'Memuat...' : 'Filter'}

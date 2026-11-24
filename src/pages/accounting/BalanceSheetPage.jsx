@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Printer, Download, FileSpreadsheet, Eye } from 'lucide-react';
 import accountingService from '../../services/accountingService';
 import downloadPdf from '../../utils/downloadPdf';
+import SearchableSelect from '../../components/shared/SearchableSelect';
 import BalanceSheetDetailModal from './BalanceSheetDetailModal';
 
 const today = new Date().toISOString().slice(0, 10);
@@ -15,6 +16,18 @@ export default function BalanceSheetPage() {
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
   const [selectedAccount, setSelectedAccount] = useState(null);
+
+  // Opsi entitas untuk SearchableSelect (template selectbox aplikasi).
+  const settingOptions = useMemo(() => {
+    const options = [];
+    if (settings.length > 1) {
+      options.push({ value: 'all', label: '★ Semua Entitas (Konsolidasi)' });
+    }
+    settings.forEach((s) => {
+      options.push({ value: String(s.id), label: `${s.nama_perusahaan} (${s.entitas})` });
+    });
+    return options;
+  }, [settings]);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -214,16 +227,19 @@ export default function BalanceSheetPage() {
       {error && <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
 
       <section className="grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:grid-cols-3 md:items-end md:p-6">
-        <label className="text-sm text-gray-700">
-          Entitas Akunting
-          <select value={settingId} onChange={(e) => setSettingId(e.target.value)} className="mt-1 w-full rounded-lg border p-2">
-            <option value="">Pilih entitas</option>
-            {settings.length > 1 && (
-              <option value="all">★ Semua Entitas (Konsolidasi)</option>
-            )}
-            {settings.map((s) => <option key={s.id} value={s.id}>{s.nama_perusahaan} ({s.entitas})</option>)}
-          </select>
-        </label>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Entitas Akunting</label>
+          <SearchableSelect
+            options={settingOptions}
+            value={settingId}
+            onChange={(val) => setSettingId(val ?? '')}
+            placeholder="Pilih entitas"
+            isSearchable={true}
+            isClearable={true}
+            accentColor="blue"
+            className="text-sm"
+          />
+        </div>
         <label className="text-sm text-gray-700">
           Per Tanggal
           <input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} className="mt-1 w-full rounded-lg border p-2" />
