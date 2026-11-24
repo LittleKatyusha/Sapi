@@ -33,6 +33,16 @@ describe('CoaPage', () => {
       is_active: true,
       is_posting: true,
     },
+    {
+      id: 3,
+      kode_akun: '5100',
+      nama_akun: 'Pembelian (Tidak Digunakan)',
+      tipe: 'Beban',
+      normal_balance: 'D',
+      parent_id: null,
+      is_active: false,
+      is_posting: true,
+    },
   ];
 
   beforeEach(() => {
@@ -61,6 +71,34 @@ describe('CoaPage', () => {
     expect(screen.getByRole('button', { name: /Cetak PDF/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Unduh PDF/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Unduh Excel/i })).toBeInTheDocument();
+  });
+
+  it('menyembunyikan akun nonaktif pada tab Akun Aktif', async () => {
+    render(<CoaPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Kas Operasional')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('Pembelian (Tidak Digunakan)')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Akun Aktif \(2\)/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Akun Nonaktif \(1\)/i })).toBeInTheDocument();
+  });
+
+  it('menampilkan akun nonaktif pada tab Akun Nonaktif', async () => {
+    render(<CoaPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Kas Operasional')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Akun Nonaktif \(1\)/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Pembelian (Tidak Digunakan)')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('Kas Operasional')).not.toBeInTheDocument();
   });
 
   it('triggers PDF print when Cetak PDF is clicked', async () => {

@@ -10,6 +10,20 @@ const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
   .toISOString()
   .slice(0, 10);
 
+const formatNumber = (value) => Number(value || 0).toLocaleString('id-ID');
+
+const DetailButton = ({ onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 transition-colors hover:border-indigo-300 hover:bg-indigo-100"
+    title="Lihat rincian transaksi & pengelompokan"
+  >
+    <Eye className="h-3.5 w-3.5" />
+    <span>Detail</span>
+  </button>
+);
+
 export default function IncomeStatementPage() {
   const [settings, setSettings] = useState([]);
   const [settingId, setSettingId] = useState('');
@@ -48,16 +62,18 @@ export default function IncomeStatementPage() {
     loadSettings();
   }, []);
 
+  const buildParams = () => ({
+    setting_id: settingId === 'all' ? 'all' : Number(settingId),
+    tanggal_from: tanggalFrom || undefined,
+    tanggal_to: tanggalTo || undefined,
+  });
+
   const loadReport = async () => {
     if (!settingId) return;
     try {
       setLoading(true);
       setError('');
-      const response = await accountingService.getIncomeStatement({
-        setting_id: settingId === 'all' ? 'all' : Number(settingId),
-        tanggal_from: tanggalFrom || undefined,
-        tanggal_to: tanggalTo || undefined,
-      });
+      const response = await accountingService.getIncomeStatement(buildParams());
       setReport(response?.data ?? null);
     } catch (e) {
       setReport(null);
@@ -72,14 +88,7 @@ export default function IncomeStatementPage() {
     try {
       setExporting(true);
       setError('');
-      const blob = await accountingService.exportIncomeStatement(
-        {
-          setting_id: settingId === 'all' ? 'all' : Number(settingId),
-          tanggal_from: tanggalFrom || undefined,
-          tanggal_to: tanggalTo || undefined,
-        },
-        'pdf'
-      );
+      const blob = await accountingService.exportIncomeStatement(buildParams(), 'pdf');
       const fileUrl = URL.createObjectURL(blob);
       const printWindow = window.open(fileUrl, '_blank');
       if (!printWindow) {
@@ -97,14 +106,7 @@ export default function IncomeStatementPage() {
     try {
       setExporting(true);
       setError('');
-      const blob = await accountingService.exportIncomeStatement(
-        {
-          setting_id: settingId === 'all' ? 'all' : Number(settingId),
-          tanggal_from: tanggalFrom || undefined,
-          tanggal_to: tanggalTo || undefined,
-        },
-        'pdf'
-      );
+      const blob = await accountingService.exportIncomeStatement(buildParams(), 'pdf');
       await downloadPdf(blob, `laporan-laba-rugi-${tanggalFrom || 'awal'}-sd-${tanggalTo || 'kini'}.pdf`);
     } catch (e) {
       setError(e.message || 'Gagal mengunduh cetakan PDF.');
@@ -118,14 +120,7 @@ export default function IncomeStatementPage() {
     try {
       setExporting(true);
       setError('');
-      const blob = await accountingService.exportIncomeStatement(
-        {
-          setting_id: settingId === 'all' ? 'all' : Number(settingId),
-          tanggal_from: tanggalFrom || undefined,
-          tanggal_to: tanggalTo || undefined,
-        },
-        'xlsx'
-      );
+      const blob = await accountingService.exportIncomeStatement(buildParams(), 'xlsx');
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -141,14 +136,70 @@ export default function IncomeStatementPage() {
     }
   };
 
-  const formatNumber = (value) => Number(value || 0).toLocaleString('id-ID');
+  const openDetail = (row, tipe) => setSelectedAccountForDetail({ ...row, tipe });
+
+  const sales = report?.sales ?? null;
+  const cogs = report?.cogs ?? null;
+
+  const sectionRow = (label, tone = 'default') => (
+    <tr key={`section-${label}`}>
+      <td
+        colSpan="4"
+        className={`px-3 py-2 text-[11px] font-bold uppercase tracking-wide ${
+          tone === 'highlight' ? 'bg-indigo-50 text-indigo-800' : 'bg-gray-100 text-gray-700'
+        }`}
+      >
+        {label}
+      </td>
+    </tr>
+  );
+
+  const accountRows = (rows, tipe, negative = false) =>
+    (rows ?? []).map((row) => {
+      const amount = Number(row.amount || 0);
+      const isZero = Math.abs(amount) < 0.01;
+
+      return (
+        <tr key={`${tipe}-${row.id}`} className={isZero ? 'text-gray-400' : 'hover:bg-gray-50/60'}>
+          <td className="w-20 py-1.5 pl-6 pr-2 font-mono text-xs text-gray-500">{row.kode_akun}</td>
+          <td className={`py-1.5 pr-2 text-sm ${isZero ? 'text-gray-400' : 'text-gray-800'}`}>{row.nama_akun}</td>
+          <td className="whitespace-nowrap py-1.5 pr-2 text-right font-mono text-sm text-gray-900">
+            {negative ? '(' : ''}
+            {formatNumber(Math.abs(amount))}
+            {negative ? ')' : ''}
+          </td>
+          <td className="w-20 py-1.5 text-center">
+            {!isZero && <DetailButton onClick={() => openDetail(row, tipe)} />}
+          </td>
+        </tr>
+      );
+    });
+
+  const totalRow = (label, value, tone = 'total') => {
+    const toneClass = {
+      total: 'bg-gray-50 font-semibold text-gray-900',
+      subtotal: 'bg-gray-100 font-bold text-gray-900',
+      highlight: 'bg-indigo-600 font-bold text-white',
+      final: 'bg-emerald-600 font-bold text-white',
+    }[tone] || 'bg-gray-50 font-semibold text-gray-900';
+
+    return (
+      <tr key={`total-${label}`} className={toneClass}>
+        <td colSpan="2" className="px-3 py-2 text-sm">{label}</td>
+        <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-sm">{formatNumber(value)}</td>
+        <td />
+      </tr>
+    );
+  };
 
   return (
     <div className="space-y-6 p-4 md:p-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Laporan Laba Rugi</h1>
-          <p className="mt-1 text-sm text-gray-500">Ringkasan pendapatan, beban, dan laba (rugi) bersih periode berjalan.</p>
+          <p className="mt-1 text-sm text-gray-500">
+            Penjualan bersih, HPP (pembelian, pemeliharaan hewan, pakan &amp; vitamin, upah), beban operasional, non operasional, dan beban pajak.
+          </p>
         </div>
         {report && (
           <div className="flex flex-wrap items-center gap-2">
@@ -212,100 +263,86 @@ export default function IncomeStatementPage() {
         </button>
       </section>
 
-      {report && (
+      {report && sales && cogs && (
         <>
-          <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <section className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase text-gray-500">Total Pendapatan</p>
-              <p className="mt-1 text-xl font-bold text-green-600">{formatNumber(report.total_revenue)}</p>
+              <p className="text-xs font-medium uppercase text-gray-500">Penjualan Bersih</p>
+              <p className="mt-1 text-xl font-bold text-gray-800">{formatNumber(sales.net_sales)}</p>
             </div>
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase text-gray-500">Total Beban</p>
-              <p className="mt-1 text-xl font-bold text-red-600">{formatNumber(report.total_expense)}</p>
+              <p className="text-xs font-medium uppercase text-gray-500">Harga Pokok Penjualan</p>
+              <p className="mt-1 text-xl font-bold text-rose-600">{formatNumber(cogs.total)}</p>
+            </div>
+            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase text-gray-500">Laba Kotor</p>
+              <p className={`mt-1 text-xl font-bold ${Number(report.gross_profit) < 0 ? 'text-rose-600' : 'text-green-600'}`}>
+                {formatNumber(report.gross_profit)}
+              </p>
             </div>
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
               <p className="text-xs font-medium uppercase text-gray-500">Laba (Rugi) Bersih</p>
-              <p className="mt-1 text-xl font-bold text-indigo-600">{formatNumber(report.net_income)}</p>
+              <p className={`mt-1 text-xl font-bold ${Number(report.net_income) < 0 ? 'text-rose-600' : 'text-indigo-600'}`}>
+                {formatNumber(report.net_income)}
+              </p>
             </div>
           </section>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-              <div className="flex items-center justify-between border-b bg-gray-50 px-4 py-3">
-                <h2 className="font-semibold text-gray-800">Pendapatan</h2>
-                <span className="text-xs text-gray-500 font-medium">{(report.revenues ?? []).length} Akun</span>
-              </div>
-              <table className="w-full text-left text-sm">
-                <thead className="bg-gray-100/60 text-xs text-gray-600 border-b border-gray-200">
-                  <tr>
-                    <th className="p-3 font-semibold w-20">Kode</th>
-                    <th className="p-3 font-semibold">Nama Akun</th>
-                    <th className="p-3 font-semibold text-right w-36">Jumlah</th>
-                    <th className="p-3 font-semibold text-center w-24">Aksi</th>
-                  </tr>
-                </thead>
+          <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="border-b bg-gray-50 px-4 py-3">
+              <h2 className="text-sm font-semibold text-gray-800">Laporan Laba Rugi</h2>
+              <p className="text-xs text-gray-500">
+                Periode {tanggalFrom || 'awal'} s/d {tanggalTo || 'kini'}
+              </p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
                 <tbody className="divide-y divide-gray-100">
-                  {(report.revenues ?? []).map((row) => (
-                    <tr key={row.id} className="hover:bg-gray-50/60 transition-colors">
-                      <td className="p-3 font-mono text-gray-700">{row.kode_akun}</td>
-                      <td className="p-3 text-gray-900 font-medium">{row.nama_akun}</td>
-                      <td className="p-3 text-right font-mono font-semibold text-green-700">{formatNumber(row.amount)}</td>
-                      <td className="p-3 text-center">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedAccountForDetail({ ...row, tipe: 'Pendapatan' })}
-                          className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition-colors cursor-pointer"
-                          title="Lihat rincian transaksi & pengelompokan"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          <span>Detail</span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {!(report.revenues ?? []).length && <tr><td colSpan="4" className="p-4 text-center text-gray-500">Tidak ada pendapatan.</td></tr>}
-                </tbody>
-              </table>
-            </section>
+                  {sectionRow('Penjualan')}
+                  {accountRows(sales.gross_lines, 'Pendapatan')}
+                  {accountRows(sales.return_lines, 'Pendapatan', true)}
+                  {accountRows(sales.discount_lines, 'Pendapatan', true)}
+                  {totalRow('Penjualan Bersih', sales.net_sales, 'subtotal')}
 
-            <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-              <div className="flex items-center justify-between border-b bg-gray-50 px-4 py-3">
-                <h2 className="font-semibold text-gray-800">Beban</h2>
-                <span className="text-xs text-gray-500 font-medium">{(report.expenses ?? []).length} Akun</span>
-              </div>
-              <table className="w-full text-left text-sm">
-                <thead className="bg-gray-100/60 text-xs text-gray-600 border-b border-gray-200">
-                  <tr>
-                    <th className="p-3 font-semibold w-20">Kode</th>
-                    <th className="p-3 font-semibold">Nama Akun</th>
-                    <th className="p-3 font-semibold text-right w-36">Jumlah</th>
-                    <th className="p-3 font-semibold text-center w-24">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {(report.expenses ?? []).map((row) => (
-                    <tr key={row.id} className="hover:bg-gray-50/60 transition-colors">
-                      <td className="p-3 font-mono text-gray-700">{row.kode_akun}</td>
-                      <td className="p-3 text-gray-900 font-medium">{row.nama_akun}</td>
-                      <td className="p-3 text-right font-mono font-semibold text-red-700">{formatNumber(row.amount)}</td>
-                      <td className="p-3 text-center">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedAccountForDetail({ ...row, tipe: 'Beban' })}
-                          className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition-colors cursor-pointer"
-                          title="Lihat rincian transaksi & pengelompokan"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          <span>Detail</span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {!(report.expenses ?? []).length && <tr><td colSpan="4" className="p-4 text-center text-gray-500">Tidak ada beban.</td></tr>}
+                  {sectionRow('Harga Pokok Penjualan (HPP)')}
+                  {accountRows(cogs.components, 'Beban')}
+                  {totalRow('Total Harga Pokok Penjualan', cogs.total, 'subtotal')}
+
+                  {totalRow('LABA KOTOR', report.gross_profit, 'highlight')}
+
+                  {sectionRow('Beban Operasional')}
+                  {accountRows(report.operating_expenses, 'Beban')}
+                  {totalRow('Total Beban Operasional', report.total_operating_expenses, 'subtotal')}
+
+                  {totalRow('LABA OPERASI', report.operating_income, 'highlight')}
+
+                  {(report.other_incomes ?? []).length > 0 && (
+                    <>
+                      {sectionRow('Pendapatan Lain-lain')}
+                      {accountRows(report.other_incomes, 'Pendapatan')}
+                      {totalRow('Total Pendapatan Lain-lain', report.total_other_income, 'subtotal')}
+                    </>
+                  )}
+
+                  {(report.non_operating_expenses ?? []).length > 0 && (
+                    <>
+                      {sectionRow('Beban Non Operasional')}
+                      {accountRows(report.non_operating_expenses, 'Beban')}
+                      {totalRow('Total Beban Non Operasional', report.total_non_operating_expenses, 'subtotal')}
+                    </>
+                  )}
+
+                  {totalRow('LABA SEBELUM PAJAK', report.income_before_tax, 'highlight')}
+
+                  {sectionRow('Beban Pajak')}
+                  {accountRows(report.tax_expenses, 'Beban')}
+                  {totalRow('Total Beban Pajak', report.total_tax_expense, 'subtotal')}
+
+                  {totalRow('LABA (RUGI) BERSIH', report.net_income, 'final')}
                 </tbody>
               </table>
-            </section>
-          </div>
+            </div>
+          </section>
         </>
       )}
 

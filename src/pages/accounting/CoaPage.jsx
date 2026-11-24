@@ -83,6 +83,7 @@ export default function CoaPage() {
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
   const [viewMode, setViewMode] = useState('tree'); // 'tree' | 'flat'
+  const [activeTab, setActiveTab] = useState('aktif'); // 'aktif' | 'nonaktif'
 
   const loadAccounts = async () => {
     try {
@@ -189,8 +190,14 @@ export default function CoaPage() {
 
   const cancelEdit = () => { setEditingId(null); setForm(emptyForm); };
 
-  const tree = buildTree(accounts);
-  const headerAccounts = accounts.filter((a) => !a.is_posting);
+  // Tab status akun: akun nonaktif disembunyikan dari tampilan utama.
+  const activeAccounts = accounts.filter((a) => a.is_active);
+  const inactiveAccounts = accounts.filter((a) => !a.is_active);
+  const visibleAccounts = activeTab === 'aktif' ? activeAccounts : inactiveAccounts;
+
+  const tree = buildTree(visibleAccounts);
+  // Opsi parent hanya dari akun aktif (agar tidak memilih header nonaktif).
+  const headerAccounts = activeAccounts.filter((a) => !a.is_posting);
   // Opsi parent/header untuk SearchableSelect (template selectbox aplikasi).
   const parentOptions = headerAccounts.map((a) => ({
     value: String(a.id),
@@ -323,6 +330,29 @@ export default function CoaPage() {
       </form>
 
       <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 px-4 py-3">
+          <div className="flex gap-1 rounded-lg border border-gray-200 bg-white p-0.5">
+            <button
+              type="button"
+              onClick={() => setActiveTab('aktif')}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium ${activeTab === 'aktif' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-700 hover:text-gray-900'}`}
+            >
+              Akun Aktif ({activeAccounts.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('nonaktif')}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium ${activeTab === 'nonaktif' ? 'bg-gray-700 text-white shadow-sm' : 'text-gray-700 hover:text-gray-900'}`}
+            >
+              Akun Nonaktif ({inactiveAccounts.length})
+            </button>
+          </div>
+          <p className="text-xs text-gray-500">
+            {activeTab === 'aktif'
+              ? 'Akun aktif dipakai untuk pencatatan jurnal & laporan.'
+              : 'Akun nonaktif tidak ditampilkan pada pilihan akun dan laporan.'}
+          </p>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b bg-gray-50 text-gray-600">
@@ -336,7 +366,7 @@ export default function CoaPage() {
               {viewMode === 'tree' && tree.map((node) => (
                 <TreeRow key={node.id} node={node} depth={0} onEdit={edit} />
               ))}
-              {viewMode === 'flat' && accounts.map((account) => (
+              {viewMode === 'flat' && visibleAccounts.map((account) => (
                 <tr key={account.id} className="hover:bg-gray-50">
                   <td className="p-3 font-mono font-medium">{account.kode_akun}</td>
                   <td className="p-3">{account.nama_akun}</td>
@@ -353,7 +383,13 @@ export default function CoaPage() {
                   </td>
                 </tr>
               ))}
-              {!loading && !accounts.length && <tr><td colSpan="7" className="p-8 text-center text-gray-500">Belum ada akun.</td></tr>}
+              {!loading && !visibleAccounts.length && (
+                <tr>
+                  <td colSpan="7" className="p-8 text-center text-gray-500">
+                    {activeTab === 'aktif' ? 'Belum ada akun aktif.' : 'Tidak ada akun nonaktif.'}
+                  </td>
+                </tr>
+              )}
               {loading && <tr><td colSpan="7" className="p-8 text-center text-gray-500">Memuat data...</td></tr>}
             </tbody>
           </table>

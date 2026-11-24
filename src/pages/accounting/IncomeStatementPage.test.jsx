@@ -13,14 +13,42 @@ describe('IncomeStatementPage', () => {
 
   const mockReport = {
     revenues: [
-      { id: 101, kode_akun: '4001', nama_akun: 'Penjualan Sapi', amount: 150000000 },
+      { id: 101, kode_akun: '4000', nama_akun: 'Penjualan Sapi', amount: 150000000 },
     ],
     expenses: [
-      { id: 201, kode_akun: '5001', nama_akun: 'Beban Pakan', amount: 90000000 },
+      { id: 201, kode_akun: '5000', nama_akun: 'HPP', amount: 60000000 },
+      { id: 202, kode_akun: '6240', nama_akun: 'Beban Listrik', amount: 30000000 },
     ],
     total_revenue: 150000000,
     total_expense: 90000000,
     net_income: 60000000,
+    sales: {
+      gross: 150000000,
+      returns: 0,
+      discounts: 0,
+      net_sales: 150000000,
+      gross_lines: [{ id: 101, kode_akun: '4000', nama_akun: 'Penjualan Sapi', amount: 150000000 }],
+      return_lines: [],
+      discount_lines: [],
+    },
+    cogs: {
+      components: [{ id: 201, kode_akun: '5000', nama_akun: 'HPP', amount: 60000000 }],
+      total: 60000000,
+    },
+    gross_profit: 90000000,
+    operating_expenses: [
+      { id: 202, kode_akun: '6240', nama_akun: 'Beban Listrik', amount: 30000000 },
+      { id: 203, kode_akun: '6230', nama_akun: 'Beban Parkir, E-Toll & BBM', amount: 0 },
+    ],
+    total_operating_expenses: 30000000,
+    operating_income: 60000000,
+    other_incomes: [],
+    total_other_income: 0,
+    non_operating_expenses: [],
+    total_non_operating_expenses: 0,
+    income_before_tax: 60000000,
+    tax_expenses: [],
+    total_tax_expense: 0,
   };
 
   beforeEach(() => {
@@ -40,12 +68,25 @@ describe('IncomeStatementPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Tampilkan/i }));
 
     await waitFor(() => {
-      expect(screen.getAllByText('150.000.000').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('90.000.000').length).toBeGreaterThan(0);
-      expect(screen.getByText('60.000.000')).toBeInTheDocument();
-      expect(screen.getByText('Penjualan Sapi')).toBeInTheDocument();
-      expect(screen.getByText('Beban Pakan')).toBeInTheDocument();
+      expect(screen.getByText('LABA KOTOR')).toBeInTheDocument();
     });
+
+    // Struktur laporan bertingkat.
+    expect(screen.getAllByText('Penjualan Bersih').length).toBeGreaterThan(0);
+    expect(screen.getByText('Harga Pokok Penjualan (HPP)')).toBeInTheDocument();
+    expect(screen.getByText('Beban Operasional')).toBeInTheDocument();
+    expect(screen.getByText('LABA OPERASI')).toBeInTheDocument();
+    expect(screen.getByText('LABA SEBELUM PAJAK')).toBeInTheDocument();
+    expect(screen.getByText('LABA (RUGI) BERSIH')).toBeInTheDocument();
+
+    // Baris akun.
+    expect(screen.getByText('Penjualan Sapi')).toBeInTheDocument();
+    expect(screen.getByText('HPP')).toBeInTheDocument();
+    expect(screen.getByText('Beban Listrik')).toBeInTheDocument();
+
+    // Baris baku bernilai 0 tetap ditampilkan (0 ditulis 0) tanpa tombol Detail.
+    expect(screen.getByText('Beban Parkir, E-Toll & BBM')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Detail' })).toHaveLength(3);
 
     // Check Cetak PDF, Unduh PDF, and Unduh Excel buttons exist
     expect(screen.getByRole('button', { name: /Cetak PDF/i })).toBeInTheDocument();
