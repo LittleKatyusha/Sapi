@@ -585,7 +585,7 @@ const PembelianLainLainPage = () => {
         setNotification({ type: 'info', message: `Memproses rekap pembelian aset dalam format ${format === 'excel' ? 'Excel' : 'PDF'}...` });
         try {
             const params = { start_date: startDate, end_date: endDate };
-            const filters = { nota_sistem: 'filter_nota_sistem', nota: 'filter_nota', nama_supplier: 'filter_nama_supplier', plat_nomor: 'filter_plat_nomor', jenis_pembelian: 'filter_jenis_pembelian' };
+            const filters = { nota_sistem: 'filter_nota_sistem', nota: 'filter_nota', nama_supplier: 'filter_nama_supplier', plat_nomor: 'filter_plat_nomor', jenis_pembelian: 'filter_jenis_pembelian', nama_office: 'filter_nama_office' };
             Object.entries(filters).forEach(([key, parameter]) => { if (advancedFilters[key]) params[parameter] = advancedFilters[key]; });
             const endpoint = format === 'excel' ? API_ENDPOINTS.HO.LAINLAIN.EXPORT_EXCEL : API_ENDPOINTS.HO.LAINLAIN.EXPORT_PDF;
             const blob = await HttpClient.get(endpoint, { params, responseType: 'blob', cache: false });

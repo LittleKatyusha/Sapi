@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, RotateCcw, ChevronDown, ChevronUp, Filter, Calendar } from 'lucide-react';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 
-const InputField = ({ label, icon: Icon, value, onChange, placeholder, type = 'text' }) => (
+const InputField = ({ label, icon: Icon, value, onChange, placeholder, type = 'text', onKeyDown }) => (
   <div className="space-y-1.5">
     <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600">
       <Icon className="w-3.5 h-3.5 text-gray-400" />
@@ -12,13 +12,14 @@ const InputField = ({ label, icon: Icon, value, onChange, placeholder, type = 't
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      onKeyDown={onKeyDown}
       placeholder={placeholder}
       className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
     />
   </div>
 );
 
-const DateField = ({ label, value, onChange, placeholder }) => (
+const DateField = ({ label, value, onChange, placeholder, onKeyDown }) => (
   <div className="space-y-1.5">
     <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600">
       <Calendar className="w-3.5 h-3.5 text-gray-400" />
@@ -28,6 +29,7 @@ const DateField = ({ label, value, onChange, placeholder }) => (
       type="date"
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      onKeyDown={onKeyDown}
       placeholder={placeholder}
       className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
     />
@@ -58,6 +60,10 @@ const PembelianFilterPanel = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [localFilters, setLocalFilters] = useState(filters);
+
+  useEffect(() => {
+    setLocalFilters(filters);
+  }, [filters]);
 
   const handleChange = (field, value) => {
     setLocalFilters(prev => ({ ...prev, [field]: value }));
@@ -134,6 +140,7 @@ const PembelianFilterPanel = ({
                     label={field.label}
                     value={localFilters[field.key] || ''}
                     onChange={(value) => handleChange(field.key, value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleApply(); }}
                     placeholder={field.placeholder}
                   />
                 );
@@ -162,6 +169,7 @@ const PembelianFilterPanel = ({
                   icon={field.icon}
                   value={localFilters[field.key] || ''}
                   onChange={(value) => handleChange(field.key, value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleApply(); }}
                   placeholder={field.placeholder}
                   type={field.type}
                 />

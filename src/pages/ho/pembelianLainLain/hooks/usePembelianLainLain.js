@@ -22,6 +22,7 @@ const usePembelianLainLain = (scope = null) => {
 
     // Advanced filters state
     const [advancedFilters, setAdvancedFilters] = useState({
+        nama_office: '',
         nota_sistem: '',
         nota: '',
         nama_supplier: '',
@@ -66,6 +67,7 @@ const usePembelianLainLain = (scope = null) => {
             if (scope) params.append('scope', scope);
 
             // Add advanced filters
+            if (activeFilters?.nama_office) params.append('filter_nama_office', activeFilters.nama_office);
             if (activeFilters?.nota_sistem) params.append('filter_nota_sistem', activeFilters.nota_sistem);
             if (activeFilters?.nota) params.append('filter_nota', activeFilters.nota);
             if (activeFilters?.nama_supplier) params.append('filter_nama_supplier', activeFilters.nama_supplier);
@@ -618,6 +620,7 @@ const usePembelianLainLain = (scope = null) => {
 
     const clearAdvancedFilters = useCallback(() => {
         const emptyFilters = {
+            nama_office: '',
             nota_sistem: '',
             nota: '',
             nama_supplier: '',

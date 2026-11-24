@@ -77,11 +77,11 @@ const PembelianLainLainTabs = ({
     };
 
     const asetFields = [
+        { key: 'nama_office', label: 'Office', icon: Building, placeholder: 'Cari office' },
         { key: 'nota_sistem', label: 'Nota Sistem', icon: Receipt, placeholder: 'Cari nota sistem' },
         { key: 'nota', label: 'Nota', icon: FileText, placeholder: 'Cari nota' },
         { key: 'nama_supplier', label: 'Supplier', icon: Truck, placeholder: 'Cari supplier' },
         { key: 'plat_nomor', label: 'Plat Nomor', icon: Tag, placeholder: 'Cari plat nomor' },
-        { key: 'jenis_pembelian', label: 'Jenis Pembelian', icon: Package, placeholder: 'Pilih jenis', type: 'select', options: [{ value: 'Internal', label: 'Internal' }, { value: 'External', label: 'External' }] },
         { key: 'startDate', label: 'Tanggal Mulai', icon: Calendar, placeholder: 'Tanggal mulai', type: 'date' },
         { key: 'endDate', label: 'Tanggal Akhir', icon: Calendar, placeholder: 'Tanggal akhir', type: 'date' }
     ];
