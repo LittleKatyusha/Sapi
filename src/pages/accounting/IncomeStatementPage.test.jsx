@@ -68,8 +68,11 @@ describe('IncomeStatementPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Tampilkan/i }));
 
     await waitFor(() => {
-      expect(screen.getByText('LABA KOTOR')).toBeInTheDocument();
+      expect(screen.getByText('LABA OPERASI')).toBeInTheDocument();
     });
+
+    // LABA KOTOR sudah dihilangkan dari laporan.
+    expect(screen.queryByText('LABA KOTOR')).not.toBeInTheDocument();
 
     // Struktur laporan bertingkat.
     expect(screen.getAllByText('Penjualan Bersih').length).toBeGreaterThan(0);

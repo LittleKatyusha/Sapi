@@ -265,7 +265,7 @@ export default function IncomeStatementPage() {
 
       {report && sales && cogs && (
         <>
-          <section className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
               <p className="text-xs font-medium uppercase text-gray-500">Penjualan Bersih</p>
               <p className="mt-1 text-xl font-bold text-gray-800">{formatNumber(sales.net_sales)}</p>
@@ -273,12 +273,6 @@ export default function IncomeStatementPage() {
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
               <p className="text-xs font-medium uppercase text-gray-500">Harga Pokok Penjualan</p>
               <p className="mt-1 text-xl font-bold text-rose-600">{formatNumber(cogs.total)}</p>
-            </div>
-            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase text-gray-500">Laba Kotor</p>
-              <p className={`mt-1 text-xl font-bold ${Number(report.gross_profit) < 0 ? 'text-rose-600' : 'text-green-600'}`}>
-                {formatNumber(report.gross_profit)}
-              </p>
             </div>
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
               <p className="text-xs font-medium uppercase text-gray-500">Laba (Rugi) Bersih</p>
@@ -307,8 +301,6 @@ export default function IncomeStatementPage() {
                   {sectionRow('Harga Pokok Penjualan (HPP)')}
                   {accountRows(cogs.components, 'Beban')}
                   {totalRow('Total Harga Pokok Penjualan', cogs.total, 'subtotal')}
-
-                  {totalRow('LABA KOTOR', report.gross_profit, 'highlight')}
 
                   {sectionRow('Beban Operasional')}
                   {accountRows(report.operating_expenses, 'Beban')}
