@@ -265,7 +265,7 @@ export default function IncomeStatementPage() {
 
       {report && sales && cogs && (
         <>
-          <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
               <p className="text-xs font-medium uppercase text-gray-500">Penjualan Bersih</p>
               <p className="mt-1 text-xl font-bold text-gray-800">{formatNumber(sales.net_sales)}</p>
@@ -273,12 +273,6 @@ export default function IncomeStatementPage() {
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
               <p className="text-xs font-medium uppercase text-gray-500">Harga Pokok Penjualan</p>
               <p className="mt-1 text-xl font-bold text-rose-600">{formatNumber(cogs.total)}</p>
-            </div>
-            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase text-gray-500">Laba (Rugi) Bersih</p>
-              <p className={`mt-1 text-xl font-bold ${Number(report.net_income) < 0 ? 'text-rose-600' : 'text-indigo-600'}`}>
-                {formatNumber(report.net_income)}
-              </p>
             </div>
           </section>
 
@@ -306,8 +300,6 @@ export default function IncomeStatementPage() {
                   {accountRows(report.operating_expenses, 'Beban')}
                   {totalRow('Total Beban Operasional', report.total_operating_expenses, 'subtotal')}
 
-                  {totalRow('LABA OPERASI', report.operating_income, 'highlight')}
-
                   {(report.other_incomes ?? []).length > 0 && (
                     <>
                       {sectionRow('Pendapatan Lain-lain')}
@@ -324,13 +316,9 @@ export default function IncomeStatementPage() {
                     </>
                   )}
 
-                  {totalRow('LABA SEBELUM PAJAK', report.income_before_tax, 'highlight')}
-
                   {sectionRow('Beban Pajak')}
                   {accountRows(report.tax_expenses, 'Beban')}
                   {totalRow('Total Beban Pajak', report.total_tax_expense, 'subtotal')}
-
-                  {totalRow('LABA (RUGI) BERSIH', report.net_income, 'final')}
                 </tbody>
               </table>
             </div>

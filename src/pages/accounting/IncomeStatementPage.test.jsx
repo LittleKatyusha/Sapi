@@ -68,19 +68,20 @@ describe('IncomeStatementPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Tampilkan/i }));
 
     await waitFor(() => {
-      expect(screen.getByText('LABA OPERASI')).toBeInTheDocument();
+      expect(screen.getByText('Total Beban Operasional')).toBeInTheDocument();
     });
 
-    // LABA KOTOR sudah dihilangkan dari laporan.
+    // Baris laba (kotor/operasi/sebelum pajak/bersih) sudah dihilangkan.
     expect(screen.queryByText('LABA KOTOR')).not.toBeInTheDocument();
+    expect(screen.queryByText('LABA OPERASI')).not.toBeInTheDocument();
+    expect(screen.queryByText('LABA SEBELUM PAJAK')).not.toBeInTheDocument();
+    expect(screen.queryByText('LABA (RUGI) BERSIH')).not.toBeInTheDocument();
 
     // Struktur laporan bertingkat.
     expect(screen.getAllByText('Penjualan Bersih').length).toBeGreaterThan(0);
     expect(screen.getByText('Harga Pokok Penjualan (HPP)')).toBeInTheDocument();
     expect(screen.getByText('Beban Operasional')).toBeInTheDocument();
-    expect(screen.getByText('LABA OPERASI')).toBeInTheDocument();
-    expect(screen.getByText('LABA SEBELUM PAJAK')).toBeInTheDocument();
-    expect(screen.getByText('LABA (RUGI) BERSIH')).toBeInTheDocument();
+    expect(screen.getByText('Beban Pajak')).toBeInTheDocument();
 
     // Baris akun.
     expect(screen.getByText('Penjualan Sapi')).toBeInTheDocument();
