@@ -63,6 +63,9 @@ const BayarPage = () => {
   const [penjualan, setPenjualan] = useState(null);
   const [history, setHistory] = useState([]);
   const [nominal, setNominal] = useState('');
+  const [useDiskon, setUseDiskon] = useState(false);
+  const [nominalDiskon, setNominalDiskon] = useState('');
+  const [catatanDiskon, setCatatanDiskon] = useState('');
   const [metode, setMetode] = useState('');
   const [namaPembayar, setNamaPembayar] = useState('');
   const [formErrors, setFormErrors] = useState({});
@@ -118,6 +121,12 @@ const BayarPage = () => {
     if (formErrors.nominal) setFormErrors((p) => ({ ...p, nominal: '' }));
   };
 
+  const handleDiskonChange = (e) => {
+    const raw = e.target.value.replace(/[^0-9]/g, '');
+    setNominalDiskon(raw ? parseInt(raw, 10).toLocaleString('id-ID') : '');
+    if (formErrors.diskon) setFormErrors((p) => ({ ...p, diskon: '' }));
+  };
+
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     setFileError('');
@@ -143,9 +152,23 @@ const BayarPage = () => {
     e.preventDefault();
     const newErrors = {};
     const nominalValue = parseNumber(nominal);
+    const diskonValue = useDiskon ? parseNumber(nominalDiskon) : 0;
 
-    if (!nominalValue || nominalValue <= 0) newErrors.nominal = 'Nominal wajib diisi';
-    else if (nominalValue > sisa) newErrors.nominal = `Maksimal ${formatRupiah(sisa)}`;
+    if (nominalValue <= 0 && diskonValue <= 0) {
+      newErrors.nominal = 'Nominal pembayaran atau diskon wajib diisi';
+    }
+
+    if (diskonValue > 0) {
+      if (!catatanDiskon.trim()) {
+        newErrors.catatan_diskon = 'Alasan / izin diskon wajib diisi (mis. ACC Owner via WA)';
+      }
+    }
+
+    const totalPenyelesaian = nominalValue + diskonValue;
+    if (totalPenyelesaian > sisa) {
+      newErrors.nominal = `Total bayar + potongan (${formatRupiah(totalPenyelesaian)}) melebihi sisa (${formatRupiah(sisa)})`;
+    }
+
     if (!metode) newErrors.metode = (isBoning || isKarkas || isKulit)
       ? `Metode pembayaran belum bisa ditentukan dari data penjualan ${isKarkas ? 'karkas' : (isKulit ? 'kulit' : 'boning')}.`
       : 'Pilih metode pembayaran';
@@ -156,32 +179,23 @@ const BayarPage = () => {
     }
 
     setSubmitLoading(true);
+    const payload = {
+      pid,
+      nominal_pembayaran: nominalValue,
+      diskon: diskonValue > 0 ? diskonValue : undefined,
+      catatan_diskon: diskonValue > 0 ? catatanDiskon.trim() : undefined,
+      metode_pembayaran: metode,
+      nama_pembayar: namaPembayar || undefined,
+    };
+
     const result = isBoning
-      ? await PenjualanBoningService.bayar({
-        pid,
-        nominal_pembayaran: nominalValue,
-        metode_pembayaran: metode,
-        nama_pembayar: namaPembayar || undefined,
-      })
+      ? await PenjualanBoningService.bayar(payload)
       : isKarkas
-      ? await PenjualanKarkasService.bayar({
-        pid,
-        nominal_pembayaran: nominalValue,
-        metode_pembayaran: metode,
-        nama_pembayar: namaPembayar || undefined,
-      })
+      ? await PenjualanKarkasService.bayar(payload)
       : isKulit
-      ? await PenjualanKulitService.bayar({
-        pid,
-        nominal_pembayaran: nominalValue,
-        metode_pembayaran: metode,
-        nama_pembayar: namaPembayar || undefined,
-      })
+      ? await PenjualanKulitService.bayar(payload)
       : await bayar({
-        pid,
-        nominal_pembayaran: nominalValue,
-        metode_pembayaran: metode,
-        nama_pembayar: namaPembayar || undefined,
+        ...payload,
         file: selectedFile || undefined,
       });
     setSubmitLoading(false);
@@ -189,6 +203,9 @@ const BayarPage = () => {
     if (result.success) {
       showSuccess('Pembayaran berhasil dicatat');
       setNominal('');
+      setNominalDiskon('');
+      setCatatanDiskon('');
+      setUseDiskon(false);
       setMetode('');
       setSelectedFile(null);
       const input = document.getElementById('file-penerimaan-rph');
@@ -208,11 +225,24 @@ const BayarPage = () => {
       cell: (r) => <span className="text-sm text-gray-700">{r.created_at}</span>,
     },
     {
-      name: 'Nominal',
+      name: 'Nominal Bayar',
       selector: (r) => r.nominal_pembayaran,
       sortable: true,
       right: true,
       cell: (r) => <span className="text-sm font-bold text-emerald-600">{formatRupiah(r.nominal_pembayaran)}</span>,
+    },
+    {
+      name: 'Potongan / Diskon',
+      selector: (r) => r.diskon,
+      sortable: true,
+      right: true,
+      cell: (r) => Number(r.diskon || 0) > 0 ? (
+        <span className="text-sm font-bold text-rose-600">
+          - {formatRupiah(r.diskon)}
+        </span>
+      ) : (
+        <span className="text-xs text-gray-400">-</span>
+      ),
     },
     {
       name: 'Metode',
@@ -271,7 +301,7 @@ const BayarPage = () => {
 
         {/* Info Cards */}
         {penjualan && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
               <p className="text-xs text-gray-500 font-medium uppercase">Pembeli</p>
               <p className="text-sm font-bold text-gray-800 truncate">{penjualan.nama_pembeli || '-'}</p>
@@ -285,7 +315,11 @@ const BayarPage = () => {
               <p className="text-sm font-bold text-emerald-600">{formatRupiah(penjualan.nominal_pembayaran)}</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-              <p className="text-xs text-gray-500 font-medium uppercase">Sisa</p>
+              <p className="text-xs text-gray-500 font-medium uppercase">Total Diskon</p>
+              <p className="text-sm font-bold text-rose-600">{formatRupiah(penjualan.total_diskon || 0)}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+              <p className="text-xs text-gray-500 font-medium uppercase">Sisa Tagihan</p>
               <p className={`text-sm font-bold ${sisa > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
                 {formatRupiah(sisa)}
               </p>
@@ -321,7 +355,7 @@ const BayarPage = () => {
 
                 <form onSubmit={handleSubmit}>
                   <div className="mb-4">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Nominal</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Nominal Pembayaran</label>
                     <div className="flex gap-2">
                       <div className="relative flex-1">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">Rp</span>
@@ -338,7 +372,9 @@ const BayarPage = () => {
                         type="button"
                         onClick={() => {
                           if (sisa > 0) {
-                            setNominal(sisa.toLocaleString('id-ID'));
+                            const diskonVal = useDiskon ? parseNumber(nominalDiskon) : 0;
+                            const maxBayar = Math.max(0, sisa - diskonVal);
+                            setNominal(maxBayar.toLocaleString('id-ID'));
                             if (formErrors.nominal) setFormErrors((p) => ({ ...p, nominal: '' }));
                           }
                         }}
@@ -349,6 +385,85 @@ const BayarPage = () => {
                       </button>
                     </div>
                     {formErrors.nominal && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {formErrors.nominal}</p>}
+                  </div>
+
+                  {/* Toggle Potongan / Diskon Pelunasan */}
+                  <div className="mb-4 p-3 bg-rose-50/60 rounded-xl border border-rose-100">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={useDiskon}
+                        onChange={(e) => {
+                          setUseDiskon(e.target.checked);
+                          if (!e.target.checked) {
+                            setNominalDiskon('');
+                            setCatatanDiskon('');
+                          }
+                        }}
+                        disabled={submitLoading || sisa <= 0}
+                        className="w-4 h-4 text-rose-600 border-gray-300 rounded focus:ring-rose-500"
+                      />
+                      <span className="text-xs font-bold text-rose-900">
+                        Beri Potongan / Diskon Pelunasan
+                      </span>
+                    </label>
+
+                    {useDiskon && (
+                      <div className="mt-3 space-y-3 pt-3 border-t border-rose-200/60">
+                        <div>
+                          <div className="flex justify-between items-center mb-1">
+                            <label className="block text-xs font-medium text-rose-900">
+                              Nominal Diskon (Rp) *
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const bayarVal = parseNumber(nominal);
+                                const sisaDiskon = Math.max(0, sisa - bayarVal);
+                                setNominalDiskon(sisaDiskon.toLocaleString('id-ID'));
+                                if (formErrors.diskon) setFormErrors((p) => ({ ...p, diskon: '' }));
+                              }}
+                              className="text-[11px] text-rose-700 hover:underline font-semibold"
+                            >
+                              Sisa Tagihan
+                            </button>
+                          </div>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">Rp</span>
+                            <input
+                              type="text"
+                              value={nominalDiskon}
+                              onChange={handleDiskonChange}
+                              placeholder="0"
+                              disabled={submitLoading || sisa <= 0}
+                              className="w-full pl-10 pr-4 py-2 bg-white border border-rose-300 rounded-lg text-sm font-semibold text-rose-700 focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+                            />
+                          </div>
+                          {formErrors.diskon && <p className="text-red-500 text-xs mt-1">{formErrors.diskon}</p>}
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-medium text-rose-900 mb-1">
+                            Alasan / Izin Diskon *
+                          </label>
+                          <input
+                            type="text"
+                            value={catatanDiskon}
+                            onChange={(e) => {
+                              setCatatanDiskon(e.target.value);
+                              if (formErrors.catatan_diskon) setFormErrors((p) => ({ ...p, catatan_diskon: '' }));
+                            }}
+                            placeholder="Contoh: ACC Owner via WA, toleransi timbangan, dll."
+                            disabled={submitLoading || sisa <= 0}
+                            className="w-full px-3 py-2 bg-white border border-rose-300 rounded-lg text-xs focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+                          />
+                          {formErrors.catatan_diskon && <p className="text-red-500 text-xs mt-1">{formErrors.catatan_diskon}</p>}
+                          <p className="text-[11px] text-rose-600/80 mt-1">
+                            Diskon akan dicatat ke akun Potongan Penjualan (4020) & GL tetap seimbang.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="mb-4">
