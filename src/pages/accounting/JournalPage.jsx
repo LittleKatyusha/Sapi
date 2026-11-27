@@ -216,9 +216,9 @@ export default function JournalPage() {
 
       {/* Journals Table */}
       <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
+        <div className="max-h-[60vh] overflow-auto">
           <table className="w-full text-left text-sm">
-            <thead className="border-b bg-gray-50 text-gray-600">
+            <thead className="sticky top-0 z-10 border-b bg-gray-50 text-gray-600">
               <tr>
                 <th className="p-3">Nomor</th>
                 <th className="p-3">Tanggal</th>
