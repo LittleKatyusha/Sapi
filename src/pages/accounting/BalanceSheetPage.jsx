@@ -136,18 +136,18 @@ export default function BalanceSheetPage() {
   const formatNumber = (value) => Number(value || 0).toLocaleString('id-ID');
 
   const AccountTable = ({ title, rows, emptyText, footer, onDetail }) => (
-    <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-      <h2 className="border-b bg-gray-50 p-3 font-semibold text-gray-800">{title}</h2>
+    <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <h2 className="border-b border-slate-200 bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-800">{title}</h2>
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <tbody className="divide-y">
             {rows.map((row) => (
-              <tr key={row.id} className="hover:bg-gray-50/60">
-                <td className="p-3 font-mono">{row.kode_akun}</td>
-                <td className="p-3">{row.nama_akun}</td>
-                <td className="p-3 text-right">{formatNumber(row.amount)}</td>
+              <tr key={row.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                <td className="px-4 py-2.5 text-xs text-slate-500">{row.kode_akun}</td>
+                <td className={`px-4 py-2.5 ${row.empty ? 'text-slate-400' : 'text-slate-700'}`}>{row.nama_akun}</td>
+                <td className="px-4 py-2.5 text-right tabular-nums">{formatNumber(row.amount)}</td>
                 <td className="w-20 p-2 text-center">
-                  <DetailButton onClick={() => onDetail(row)} />
+                   {!row.empty && <DetailButton onClick={() => onDetail(row)} />}
                 </td>
               </tr>
             ))}
@@ -155,9 +155,9 @@ export default function BalanceSheetPage() {
           </tbody>
           {footer && (
             <tfoot>
-              <tr className="border-t bg-gray-100 font-bold">
-                <td colSpan="2" className="p-3">{footer.label}</td>
-                <td className="p-3 text-right">{formatNumber(footer.amount)}</td>
+              <tr className="border-t border-slate-200 bg-slate-50 font-semibold">
+                <td colSpan="2" className="px-4 py-3">{footer.label}</td>
+                <td className="px-4 py-3 text-right tabular-nums">{formatNumber(footer.amount)}</td>
                 <td className="p-3" />
               </tr>
             </tfoot>
@@ -180,16 +180,69 @@ export default function BalanceSheetPage() {
   );
 
   const handleDetail = (row) => {
-    if (!row?.id) return;
+    if (!row?.id || row.empty) return;
     setSelectedAccount(row);
   };
 
+  const fixedLineRows = (lines = []) => lines.map((line, lineIndex) => ({
+    id: `line-${lineIndex}-${line.label}`,
+    kode_akun: line.rows?.length === 1 ? line.rows[0].kode_akun : '-',
+    nama_akun: line.label,
+    amount: Number(line.amount || 0),
+    empty: !line.rows?.length,
+  }));
+
+  const fixedLines = (type, labels) => {
+    const serverLines = report?.fixed_lines?.[type];
+    if (serverLines?.length) {
+      const byLabel = new Map(labels.map((label) => [label, { label, rows: [], amount: 0 }]));
+      serverLines.forEach((line) => {
+        const rows = line.rows ?? [];
+        const normalizedLabel = rows.some((row) => String(row.kode_akun) === '6250')
+          ? 'Perlengkapan Kantor'
+          : line.label;
+        const merged = byLabel.get(normalizedLabel);
+        if (!merged) return;
+        merged.rows.push(...rows);
+        merged.amount += Number(line.amount || 0);
+      });
+      return labels.map((label) => byLabel.get(label) ?? { label, rows: [], amount: 0 });
+    }
+    const source = type === 'assets' ? (report?.assets ?? []) : type === 'liabilities' ? (report?.liabilities ?? []) : (report?.equities ?? []);
+    return labels.map((label) => {
+      const rows = source.filter((row) => {
+        const text = `${row.sub_kategori || ''} ${row.nama_akun || ''}`.toLowerCase();
+        if (label === 'Kas dan Bank') return /^10/.test(String(row.kode_akun)) || /kas|bank/.test(text);
+        if (label.includes('Persediaan Hewan')) return /hewan|potong|qurban/.test(text);
+        if (label.includes('Persediaan Bahan')) return /feedmil|pakan|bahan|ovk|konsentrat/.test(text);
+        if (label === 'Piutang Dagang') return /^12/.test(String(row.kode_akun)) && !/lain/.test(text);
+        if (label === 'Piutang Lain-lain') return /piutang.*lain|lain.*piutang/.test(text);
+        if (label === 'Perlengkapan Kantor') return /perlengkapan/.test(text);
+        if (label === 'Retribusi Dibayar Dimuka') return /retribusi|dibayar.*muka/.test(text);
+        if (['Tanah', 'Bangunan', 'Kendaraan', 'Mesin-mesin', 'Peralatan Kantor'].includes(label)) return text.includes(label.toLowerCase().replace('-', ' '));
+        if (label.includes('Akumulasi')) return /akumulasi|penyusutan/.test(text) || /^16/.test(String(row.kode_akun));
+        if (label === 'Utang Usaha') return /utang vendor|utang usaha|supplier/.test(text) || /^21(0|1)/.test(String(row.kode_akun));
+        if (label.includes('Jangka Pendek')) return /bank|cerukan|jangka pendek/.test(text);
+        if (label.includes('Uang Muka')) return /uang muka|diterima.*muka/.test(text);
+        if (label === 'Utang Lain-lain') return /lain|pemilik|pribadi/.test(text);
+        if (label === 'Utang Pajak') return /pajak|ppn/.test(text);
+        if (label.includes('Jangka Panjang')) return /jangka panjang|bank/.test(text) || /^25/.test(String(row.kode_akun));
+        if (label === 'Utang Leasing') return /leasing|pembiayaan/.test(text);
+        if (label === 'Modal Awal') return !/ditahan|prive/.test(text);
+        if (label === 'Laba Ditahan') return /ditahan/.test(text);
+        if (label === 'Prive') return /prive/.test(text);
+        return false;
+      });
+      return { label, rows, amount: rows.reduce((sum, row) => sum + Number(row.amount || 0), 0) };
+    });
+  };
+
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <div className="min-h-full space-y-5 bg-slate-50 p-4 text-slate-900 md:p-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Laporan Neraca</h1>
-          <p className="mt-1 text-sm text-gray-500">Posisi aset, kewajiban, dan ekuitas pada tanggal tertentu.</p>
+          <h1 className="text-xl font-semibold text-slate-900">Laporan Neraca</h1>
+          <p className="mt-1 text-sm text-slate-500">Posisi keuangan per tanggal laporan.</p>
         </div>
         {report && (
           <div className="flex flex-wrap items-center gap-2">
@@ -226,7 +279,7 @@ export default function BalanceSheetPage() {
 
       {error && <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
 
-      <section className="grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:grid-cols-3 md:items-end md:p-6">
+      <section className="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-4 md:grid-cols-[1.5fr_1fr_auto] md:items-end">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Entitas Akunting</label>
           <SearchableSelect
@@ -251,54 +304,45 @@ export default function BalanceSheetPage() {
 
       {report && (
         <>
-          <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase text-gray-500">Total Aset</p>
-              <p className="mt-1 text-xl font-bold text-gray-800">{formatNumber(report.total_asset)}</p>
-            </div>
-            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase text-gray-500">Total Kewajiban & Ekuitas</p>
-              <p className="mt-1 text-xl font-bold text-gray-800">{formatNumber(report.total_liability_equity)}</p>
-            </div>
-            <div className={`rounded-xl border p-4 shadow-sm ${report.is_balanced ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
-              <p className="text-xs font-medium uppercase text-gray-500">Status Neraca</p>
-              <p className={`mt-1 text-xl font-bold ${report.is_balanced ? 'text-green-700' : 'text-red-700'}`}>
-                {report.is_balanced ? 'SEIMBANG' : 'TIDAK SEIMBANG'}
-              </p>
-            </div>
+          <section className="flex flex-wrap items-center justify-between gap-3 border-y border-slate-200 py-3">
+            <div><span className="text-xs text-slate-500">Total aset</span><strong className="ml-2 text-base">Rp {formatNumber(report.total_asset)}</strong></div>
+            <div><span className="text-xs text-slate-500">Kewajiban & ekuitas</span><strong className="ml-2 text-base">Rp {formatNumber(report.total_liability_equity)}</strong></div>
+            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${report.is_balanced ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+              {report.is_balanced ? 'Neraca seimbang' : 'Neraca tidak seimbang'}
+            </span>
           </section>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <AccountTable
-              title="Aset"
-              rows={report.assets ?? []}
-              emptyText="Tidak ada aset."
-              footer={{ label: 'TOTAL ASET', amount: report.total_asset }}
-              onDetail={handleDetail}
-            />
+          <div className="space-y-5">
+             <div className="space-y-5">
+              {[
+                ['Aktiva Lancar', fixedLines('assets', ['Kas dan Bank', 'Persediaan Hewan Potong & Qurban', 'Persediaan Bahan Baku, Produk Pakan dan OVK', 'Perlengkapan Kantor', 'Retribusi Dibayar Dimuka', 'Piutang Dagang', 'Piutang Lain-lain'])],
+                ['Aktiva Tetap', fixedLines('assets', ['Tanah', 'Bangunan', 'Kendaraan', 'Mesin-mesin', 'Peralatan Kantor', 'Akumulasi Penyusutan Aktiva Tetap'])],
+              ].map(([title, lines]) => {
+                const rows = fixedLineRows(lines);
+                return <AccountTable key={title} title={title} rows={rows} emptyText="Tidak ada akun." footer={{ label: `TOTAL ${title.toUpperCase()}`, amount: lines.reduce((sum, line) => sum + Number(line.amount || 0), 0) }} onDetail={handleDetail} />;
+              })}
+              <section className="overflow-hidden rounded-lg border border-slate-300 bg-white">
+                <div className="border-t-2 border-slate-700 p-3 font-bold">TOTAL ASET <span className="float-right tabular-nums">{formatNumber(report.total_asset)}</span></div>
+              </section>
+            </div>
 
             <div className="space-y-6">
               {/* Tabel Kewajiban 3 Sub-grup */}
               {(() => {
-                const lancarLiabilities = (report.liabilities ?? []).filter(
-                  (l) => l.sub_kategori === 'Kewajiban Lancar (Jangka Pendek)' || (!l.sub_kategori && Number(l.kode_akun) < 2500 && l.kode_akun !== '2140')
-                );
-                const panjangLiabilities = (report.liabilities ?? []).filter(
-                  (l) => l.sub_kategori === 'Kewajiban Jangka Panjang' || (!l.sub_kategori && Number(l.kode_akun) >= 2500)
-                );
-                const lainLainLiabilities = (report.liabilities ?? []).filter(
-                  (l) => l.sub_kategori === 'Hutang Lain-lain' || l.kode_akun === '2140'
-                );
+                const liabilityLines = fixedLines('liabilities', ['Utang Usaha', 'Pinjaman Jangka Pendek dan Cerukan Bank', 'Uang Muka Pelanggan/Pendapatan Diterima Di muka', 'Utang Lain-lain', 'Utang Pajak', 'Utang Bank Jangka Panjang', 'Utang Leasing', 'Utang Jangka Panjang Lainnya']);
+                const lancarLines = liabilityLines.slice(0, 5);
+                const panjangLines = liabilityLines.slice(5);
+                const lancarLiabilities = fixedLineRows(lancarLines);
+                const panjangLiabilities = fixedLineRows(panjangLines);
 
-                const subtotalLancar = lancarLiabilities.reduce((s, r) => s + Number(r.amount || 0), 0);
-                const subtotalPanjang = panjangLiabilities.reduce((s, r) => s + Number(r.amount || 0), 0);
-                const subtotalLainLain = lainLainLiabilities.reduce((s, r) => s + Number(r.amount || 0), 0);
+                 const subtotalLancar = lancarLines.reduce((s, r) => s + Number(r.amount || 0), 0);
+                 const subtotalPanjang = panjangLines.reduce((s, r) => s + Number(r.amount || 0), 0);
                 const totalCalculatedEquity = Number(report.total_equity || 0) + Number(report.prior_earnings || 0) + Number(report.current_earnings || 0);
 
                 return (
                   <>
-                    <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                      <div className="border-b bg-gray-50 p-3 flex justify-between items-center">
+                    <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                      <div className="border-b border-slate-200 bg-slate-100 p-3 flex justify-between items-center">
                         <h2 className="font-semibold text-gray-800">Kewajiban (Liabilitas)</h2>
                         <span className="text-xs font-semibold text-gray-500">
                           Total: {formatNumber(report.total_liability)}
@@ -353,28 +397,6 @@ export default function BalanceSheetPage() {
                               <td className="p-2" />
                             </tr>
 
-                            {/* 3. Hutang Lain-lain */}
-                            <tr className="bg-slate-100 font-semibold text-slate-800">
-                              <td colSpan="4" className="p-2.5 text-xs uppercase tracking-wide">
-                                3. Hutang Lain-lain (Perusahaan ke Pribadi / Pemilik)
-                              </td>
-                            </tr>
-                            {lainLainLiabilities.map((row) => (
-                              <tr key={row.id} className="hover:bg-gray-50">
-                                <td className="p-3 pl-5 font-mono text-xs text-gray-600">{row.kode_akun}</td>
-                                <td className="p-3">{row.nama_akun}</td>
-                                <td className="p-3 text-right">{formatNumber(row.amount)}</td>
-                                <td className="w-20 p-2 text-center"><DetailButton onClick={() => handleDetail(row)} /></td>
-                              </tr>
-                            ))}
-                            {!lainLainLiabilities.length && (
-                              <tr><td colSpan="4" className="p-2 pl-5 text-xs italic text-gray-400">Tidak ada hutang ke pihak pribadi / lain-lain</td></tr>
-                            )}
-                            <tr className="border-b bg-slate-50 text-xs font-semibold text-slate-700">
-                              <td colSpan="2" className="p-2 pl-5">Subtotal Hutang Lain-lain</td>
-                              <td className="p-2 text-right">{formatNumber(subtotalLainLain)}</td>
-                              <td className="p-2" />
-                            </tr>
                           </tbody>
                           <tfoot>
                             <tr className="border-t-2 bg-gray-100 font-bold text-gray-900">
@@ -388,8 +410,8 @@ export default function BalanceSheetPage() {
                     </section>
 
                     {/* Tabel Ekuitas */}
-                    <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                      <div className="border-b bg-gray-50 p-3 flex justify-between items-center">
+                    <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                      <div className="border-b border-slate-200 bg-slate-100 p-3 flex justify-between items-center">
                         <h2 className="font-semibold text-gray-800">Ekuitas (Modal)</h2>
                         <span className="text-xs font-semibold text-gray-500">
                           Total: {formatNumber(totalCalculatedEquity)}
@@ -398,31 +420,14 @@ export default function BalanceSheetPage() {
                       <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">
                           <tbody className="divide-y">
-                            {(report.equities ?? []).map((row) => (
-                              <tr key={row.id} className="hover:bg-gray-50">
+                             {fixedLineRows(fixedLines('equities', ['Modal Awal', 'Laba Ditahan', 'Prive', 'Laba Periode Berjalan'])).map((row) => (
+                               <tr key={row.id} className="hover:bg-gray-50">
                                 <td className="p-3 font-mono text-xs text-gray-600">{row.kode_akun}</td>
                                 <td className="p-3">{row.nama_akun}</td>
                                 <td className="p-3 text-right">{formatNumber(row.amount)}</td>
-                                <td className="w-20 p-2 text-center"><DetailButton onClick={() => handleDetail(row)} /></td>
-                              </tr>
-                            ))}
-                            {!(report.equities ?? []).length && (
-                              <tr><td colSpan="4" className="p-4 text-center text-gray-500">Tidak ada akun ekuitas.</td></tr>
-                            )}
-                            {Number(report.prior_earnings || 0) !== 0 && (
-                              <tr className="bg-amber-50/50">
-                                <td className="p-3 font-mono text-xs text-amber-700">-</td>
-                                <td className="p-3 text-amber-900">Laba Ditahan (Akumulasi Tahun Lalu)</td>
-                                <td className="p-3 text-right text-amber-900 font-medium">{formatNumber(report.prior_earnings)}</td>
-                                <td className="p-3" />
-                              </tr>
-                            )}
-                            <tr className="bg-indigo-50/40">
-                              <td className="p-3 font-mono text-xs text-indigo-700">-</td>
-                              <td className="p-3 text-indigo-900">Laba (Rugi) Periode Berjalan</td>
-                              <td className="p-3 text-right text-indigo-900 font-medium">{formatNumber(report.current_earnings)}</td>
-                              <td className="p-3" />
-                            </tr>
+                                 <td className="w-20 p-2 text-center">{!row.empty && <DetailButton onClick={() => handleDetail(row)} />}</td>
+                               </tr>
+                             ))}
                           </tbody>
                           <tfoot>
                             <tr className="border-t bg-gray-100 font-bold text-gray-900">
@@ -436,17 +441,17 @@ export default function BalanceSheetPage() {
                     </section>
 
                     {/* Box Rangkuman Penutup: Total Kewajiban & Ekuitas */}
-                    <div className="rounded-xl border-2 border-indigo-200 bg-gradient-to-r from-indigo-50 to-blue-50 p-4 shadow-sm">
+                    <div className="rounded-lg border border-slate-300 bg-white p-4">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                         <div>
-                          <p className="text-xs font-bold uppercase tracking-wider text-indigo-600">Total Pasiva</p>
-                          <h3 className="text-base font-extrabold text-indigo-950">TOTAL KEWAJIBAN &amp; EKUITAS</h3>
-                          <p className="text-xs text-indigo-700">
+                           <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Total pasiva</p>
+                           <h3 className="text-base font-extrabold text-slate-900">TOTAL KEWAJIBAN &amp; EKUITAS</h3>
+                           <p className="text-xs text-slate-500">
                             Kewajiban ({formatNumber(report.total_liability)}) + Ekuitas ({formatNumber(totalCalculatedEquity)})
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-2xl font-black text-indigo-950 font-mono">
+                             <p className="text-2xl font-black text-slate-900 font-mono">
                             Rp {formatNumber(report.total_liability_equity)}
                           </p>
                         </div>
