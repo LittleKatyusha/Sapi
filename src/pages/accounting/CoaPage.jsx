@@ -353,9 +353,9 @@ export default function CoaPage() {
               : 'Akun nonaktif tidak ditampilkan pada pilihan akun dan laporan.'}
           </p>
         </div>
-        <div className="overflow-x-auto">
+        <div className="max-h-[60vh] overflow-auto">
           <table className="w-full text-left text-sm">
-            <thead className="border-b bg-gray-50 text-gray-600">
+            <thead className="sticky top-0 z-10 border-b bg-gray-50 text-gray-600">
               <tr>
                 <th className="p-3">Kode</th><th className="p-3">Nama Akun</th><th className="p-3">Tipe</th>
                 <th className="p-3 text-center">Normal</th><th className="p-3 text-center">Posting</th>
