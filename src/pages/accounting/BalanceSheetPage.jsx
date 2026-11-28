@@ -142,12 +142,12 @@ export default function BalanceSheetPage() {
         <table className="w-full text-left text-sm">
           <tbody className="divide-y">
             {rows.map((row) => (
-              <tr key={row.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+              <tr key={row.rowKey ?? row.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
                 <td className="px-4 py-2.5 text-xs text-slate-500">{row.kode_akun}</td>
                 <td className={`px-4 py-2.5 ${row.empty ? 'text-slate-400' : 'text-slate-700'}`}>{row.nama_akun}</td>
                 <td className="px-4 py-2.5 text-right tabular-nums">{formatNumber(row.amount)}</td>
                 <td className="w-20 p-2 text-center">
-                   {!row.empty && <DetailButton onClick={() => onDetail(row)} />}
+                   {row.detailable && <DetailButton onClick={() => onDetail(row)} />}
                 </td>
               </tr>
             ))}
@@ -180,16 +180,18 @@ export default function BalanceSheetPage() {
   );
 
   const handleDetail = (row) => {
-    if (!row?.id || row.empty) return;
+    if (!row?.detailable || !row.id) return;
     setSelectedAccount(row);
   };
 
   const fixedLineRows = (lines = []) => lines.map((line, lineIndex) => ({
-    id: `line-${lineIndex}-${line.label}`,
+    id: line.rows?.length === 1 ? line.rows[0].id : null,
+    rowKey: `line-${lineIndex}-${line.label}`,
     kode_akun: line.rows?.length === 1 ? line.rows[0].kode_akun : '-',
     nama_akun: line.label,
     amount: Number(line.amount || 0),
     empty: !line.rows?.length,
+    detailable: line.rows?.length === 1 && Number.isInteger(Number(line.rows[0].id)),
   }));
 
   const fixedLines = (type, labels) => {
@@ -319,7 +321,7 @@ export default function BalanceSheetPage() {
                 ['Aktiva Tetap', fixedLines('assets', ['Tanah', 'Bangunan', 'Kendaraan', 'Mesin-mesin', 'Peralatan Kantor', 'Akumulasi Penyusutan Aktiva Tetap'])],
               ].map(([title, lines]) => {
                 const rows = fixedLineRows(lines);
-                return <AccountTable key={title} title={title} rows={rows} emptyText="Tidak ada akun." footer={{ label: `TOTAL ${title.toUpperCase()}`, amount: lines.reduce((sum, line) => sum + Number(line.amount || 0), 0) }} onDetail={handleDetail} />;
+                                return <AccountTable key={title} title={title} rows={rows} emptyText="Tidak ada akun." footer={{ label: `TOTAL ${title.toUpperCase()}`, amount: lines.reduce((sum, line) => sum + Number(line.amount || 0), 0) }} onDetail={handleDetail} />;
               })}
               <section className="overflow-hidden rounded-lg border border-slate-300 bg-white">
                 <div className="border-t-2 border-slate-700 p-3 font-bold">TOTAL ASET <span className="float-right tabular-nums">{formatNumber(report.total_asset)}</span></div>
@@ -421,11 +423,11 @@ export default function BalanceSheetPage() {
                         <table className="w-full text-left text-sm">
                           <tbody className="divide-y">
                              {fixedLineRows(fixedLines('equities', ['Modal Awal', 'Laba Ditahan', 'Prive', 'Laba Periode Berjalan'])).map((row) => (
-                               <tr key={row.id} className="hover:bg-gray-50">
-                                <td className="p-3 font-mono text-xs text-gray-600">{row.kode_akun}</td>
-                                <td className="p-3">{row.nama_akun}</td>
-                                <td className="p-3 text-right">{formatNumber(row.amount)}</td>
-                                 <td className="w-20 p-2 text-center">{!row.empty && <DetailButton onClick={() => handleDetail(row)} />}</td>
+                               <tr key={row.rowKey} className="hover:bg-gray-50">
+                                 <td className="p-3 font-mono text-xs text-gray-600">{row.kode_akun}</td>
+                                 <td className="p-3">{row.nama_akun}</td>
+                                 <td className="p-3 text-right">{formatNumber(row.amount)}</td>
+                                  <td className="w-20 p-2 text-center">{row.detailable && <DetailButton onClick={() => handleDetail(row)} />}</td>
                                </tr>
                              ))}
                           </tbody>
