@@ -11,6 +11,7 @@ const SettingPage = lazy(() => import('../pages/accounting/SettingPage'));
 const PeriodPage = lazy(() => import('../pages/accounting/PeriodPage'));
 const FixedAssetPage = lazy(() => import('../pages/accounting/FixedAssetPage'));
 const AccountingGuidePage = lazy(() => import('../pages/accounting/AccountingGuidePage'));
+const PrepaidRetributionPage = lazy(() => import('../pages/accounting/PrepaidRetributionPage'));
 
 export const accountingRoutes = [
   { path: '/akuntansi/coa', element: <CoaPage /> },
@@ -24,5 +25,6 @@ export const accountingRoutes = [
   { path: '/akuntansi/periode', element: <PeriodPage /> },
   { path: '/akuntansi/aset-tetap', element: <FixedAssetPage /> },
   { path: '/akuntansi/panduan', element: <AccountingGuidePage /> },
+  { path: '/akuntansi/retribusi-dibayar-dimuka', element: <PrepaidRetributionPage /> },
   { path: '/akuntansi/petunjuk', element: <AccountingGuidePage /> },
 ];

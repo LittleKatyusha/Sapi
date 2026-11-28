@@ -39,6 +39,7 @@ const AssetOpnamePage = lazy(() => import('./pages/accounting/AssetOpnamePage'))
 const SuppliesOpnamePage = lazy(() => import('./pages/accounting/SuppliesOpnamePage'));
 const SuppliesStockCardPage = lazy(() => import('./pages/accounting/SuppliesStockCardPage'));
 const SuppliesReconciliationPage = lazy(() => import('./pages/accounting/SuppliesReconciliationPage'));
+const PrepaidRetributionPage = lazy(() => import('./pages/accounting/PrepaidRetributionPage'));
 
 // Data Master - Lazy loaded
 const KandangOfficePage = lazy(() => import('./pages/dataMaster/KandangOfficePage'));
@@ -415,6 +416,7 @@ function AppSecure() {
               <Route path="/akuntansi/opname-perlengkapan" element={<SuppliesOpnamePage />} />
               <Route path="/akuntansi/kartu-stok-perlengkapan" element={<SuppliesStockCardPage />} />
               <Route path="/akuntansi/rekonsiliasi-perlengkapan" element={<SuppliesReconciliationPage />} />
+              <Route path="/akuntansi/retribusi-dibayar-dimuka" element={<PrepaidRetributionPage />} />
               <Route path="/akuntansi/panduan" element={<AccountingGuidePage />} />
               <Route path="/akuntansi/petunjuk" element={<AccountingGuidePage />} />
 

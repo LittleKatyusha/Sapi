@@ -59,6 +59,7 @@ const AddEditBebanModal = ({
         keterangan: '',
         id_syarat_pembelian: '', // This will be the bank field
         syarat_pembelian: '' // This will be the syarat pembelian field that maps to tipe_pembayaran
+        ,masa_manfaat_mulai: '', masa_manfaat_selesai: ''
     });
     
     const [errors, setErrors] = useState({});
@@ -124,6 +125,8 @@ const AddEditBebanModal = ({
                 nilai: editingItem.nilai || editingItem.biaya_total || '',
                 dibayarkan_oleh: editingItem.dibayarkan_oleh || editingItem.nama_pembayar || '',
                 tanggal_pembayaran: editingItem.tanggal_pembayaran || editingItem.tgl_pembayaran || '',
+                masa_manfaat_mulai: editingItem.masa_manfaat_mulai || '',
+                masa_manfaat_selesai: editingItem.masa_manfaat_selesai || '',
                 peruntukan: editingItem.peruntukan || '',
                 keterangan: editingItem.keterangan || '',
                 // Bank field (id_syarat_pembelian) - convert to string to match bankOptions
@@ -408,6 +411,8 @@ const AddEditBebanModal = ({
             jumlah: parseNumber(formData.jumlah) || 1,
             harga: parseNumber(formData.harga) || 0,
             total_harga: parseNumber(formData.nilai) || 0,
+            masa_manfaat_mulai: formData.masa_manfaat_mulai || null,
+            masa_manfaat_selesai: formData.masa_manfaat_selesai || null,
             nama_pembayar: formData.dibayarkan_oleh.trim(),
             tgl_pembayaran: formData.tanggal_pembayaran,
             peruntukan: formData.peruntukan.trim(),
@@ -460,6 +465,7 @@ const AddEditBebanModal = ({
                                     </p>
                                 </div>
                             </div>
+
                             <button
                                 onClick={onClose}
                                 disabled={isSubmitting}
@@ -759,6 +765,15 @@ const AddEditBebanModal = ({
                                     <p className="text-xs text-red-600 mt-1">⚠️ {errors.tanggal_pembayaran}</p>
                                 )}
                             </div>
+
+                            {(() => {
+                                const selected = itemBebanBiayaOptions.find((option) => String(option.value) === String(formData.id_item));
+                                if (selected?.coa_kode !== '1192') return null;
+                                return <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:col-span-3">
+                                    <label className="text-sm font-medium text-gray-700">Mulai manfaat<input type="date" value={formData.masa_manfaat_mulai} onChange={(e) => handleChange('masa_manfaat_mulai', e.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" /></label>
+                                    <label className="text-sm font-medium text-gray-700">Selesai manfaat<input type="date" value={formData.masa_manfaat_selesai} onChange={(e) => handleChange('masa_manfaat_selesai', e.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" /></label>
+                                </div>;
+                            })()}
 
                             {/* Peruntukan */}
                             <div>

@@ -131,6 +131,9 @@ const accountingService = {
   // P2 — Consolidation
   getConsolidatedTrialBalance: (params) => httpClient.get(`${BASE_URL}/consolidation/trial-balance`, { params }),
   getConsolidatedBalanceSheet: (params) => httpClient.get(`${BASE_URL}/consolidation/balance-sheet`, { params }),
+  getPrepaidRetributions: (params = {}) => httpClient.get(`${BASE_URL}/prepaid-retribution`, { params }),
+  getPrepaidRetribution: (id) => httpClient.get(`${BASE_URL}/prepaid-retribution/${id}`),
+  postPrepaidRetribution: (id, period) => httpClient.post(`${BASE_URL}/prepaid-retribution/${id}/period/${period}/post`),
 };
 
 export default accountingService;
