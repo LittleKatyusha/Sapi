@@ -34,6 +34,12 @@ const accountingService = {
   getGeneralLedger: (params) => httpClient.get(`${BASE_URL}/reports/general-ledger`, { params }),
   getTrialBalance: (params) => httpClient.get(`${BASE_URL}/reports/trial-balance`, { params }),
   getTrialBalanceDetail: (params) => httpClient.get(`${BASE_URL}/reports/trial-balance/detail`, { params }),
+  getTrialBalanceAdjustments: (params) => httpClient.get(`${BASE_URL}/reports/trial-balance/adjustments`, { params }),
+  exportTrialBalance: (params, format = 'pdf') =>
+    httpClient.get(`${BASE_URL}/reports/trial-balance`, {
+      params: { ...params, export: format },
+      responseType: 'blob',
+    }),
   getIncomeStatement: (params) => httpClient.get(`${BASE_URL}/reports/income-statement`, { params }),
   getIncomeStatementDetail: (params) => httpClient.get(`${BASE_URL}/reports/income-statement/detail`, { params }),
   getBalanceSheet: (params) => httpClient.get(`${BASE_URL}/reports/balance-sheet`, { params }),

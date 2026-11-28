@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Plus } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import accountingService from '../../services/accountingService';
 import SearchableSelect from '../../components/shared/SearchableSelect';
 import CreateJournalModal, { JOURNAL_TYPES } from './CreateJournalModal';
@@ -36,9 +37,14 @@ export default function JournalPage() {
   const [expandedId, setExpandedId] = useState(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
+  // Filter tipe jurnal bisa di-deep-link dari laporan lain, mis.
+  // /akuntansi/jurnal?tipe_jurnal=ADJUSTMENT dari halaman Neraca Saldo.
+  const [searchParams] = useSearchParams();
+  const initialType = searchParams.get('tipe_jurnal') || '';
+
   // Filters
   const [filterStatus, setFilterStatus] = useState('');
-  const [filterType, setFilterType] = useState('');
+  const [filterType, setFilterType] = useState(JOURNAL_TYPES.includes(initialType) ? initialType : '');
   const [filterPeriodId, setFilterPeriodId] = useState('');
   const [periods, setPeriods] = useState([]);
 

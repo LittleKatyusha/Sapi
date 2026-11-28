@@ -4,6 +4,16 @@ import accountingService from '../../services/accountingService';
 
 jest.mock('../../services/accountingService');
 
+const mockNavigate = jest.fn();
+// react-router-dom v7 hanya ESM sehingga tidak bisa di-resolve Jest (CRA5).
+jest.mock(
+  'react-router-dom',
+  () => ({
+    useNavigate: () => mockNavigate,
+  }),
+  { virtual: true }
+);
+
 describe('TrialBalancePage', () => {
   const mockSettings = [
     { id: 1, nama_perusahaan: 'PT Ternak Jaya', entitas: 'HO' },
@@ -12,13 +22,152 @@ describe('TrialBalancePage', () => {
 
   const mockReport = {
     accounts: [
-      { id: 101, kode_akun: '1101', nama_akun: 'Kas Utama', debit: 50000000, credit: 0 },
-      { id: 201, kode_akun: '3101', nama_akun: 'Modal Disetor', debit: 0, credit: 50000000 },
+      { id: 101, kode_akun: '1101', nama_akun: 'Kas Utama', tipe: 'Aset', debit: 50000000, credit: 0 },
+      { id: 201, kode_akun: '3101', nama_akun: 'Modal Disetor', tipe: 'Ekuitas', debit: 0, credit: 50000000 },
     ],
     total_debit: 50000000,
     total_credit: 50000000,
+    selisih: 0,
     is_balanced: true,
   };
+
+  // Kertas kerja: Kas (2jt awal + 50jt transaksi − 1jt penyesuaian) = 51jt,
+  // Modal 52jt, Beban Operasional 1jt (jurnal penyesuaian) → NSD 52jt seimbang.
+  const worksheetAccount = (overrides) => ({
+    saldo_awal_debit: 0,
+    saldo_awal_credit: 0,
+    mutasi_debit: 0,
+    mutasi_credit: 0,
+    saldo_sebelum_penyesuaian_debit: 0,
+    saldo_sebelum_penyesuaian_credit: 0,
+    penyesuaian_debit: 0,
+    penyesuaian_credit: 0,
+    nsd_debit: 0,
+    nsd_credit: 0,
+    laba_rugi_debit: 0,
+    laba_rugi_credit: 0,
+    neraca_debit: 0,
+    neraca_credit: 0,
+    penutup_debit: 0,
+    penutup_credit: 0,
+    saldo_akhir_debit: 0,
+    saldo_akhir_credit: 0,
+    ...overrides,
+  });
+
+  const mockWorksheetReport = {
+    mode: 'worksheet',
+    tanggal_from: '2026-11-01',
+    tanggal_to: '2026-11-30',
+    adjustment_journal_types: ['ADJUSTMENT', 'DEPRECIATION'],
+    closing_journal_types: ['CLOSING'],
+    closing_included: false,
+    has_closing: false,
+    laba_bersih: -1000000,
+    accounts: [
+      worksheetAccount({
+        id: 101,
+        kode_akun: '1101',
+        nama_akun: 'Kas Utama',
+        tipe: 'Aset',
+        normal_balance: 'D',
+        saldo_awal_debit: 2000000,
+        mutasi_debit: 50000000,
+        saldo_sebelum_penyesuaian_debit: 52000000,
+        penyesuaian_credit: 1000000,
+        nsd_debit: 51000000,
+        neraca_debit: 51000000,
+        saldo_akhir_debit: 51000000,
+      }),
+      worksheetAccount({
+        id: 201,
+        kode_akun: '3101',
+        nama_akun: 'Modal Disetor',
+        tipe: 'Modal',
+        normal_balance: 'C',
+        saldo_awal_credit: 2000000,
+        mutasi_credit: 50000000,
+        saldo_sebelum_penyesuaian_credit: 52000000,
+        nsd_credit: 52000000,
+        neraca_credit: 52000000,
+        saldo_akhir_credit: 52000000,
+      }),
+      worksheetAccount({
+        id: 301,
+        kode_akun: '6220',
+        nama_akun: 'Beban Operasional',
+        tipe: 'Beban',
+        normal_balance: 'D',
+        penyesuaian_debit: 1000000,
+        nsd_debit: 1000000,
+        laba_rugi_debit: 1000000,
+        saldo_akhir_debit: 1000000,
+      }),
+    ],
+    totals: {
+      saldo_awal_debit: 2000000,
+      saldo_awal_credit: 2000000,
+      mutasi_debit: 50000000,
+      mutasi_credit: 50000000,
+      saldo_sebelum_penyesuaian_debit: 52000000,
+      saldo_sebelum_penyesuaian_credit: 52000000,
+      penyesuaian_debit: 1000000,
+      penyesuaian_credit: 1000000,
+      nsd_debit: 52000000,
+      nsd_credit: 52000000,
+      laba_rugi_debit: 1000000,
+      laba_rugi_credit: 0,
+      neraca_debit: 51000000,
+      neraca_credit: 52000000,
+      penutup_debit: 0,
+      penutup_credit: 0,
+      saldo_akhir_debit: 52000000,
+      saldo_akhir_credit: 52000000,
+    },
+    selisih: {
+      saldo_awal: 0,
+      mutasi: 0,
+      sebelum_penyesuaian: 0,
+      penyesuaian: 0,
+      nsd: 0,
+      laba_rugi: 0,
+      penutup: 0,
+      saldo_akhir: 0,
+    },
+    is_balanced: true,
+  };
+
+  const mockAdjustmentJournals = {
+    account: { id: 101, kode_akun: '1101', nama_akun: 'Kas Utama', tipe: 'Aset' },
+    adjustment_journal_types: ['ADJUSTMENT', 'DEPRECIATION'],
+    journal_count: 1,
+    total_debit: 0,
+    total_credit: 1000000,
+    journals: [
+      {
+        id: 9,
+        nomor_jurnal: 'JU-ADJ-001',
+        tanggal: '2026-11-30',
+        tipe_jurnal: 'ADJUSTMENT',
+        keterangan: 'Penyesuaian perlengkapan',
+        status: 'posted',
+        debit: 0,
+        credit: 1000000,
+        lines: [
+          {
+            id: 91,
+            coa_id: 101,
+            kode_akun: '1101',
+            nama_akun: 'Kas Utama',
+            debit: 0,
+            credit: 1000000,
+            keterangan: 'Penyesuaian',
+          },
+        ],
+      },
+    ],
+  };
+
 
   const mockLedgerDetail = {
     account: { id: 101, kode_akun: '1101', nama_akun: 'Kas Utama', tipe: 'Aset', normal_balance: 'D' },
@@ -90,6 +239,10 @@ describe('TrialBalancePage', () => {
     jest.clearAllMocks();
     accountingService.getSettings.mockResolvedValue({ data: mockSettings });
     accountingService.getTrialBalance.mockResolvedValue({ data: mockReport });
+    accountingService.getTrialBalanceAdjustments.mockResolvedValue({ data: mockAdjustmentJournals });
+    accountingService.exportTrialBalance.mockResolvedValue(
+      new Blob(['PK'], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    );
     accountingService.getTrialBalanceDetail.mockResolvedValue({ data: mockLedgerDetail });
   });
 
@@ -243,36 +396,91 @@ describe('TrialBalancePage', () => {
   });
 
   it('menampilkan kertas kerja sebelum/sesudah penyesuaian saat opsi dicentang', async () => {
+    accountingService.getTrialBalance.mockResolvedValue({ data: mockWorksheetReport });
+
+    render(<TrialBalancePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('PT Ternak Jaya (HO)')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /Kertas Kerja/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Tampilkan/i }));
+
+    await waitFor(() => {
+      expect(accountingService.getTrialBalance).toHaveBeenCalledWith(
+        expect.objectContaining({ setting_id: 1, worksheet: true })
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/Jurnal Penyesuaian/).length).toBeGreaterThan(0);
+    });
+
+    // Kolom kertas kerja lengkap: Neraca Saldo (sebelum penyesuaian), NSD,
+    // Laba Rugi, dan Neraca.
+    expect(screen.getByText('sebelum penyesuaian')).toBeInTheDocument();
+    expect(screen.getByText('setelah penyesuaian')).toBeInTheDocument();
+    expect(screen.getAllByText(/^Laba Rugi$/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/^Neraca$/).length).toBeGreaterThan(0);
+    expect(screen.getByText('Kas Utama')).toBeInTheDocument();
+    expect(screen.getAllByText('51.000.000').length).toBeGreaterThan(0);
+
+    // Rincian saldo awal & mutasi hanya muncul saat opsi diaktifkan.
+    expect(screen.queryByText(/^Saldo Awal$/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox', { name: /Rincian saldo awal/i }));
+    expect(screen.getAllByText(/Saldo Awal/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Mutasi Transaksi/).length).toBeGreaterThan(0);
+
+    // Akun yang tersentuh penyesuaian ditandai (badge JP) dan dikelompokkan per tipe.
+    expect(screen.getAllByText('JP').length).toBeGreaterThan(0);
+    expect(screen.getByText('Subtotal Aset')).toBeInTheDocument();
+    expect(screen.getByText('Subtotal Beban')).toBeInTheDocument();
+
+    // Kontrol keseimbangan per tahap tersedia di footer kertas kerja.
+    expect(screen.getByText(/Kontrol keseimbangan/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Jurnal penyesuaian: seimbang/).length).toBeGreaterThan(0);
+  });
+
+  it('membuka detail akun dari kertas kerja memakai saldo akhir (bisa diaudit)', async () => {
+    accountingService.getTrialBalance.mockResolvedValue({ data: mockWorksheetReport });
+
+    render(<TrialBalancePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('PT Ternak Jaya (HO)')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /Kertas Kerja/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Tampilkan/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Kas Utama')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Detail' })[0]);
+
+    await waitFor(() => {
+      expect(accountingService.getTrialBalanceDetail).toHaveBeenCalledWith(
+        expect.objectContaining({ setting_id: 1, coa_id: 101 })
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Transaksi Pembentuk Saldo')).toBeInTheDocument();
+    });
+  });
+
+  it('menyembunyikan akun tanpa saldo dan bisa ditampilkan kembali', async () => {
     accountingService.getTrialBalance.mockResolvedValue({
       data: {
-        mode: 'worksheet',
-        adjustment_journal_types: ['ADJUSTMENT', 'DEPRECIATION'],
         accounts: [
-          {
-            id: 101,
-            kode_akun: '1101',
-            nama_akun: 'Kas Utama',
-            normal_balance: 'D',
-            saldo_awal_debit: 2000000,
-            saldo_awal_credit: 0,
-            mutasi_debit: 50000000,
-            mutasi_credit: 0,
-            penyesuaian_debit: 0,
-            penyesuaian_credit: 1000000,
-            saldo_akhir_debit: 51000000,
-            saldo_akhir_credit: 0,
-          },
+          ...mockReport.accounts,
+          { id: 999, kode_akun: '9999', nama_akun: 'Akun Kosong', tipe: 'Aset', debit: 0, credit: 0 },
         ],
-        totals: {
-          saldo_awal_debit: 2000000,
-          saldo_awal_credit: 0,
-          mutasi_debit: 50000000,
-          mutasi_credit: 0,
-          penyesuaian_debit: 0,
-          penyesuaian_credit: 1000000,
-          saldo_akhir_debit: 51000000,
-          saldo_akhir_credit: 0,
-        },
+        total_debit: 50000000,
+        total_credit: 50000000,
+        selisih: 0,
         is_balanced: true,
       },
     });
@@ -283,22 +491,123 @@ describe('TrialBalancePage', () => {
       expect(screen.getByText('PT Ternak Jaya (HO)')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('checkbox'));
     fireEvent.click(screen.getByRole('button', { name: /Tampilkan/i }));
 
     await waitFor(() => {
-      expect(accountingService.getTrialBalance).toHaveBeenCalledWith(
-        expect.objectContaining({ setting_id: 1, worksheet: true })
+      expect(screen.getByText('Kas Utama')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('Akun Kosong')).not.toBeInTheDocument();
+    expect(screen.getByText(/1 akun tanpa saldo disembunyikan/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /Sembunyikan akun tanpa saldo/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Akun Kosong')).toBeInTheDocument();
+    });
+  });
+
+  it('membuka daftar jurnal penyesuaian dari header dan bisa lanjut ke Jurnal Umum', async () => {
+    render(<TrialBalancePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('PT Ternak Jaya (HO)')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Jurnal Penyesuaian/i }));
+
+    await waitFor(() => {
+      expect(accountingService.getTrialBalanceAdjustments).toHaveBeenCalledWith(
+        expect.objectContaining({ setting_id: 1 })
       );
     });
 
+    expect(await screen.findByText('JU-ADJ-001')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Buka di Jurnal Umum/i }));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/akuntansi/jurnal?tipe_jurnal=ADJUSTMENT');
+  });
+
+  it('membuka jurnal penyesuaian akun saat sel Penyesuaian diklik', async () => {
+    accountingService.getTrialBalance.mockResolvedValue({ data: mockWorksheetReport });
+
+    render(<TrialBalancePage />);
+
     await waitFor(() => {
-      expect(screen.getAllByText('Penyesuaian').length).toBeGreaterThan(0);
+      expect(screen.getByText('PT Ternak Jaya (HO)')).toBeInTheDocument();
     });
 
-    expect(screen.getAllByText('Saldo Awal').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Mutasi Transaksi').length).toBeGreaterThan(0);
-    expect(screen.getByText('Kas Utama')).toBeInTheDocument();
-    expect(screen.getAllByText('51.000.000').length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('checkbox', { name: /Kertas Kerja/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Tampilkan/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Kas Utama')).toBeInTheDocument();
+    });
+
+    // Sel penyesuaian kredit Kas (1jt) bisa diklik untuk audit jurnalnya.
+    fireEvent.click(screen.getByRole('button', { name: /kredit akun 1101/i }));
+
+    await waitFor(() => {
+      expect(accountingService.getTrialBalanceAdjustments).toHaveBeenCalledWith(
+        expect.objectContaining({ setting_id: 1, coa_id: 101 })
+      );
+    });
+
+    expect(await screen.findByText('JU-ADJ-001')).toBeInTheDocument();
+    expect(screen.getByText(/Neto Kolom Penyesuaian/)).toBeInTheDocument();
+  });
+
+  it('mengirim include_closing saat jurnal penutup disertakan', async () => {
+    accountingService.getTrialBalance.mockResolvedValue({ data: mockWorksheetReport });
+
+    render(<TrialBalancePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('PT Ternak Jaya (HO)')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /Kertas Kerja/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Tampilkan/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Kas Utama')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /Sertakan jurnal penutup/i }));
+
+    await waitFor(() => {
+      expect(accountingService.getTrialBalance).toHaveBeenLastCalledWith(
+        expect.objectContaining({ worksheet: true, include_closing: 1 })
+      );
+    });
+  });
+
+  it('mengekspor kertas kerja ke Excel', async () => {
+    window.URL.createObjectURL = jest.fn(() => 'blob:mock');
+    window.URL.revokeObjectURL = jest.fn();
+    accountingService.getTrialBalance.mockResolvedValue({ data: mockWorksheetReport });
+
+    render(<TrialBalancePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('PT Ternak Jaya (HO)')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /Kertas Kerja/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Tampilkan/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Kas Utama')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Unduh Excel/i }));
+
+    await waitFor(() => {
+      expect(accountingService.exportTrialBalance).toHaveBeenCalledWith(
+        expect.objectContaining({ setting_id: 1, worksheet: true }),
+        'xlsx'
+      );
+    });
   });
 });

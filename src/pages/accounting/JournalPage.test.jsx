@@ -4,6 +4,16 @@ import accountingService from '../../services/accountingService';
 
 jest.mock('../../services/accountingService');
 
+// react-router-dom v7 hanya ESM sehingga tidak bisa di-resolve Jest (CRA5).
+let mockSearchParams = '';
+jest.mock(
+  'react-router-dom',
+  () => ({
+    useSearchParams: () => [new URLSearchParams(mockSearchParams), jest.fn()],
+  }),
+  { virtual: true }
+);
+
 describe('JournalPage', () => {
   const mockSettings = [
     { id: 1, nama_perusahaan: 'PT Ternak Jaya', entitas: 'HO' },
@@ -28,10 +38,23 @@ describe('JournalPage', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSearchParams = '';
     accountingService.getSettings.mockResolvedValue({ data: mockSettings });
     accountingService.getCoa.mockResolvedValue({ data: [] });
     accountingService.getPeriods.mockResolvedValue({ data: mockPeriods });
     accountingService.getJournals.mockResolvedValue({ data: mockJournals });
+  });
+
+  it('memakai filter tipe jurnal dari query string (deep link Neraca Saldo)', async () => {
+    mockSearchParams = 'tipe_jurnal=ADJUSTMENT';
+
+    render(<JournalPage />);
+
+    await waitFor(() => {
+      expect(accountingService.getJournals).toHaveBeenCalledWith(
+        expect.objectContaining({ setting_id: '1', tipe_jurnal: 'ADJUSTMENT' })
+      );
+    });
   });
 
   it('memakai SearchableSelect (template selectbox) untuk entitas dan semua filter', async () => {
