@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Save, DollarSign, FileText, Calendar, User, Building2, TrendingUp, CreditCard, Wallet, Package } from 'lucide-react';
+import { X, Save, DollarSign, FileText, Calendar, User, Building2, TrendingUp, CreditCard, Wallet, Package, ListChecks } from 'lucide-react';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 import HttpClient from '../../../../services/httpClient';
 import useItemBebanBiayaAPI from '../hooks/useItemBebanBiayaAPI';
+import useItemSubLainlain from '../hooks/useItemSubLainlain';
 
 const AddEditBebanModal = ({
     isOpen,
@@ -28,11 +29,28 @@ const AddEditBebanModal = ({
         loading: itemBebanBiayaLoading,
         refetch: refetchItemBebanBiaya
     } = useItemBebanBiayaAPI();
+
+    // Nama item (sub-item) tergantung item yang dipilih — untuk pemetaan opname
+    const {
+        optionsFor: subOptionsFor,
+        loading: subItemLoading,
+        fetchSubItems,
+        createSubItem
+    } = useItemSubLainlain();
+
+    const [showQuickAddSub, setShowQuickAddSub] = useState(false);
+    const [quickAddName, setQuickAddName] = useState('');
+    const [quickAddError, setQuickAddError] = useState('');
+    const [quickAddSaving, setQuickAddSaving] = useState(false);
+    const [submitError, setSubmitError] = useState('');
     
     const [formData, setFormData] = useState({
         divisi: '',
         jenis_beban: '',
         id_item: '', // New field for item beban biaya
+        nama_produk: '', // nama item (sub-item) — dipakai untuk kartu stok/opname
+        jumlah: '', // qty (perlengkapan/biaya)
+        harga: '', // harga satuan
         nota: '', // Manual input for nota
         nilai: '',
         dibayarkan_oleh: '',
@@ -99,6 +117,9 @@ const AddEditBebanModal = ({
                 divisi: editingItem.divisi || editingItem.id_farm || findValueByLabel(divisiOptions, editingItem.farm) || '',
                 jenis_beban: editingItem.jenis_beban || editingItem.tipe_pembelian || findValueByLabel(jenisBebanOptions, editingItem.jenis_pembelian) || '',
                 id_item: editingItem.id_item?.toString() || '', // New field from backend
+                nama_produk: editingItem.nama_produk || '', // nama item (sub-item)
+                jumlah: editingItem.jumlah ?? '',
+                harga: editingItem.harga ?? '',
                 nota: editingItem.nota || '', // New field for nota
                 nilai: editingItem.nilai || editingItem.biaya_total || '',
                 dibayarkan_oleh: editingItem.dibayarkan_oleh || editingItem.nama_pembayar || '',
@@ -115,6 +136,7 @@ const AddEditBebanModal = ({
                 divisi: '',
                 jenis_beban: '3',  // Auto-set for add mode
                 id_item: '', // New field
+                nama_produk: '', // nama item (sub-item)
                 nota: '', // New field for nota
                 nilai: '',
                 dibayarkan_oleh: '',
@@ -158,8 +180,10 @@ const AddEditBebanModal = ({
             fetchBankOptions();
             // Fetch item beban biaya options when modal opens
             refetchItemBebanBiaya();
+            // Nama item (sub-item) untuk item terpilih
+            fetchSubItems();
         }
-    }, [isOpen, syaratPembelianOptions, refetchItemBebanBiaya]);
+    }, [isOpen, syaratPembelianOptions, refetchItemBebanBiaya, fetchSubItems]);
 
     const fetchTipePembayaranOptions = async () => {
         try {
@@ -249,22 +273,6 @@ const AddEditBebanModal = ({
         }
     };
 
-    const validateForm = () => {
-        const newErrors = {};
-        newErrors.divisi = validateField('divisi', formData.divisi);
-        newErrors.jenis_beban = validateField('jenis_beban', formData.jenis_beban);
-        newErrors.id_item = validateField('id_item', formData.id_item);
-        newErrors.nilai = validateField('nilai', formData.nilai);
-        newErrors.dibayarkan_oleh = validateField('dibayarkan_oleh', formData.dibayarkan_oleh);
-        newErrors.tanggal_pembayaran = validateField('tanggal_pembayaran', formData.tanggal_pembayaran);
-        newErrors.peruntukan = validateField('peruntukan', formData.peruntukan);
-        newErrors.id_syarat_pembelian = validateField('id_syarat_pembelian', formData.id_syarat_pembelian);
-        newErrors.syarat_pembelian = validateField('syarat_pembelian', formData.syarat_pembelian);
-        
-        setErrors(newErrors);
-        return !Object.values(newErrors).some(error => error);
-    };
-
     const handleChange = (field, value) => {
         // Special handling for syarat_pembelian
         if (field === 'syarat_pembelian') {
@@ -288,6 +296,16 @@ const AddEditBebanModal = ({
                     [field]: value
                 }));
             }
+        } else if (field === 'id_item') {
+            // Ganti Item ⇒ nama item (sub-item) harus dipilih ulang
+            setFormData(prev => ({
+                ...prev,
+                id_item: value,
+                nama_produk: ''
+            }));
+            setShowQuickAddSub(false);
+            setQuickAddName('');
+            setQuickAddError('');
         } else {
             setFormData(prev => ({
                 ...prev,
@@ -303,6 +321,40 @@ const AddEditBebanModal = ({
         }
     };
 
+    // Opsi nama item sesuai Item yang dipilih (dependent select)
+    const subItemOptions = useMemo(
+        () => subOptionsFor(formData.id_item),
+        [subOptionsFor, formData.id_item]
+    );
+
+    const handleQuickAddSubItem = async () => {
+        const name = quickAddName.trim();
+
+        if (!name) {
+            setQuickAddError('Nama item wajib diisi');
+            return;
+        }
+
+        if (!formData.id_item) {
+            setQuickAddError('Pilih Item terlebih dahulu');
+            return;
+        }
+
+        try {
+            setQuickAddSaving(true);
+            setQuickAddError('');
+            const created = await createSubItem({ idItem: formData.id_item, name, satuan: null });
+            // Bila nama sudah ada, backend mengembalikan data lama → tetap dipilih.
+            setFormData(prev => ({ ...prev, nama_produk: created?.name || name }));
+            setQuickAddName('');
+            setShowQuickAddSub(false);
+        } catch (err) {
+            setQuickAddError(err?.message || 'Gagal menambah nama item');
+        } finally {
+            setQuickAddSaving(false);
+        }
+    };
+
     const handleBlur = (field) => {
         setTouched(prev => ({ ...prev, [field]: true }));
         setErrors(prev => ({
@@ -311,31 +363,51 @@ const AddEditBebanModal = ({
         }));
     };
 
+    const FIELD_LABELS = {
+        divisi: 'Divisi / Farm',
+        jenis_beban: 'Jenis Biaya-Biaya',
+        id_item: 'Item',
+        nilai: 'Nilai',
+        dibayarkan_oleh: 'Dibayarkan Oleh',
+        tanggal_pembayaran: 'Tanggal Pembayaran',
+        peruntukan: 'Peruntukan',
+        id_syarat_pembelian: 'Bank',
+        syarat_pembelian: 'Syarat Pembelian'
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        
-        setTouched({
-            divisi: true,
-            jenis_beban: true,
-            id_item: true,
-            nilai: true,
-            dibayarkan_oleh: true,
-            tanggal_pembayaran: true,
-            peruntukan: true,
-            id_syarat_pembelian: true,  // This is the bank field
-            syarat_pembelian: true // This is the syarat pembelian field
-        });
-        
-        if (!validateForm()) {
+
+        setTouched(Object.fromEntries(Object.keys(FIELD_LABELS).map((field) => [field, true])));
+
+        // Tampilkan alasan bila simpan diblokir, supaya tidak terasa "tidak bisa".
+        const invalidFields = Object.keys(FIELD_LABELS).filter(
+            (field) => Boolean(validateField(field, formData[field]))
+        );
+
+        if (invalidFields.length > 0) {
+            setErrors((prev) => ({
+                ...prev,
+                ...Object.fromEntries(invalidFields.map((field) => [field, validateField(field, formData[field])]))
+            }));
+            setSubmitError(
+                `Belum bisa disimpan. Lengkapi: ${invalidFields.map((field) => FIELD_LABELS[field]).join(', ')}.`
+            );
             return;
         }
+
+        setSubmitError('');
 
         const dataToSave = {
             id_farm: formData.divisi,
             tipe_pembelian: formData.jenis_beban,
             id_item: formData.id_item, // New field for item beban biaya
+            nama_produk: formData.nama_produk || null, // nama item (sub-item) → kartu stok/opname
             nota: formData.nota.trim() || '-', // New field for nota
             biaya_total: parseNumber(formData.nilai) || 0,
+            jumlah: parseNumber(formData.jumlah) || 1,
+            harga: parseNumber(formData.harga) || 0,
+            total_harga: parseNumber(formData.nilai) || 0,
             nama_pembayar: formData.dibayarkan_oleh.trim(),
             tgl_pembayaran: formData.tanggal_pembayaran,
             peruntukan: formData.peruntukan.trim(),
@@ -372,7 +444,7 @@ const AddEditBebanModal = ({
                     onClick={!isSubmitting ? onClose : undefined}
                 ></div>
 
-                <div className="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                <div className="inline-block align-bottom bg-white rounded-2xl text-left overflow-y-auto shadow-xl transform transition-all sm:my-6 sm:align-middle sm:max-w-5xl sm:w-full max-h-[94vh]">
                     <div className="bg-gradient-to-r from-green-500 to-teal-600 px-6 py-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -399,10 +471,10 @@ const AddEditBebanModal = ({
                     </div>
 
                     <form onSubmit={handleSubmit} className="px-6 py-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                             {/* Divisi */}
                             <div>
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
                                     <Building2 className="w-4 h-4" />
                                     Divisi *
                                 </label>
@@ -424,7 +496,7 @@ const AddEditBebanModal = ({
 
                             {/* Nota */}
                             <div>
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
                                     <FileText className="w-4 h-4" />
                                     Nota
                                 </label>
@@ -433,7 +505,7 @@ const AddEditBebanModal = ({
                                     value={formData.nota}
                                     onChange={(e) => handleChange('nota', e.target.value)}
                                     disabled={isSubmitting || isDetailMode}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 disabled:bg-gray-100"
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 disabled:bg-gray-100"
                                     placeholder="Masukkan nomor nota (opsional)..."
                                 />
                                 <p className="text-xs text-gray-500 mt-1">💡 Kosongkan jika tidak ada nota manual</p>
@@ -441,7 +513,7 @@ const AddEditBebanModal = ({
 
                             {/* Jenis Beban/Biaya */}
                             <div>
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
                                     <TrendingUp className="w-4 h-4" />
                                     Jenis Biaya-Biaya *
                                 </label>
@@ -450,7 +522,7 @@ const AddEditBebanModal = ({
                                     onChange={(e) => handleChange('jenis_beban', e.target.value)}
                                     onBlur={() => handleBlur('jenis_beban')}
                                     disabled={true}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 disabled:bg-gray-100"
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 disabled:bg-gray-100"
                                 >
                                     {!isEditMode && formData.jenis_beban === '3' ? (
                                         <>
@@ -472,31 +544,166 @@ const AddEditBebanModal = ({
                                 )}
                             </div>
 
-                            {/* Item Beban Biaya */}
-                            <div>
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                    <Package className="w-4 h-4" />
-                                    Item *
-                                </label>
-                                <SearchableSelect
-                                    options={itemBebanBiayaOptions}
-                                    value={formData.id_item}
-                                    onChange={(value) => handleChange('id_item', value)}
-                                    onBlur={() => handleBlur('id_item')}
-                                    placeholder="Pilih Item"
-                                    isLoading={itemBebanBiayaLoading}
-                                    isDisabled={isSubmitting || itemBebanBiayaLoading || isDetailMode}
-                                    isClearable={false}
-                                    isSearchable={true}
-                                />
-                                {touched.id_item && errors.id_item && (
-                                    <p className="text-xs text-red-600 mt-1">⚠️ {errors.id_item}</p>
-                                )}
+                            {/* Item Beban Biaya — select 50% lebar baris, 50% kanan untuk info akun */}
+                            <div className="grid grid-cols-1 gap-4 md:col-span-3 md:grid-cols-2">
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
+                                        <Package className="w-4 h-4" />
+                                        Item *
+                                    </label>
+                                    <SearchableSelect
+                                        options={itemBebanBiayaOptions}
+                                        value={formData.id_item}
+                                        onChange={(value) => handleChange('id_item', value)}
+                                        onBlur={() => handleBlur('id_item')}
+                                        placeholder="Pilih Item"
+                                        isLoading={itemBebanBiayaLoading}
+                                        isDisabled={isSubmitting || itemBebanBiayaLoading || isDetailMode}
+                                        isClearable={false}
+                                        isSearchable={true}
+                                    />
+                                    {touched.id_item && errors.id_item && (
+                                        <p className="text-xs text-red-600 mt-1">⚠️ {errors.id_item}</p>
+                                    )}
+                                    {formData.id_item && (
+                                        <div className="mt-3">
+                                            <div className="mb-1 flex items-center justify-between gap-2">
+                                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                                                    <ListChecks className="w-4 h-4" />
+                                                    Nama Item {subItemOptions.length > 0 ? '*' : '(opsional)'}
+                                                </label>
+                                                {!isDetailMode && formData.id_item && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowQuickAddSub(prev => !prev)}
+                                                        className="text-xs font-medium text-green-700 hover:underline"
+                                                    >
+                                                        + Tambah nama item
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {subItemOptions.length > 0 ? (
+                                                <SearchableSelect
+                                                    options={subItemOptions}
+                                                    value={formData.nama_produk}
+                                                    onChange={(value) => handleChange('nama_produk', value)}
+                                                    onBlur={() => handleBlur('nama_produk')}
+                                                    placeholder="Pilih nama item (mis. Pulpen)"
+                                                    isLoading={subItemLoading}
+                                                    isDisabled={isSubmitting || isDetailMode}
+                                                    isClearable={false}
+                                                    isSearchable={true}
+                                                />
+                                            ) : (
+                                                <p className="text-xs text-gray-500">
+                                                    Belum ada nama item untuk item ini. Tambahkan agar pembelian tercatat
+                                                    per barang pada kartu stok &amp; opname.
+                                                </p>
+                                            )}
+
+                                            {showQuickAddSub && (
+                                                <div className="mt-2 flex items-center gap-2">
+                                                    <input
+                                                        type="text"
+                                                        value={quickAddName}
+                                                        onChange={(e) => setQuickAddName(e.target.value)}
+                                                        placeholder="Nama item baru (mis. Tipex)"
+                                                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleQuickAddSubItem}
+                                                        disabled={quickAddSaving}
+                                                        className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                                                    >
+                                                        {quickAddSaving ? 'Menyimpan…' : 'Simpan'}
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {quickAddError && (
+                                                <p className="mt-1 text-xs text-red-600">{quickAddError}</p>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex items-start md:pt-7">
+                                    {(() => {
+                                        // Tampilkan akun debit yang akan dipakai item terpilih.
+                                        const selected = itemBebanBiayaOptions.find(
+                                            (option) => String(option.value) === String(formData.id_item)
+                                        );
+                                        const coaLabel = [selected?.coa_kode, selected?.coa_nama].filter(Boolean).join(' ');
+
+                                        if (!coaLabel) return null;
+
+                                        return (
+                                            <p className="text-xs text-gray-500">
+                                                Akun debit: <span className="font-medium text-gray-700">{coaLabel}</span>
+                                                {selected?.coa_kode?.startsWith('118') && (
+                                                    <span className="ml-1 rounded bg-emerald-50 px-1.5 py-0.5 text-emerald-700">
+                                                        perlengkapan — qty dicatat ke kartu stok
+                                                    </span>
+                                                )}
+                                            </p>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
+
+                            {/* Jumlah & Harga Satuan → total otomatis */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:col-span-3">
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
+                                        Jumlah
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formatNumber(formData.jumlah)}
+                                        onChange={(e) => {
+                                            const qty = parseNumber(e.target.value);
+                                            handleChange('jumlah', qty);
+                                            handleChange('nilai', (qty || 0) * (parseNumber(formData.harga) || 0));
+                                        }}
+                                        disabled={isSubmitting || isDetailMode}
+                                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:bg-gray-100"
+                                        placeholder="mis. 10"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
+                                        Harga Satuan (Rp)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formatNumber(formData.harga)}
+                                        onChange={(e) => {
+                                            const harga = parseNumber(e.target.value);
+                                            handleChange('harga', harga);
+                                            handleChange('nilai', (parseNumber(formData.jumlah) || 0) * (harga || 0));
+                                        }}
+                                        disabled={isSubmitting || isDetailMode}
+                                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:bg-gray-100"
+                                        placeholder="0"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Akun debit otomatis (read-only) */}
+                            <div className="rounded-lg border border-blue-100 bg-blue-50 md:col-span-3 p-3 text-xs text-blue-800">
+                                <div className="font-semibold">Akun Debit (otomatis)</div>
+                                <div className="mt-1">
+                                    Ditentukan oleh <strong>COA pada master item</strong> yang dipilih. Agar pembelian
+                                    perlengkapan masuk Neraca (bukan beban), set COA item menjadi
+                                    <strong> 1180 Perlengkapan</strong> di <em>Data Master → Item Lain-lain</em>.
+                                    Bila item tidak dipilih, jurnal memakai mapping <em>Beban Operasional</em>.
+                                </div>
                             </div>
 
                             {/* Nilai (RP) */}
                             <div>
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
                                     <DollarSign className="w-4 h-4" />
                                     Nilai (Rp) *
                                 </label>
@@ -506,7 +713,7 @@ const AddEditBebanModal = ({
                                     onChange={(e) => handleChange('nilai', parseNumber(e.target.value))}
                                     onBlur={() => handleBlur('nilai')}
                                     disabled={isSubmitting || isDetailMode}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 disabled:bg-gray-100"
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 disabled:bg-gray-100"
                                     placeholder="0"
                                 />
                                 {touched.nilai && errors.nilai && (
@@ -516,7 +723,7 @@ const AddEditBebanModal = ({
 
                             {/* Dibayarkan Oleh */}
                             <div>
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
                                     <User className="w-4 h-4" />
                                     Dibayarkan Oleh *
                                 </label>
@@ -526,7 +733,7 @@ const AddEditBebanModal = ({
                                     onChange={(e) => handleChange('dibayarkan_oleh', e.target.value)}
                                     onBlur={() => handleBlur('dibayarkan_oleh')}
                                     disabled={isSubmitting || isDetailMode}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 disabled:bg-gray-100"
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 disabled:bg-gray-100"
                                     placeholder="Masukkan nama pembayar..."
                                 />
                                 {touched.dibayarkan_oleh && errors.dibayarkan_oleh && (
@@ -536,7 +743,7 @@ const AddEditBebanModal = ({
 
                             {/* Tanggal Pembayaran */}
                             <div>
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
                                     <Calendar className="w-4 h-4" />
                                     Tanggal Pembayaran *
                                 </label>
@@ -546,7 +753,7 @@ const AddEditBebanModal = ({
                                     onChange={(e) => handleChange('tanggal_pembayaran', e.target.value)}
                                     onBlur={() => handleBlur('tanggal_pembayaran')}
                                     disabled={isSubmitting || isDetailMode}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 disabled:bg-gray-100"
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 disabled:bg-gray-100"
                                 />
                                 {touched.tanggal_pembayaran && errors.tanggal_pembayaran && (
                                     <p className="text-xs text-red-600 mt-1">⚠️ {errors.tanggal_pembayaran}</p>
@@ -555,7 +762,7 @@ const AddEditBebanModal = ({
 
                             {/* Peruntukan */}
                             <div>
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
                                     <FileText className="w-4 h-4" />
                                     Peruntukan *
                                 </label>
@@ -565,7 +772,7 @@ const AddEditBebanModal = ({
                                     onChange={(e) => handleChange('peruntukan', e.target.value)}
                                     onBlur={() => handleBlur('peruntukan')}
                                     disabled={isSubmitting || isDetailMode}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 disabled:bg-gray-100"
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 disabled:bg-gray-100"
                                     placeholder="Masukkan peruntukan..."
                                 />
                                 {touched.peruntukan && errors.peruntukan && (
@@ -575,7 +782,7 @@ const AddEditBebanModal = ({
 
                             {/* Syarat Pembelian */}
                             <div>
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
                                     <CreditCard className="w-4 h-4" />
                                     Syarat Pembelian *
                                 </label>
@@ -603,7 +810,7 @@ const AddEditBebanModal = ({
 
                             {/* Bank */}
                             <div>
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
                                     <Wallet className="w-4 h-4" />
                                     Bank *
                                 </label>
@@ -631,7 +838,7 @@ const AddEditBebanModal = ({
 
                             {/* Keterangan */}
                             <div className="md:col-span-2">
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
                                     <FileText className="w-4 h-4" />
                                     Keterangan
                                 </label>
@@ -639,7 +846,7 @@ const AddEditBebanModal = ({
                                     value={formData.keterangan}
                                     onChange={(e) => handleChange('keterangan', e.target.value)}
                                     disabled={isSubmitting || isDetailMode}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-50 transition-all duration-200 disabled:bg-gray-100"
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-50 transition-all duration-200 disabled:bg-gray-100"
                                     placeholder="Masukkan keterangan tambahan..."
                                     rows="3"
                                 />
@@ -647,7 +854,10 @@ const AddEditBebanModal = ({
                             </div>
                         </div>
 
-                        <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
+                        <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
+                            {submitError && (
+                                <p className="mr-auto text-xs font-medium text-red-600">⚠️ {submitError}</p>
+                            )}
                             <button
                                 type="button"
                                 onClick={onClose}

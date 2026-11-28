@@ -35,6 +35,10 @@ const AccountingSettingPage = lazy(() => import('./pages/accounting/SettingPage'
 const PeriodPage = lazy(() => import('./pages/accounting/PeriodPage'));
 const AccountingGuidePage = lazy(() => import('./pages/accounting/AccountingGuidePage'));
 const FixedAssetPage = lazy(() => import('./pages/accounting/FixedAssetPage'));
+const AssetOpnamePage = lazy(() => import('./pages/accounting/AssetOpnamePage'));
+const SuppliesOpnamePage = lazy(() => import('./pages/accounting/SuppliesOpnamePage'));
+const SuppliesStockCardPage = lazy(() => import('./pages/accounting/SuppliesStockCardPage'));
+const SuppliesReconciliationPage = lazy(() => import('./pages/accounting/SuppliesReconciliationPage'));
 
 // Data Master - Lazy loaded
 const KandangOfficePage = lazy(() => import('./pages/dataMaster/KandangOfficePage'));
@@ -47,6 +51,7 @@ const ItemKulitPage = lazy(() => import('./pages/dataMaster/ItemKulitPage'));
 const ItemFeedmilPage = lazy(() => import('./pages/dataMaster/ItemFeedmilPage'));
 const ItemOvkPage = lazy(() => import('./pages/dataMaster/ItemOvkPage'));
 const ItemLainLainPage = lazy(() => import('./pages/dataMaster/ItemLainLainPage'));
+const NamaItemPage = lazy(() => import('./pages/dataMaster/NamaItemPage'));
 const SupplierPage = lazy(() => import('./pages/dataMaster/SupplierPage'));
 const PelangganPage = lazy(() => import('./pages/dataMaster/PelangganPage'));
 const OutletPage = lazy(() => import('./pages/dataMaster/OutletPage'));
@@ -406,6 +411,10 @@ function AppSecure() {
               <Route path="/akuntansi/setting" element={<AccountingSettingPage />} />
               <Route path="/akuntansi/periode" element={<PeriodPage />} />
               <Route path="/akuntansi/aset-tetap" element={<FixedAssetPage />} />
+              <Route path="/akuntansi/opname-aset" element={<AssetOpnamePage />} />
+              <Route path="/akuntansi/opname-perlengkapan" element={<SuppliesOpnamePage />} />
+              <Route path="/akuntansi/kartu-stok-perlengkapan" element={<SuppliesStockCardPage />} />
+              <Route path="/akuntansi/rekonsiliasi-perlengkapan" element={<SuppliesReconciliationPage />} />
               <Route path="/akuntansi/panduan" element={<AccountingGuidePage />} />
               <Route path="/akuntansi/petunjuk" element={<AccountingGuidePage />} />
 
@@ -420,6 +429,7 @@ function AppSecure() {
               <Route path="/master-data/item-feedmil" element={<ItemFeedmilPage />} />
               <Route path="/master-data/item-ovk" element={<ItemOvkPage />} />
               <Route path="/master-data/item-lain-lain" element={<ItemLainLainPage />} />
+              <Route path="/master-data/nama-item" element={<NamaItemPage />} />
               <Route path="/master-data/supplier" element={<SupplierPage />} />
               <Route path="/master-data/pelanggan" element={<PelangganPage />} />
               <Route path="/master-data/outlet" element={<OutletPage />} />

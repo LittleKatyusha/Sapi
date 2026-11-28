@@ -11,6 +11,7 @@ const accountingService = {
   createPeriod: (data) => httpClient.post(`${BASE_URL}/periods`, data),
   closePeriod: (id, data = {}) => httpClient.post(`${BASE_URL}/periods/${id}/close`, data),
   closeYear: (id, data = {}) => httpClient.post(`${BASE_URL}/periods/${id}/close-year`, data),
+  postClosingEntries: (id, data = {}) => httpClient.post(`${BASE_URL}/periods/${id}/closing-entries`, data),
   reopenPeriod: (id, data) => httpClient.post(`${BASE_URL}/periods/${id}/reopen`, data),
 
   getCoa: (params = {}) => httpClient.get(`${BASE_URL}/coa`, { params }),
@@ -38,6 +39,9 @@ const accountingService = {
   getBalanceSheet: (params) => httpClient.get(`${BASE_URL}/reports/balance-sheet`, { params }),
   getBalanceSheetDetail: (params) => httpClient.get(`${BASE_URL}/reports/balance-sheet/detail`, { params }),
   getCashFlow: (params) => httpClient.get(`${BASE_URL}/reports/cash-flow`, { params }),
+  getEquityStatement: (params) => httpClient.get(`${BASE_URL}/reports/equity-statement`, { params }),
+  createSuppliesAdjustment: (data) => httpClient.post(`${BASE_URL}/journals/supplies-adjustment`, data),
+  getCoaBalance: (id, params) => httpClient.get(`${BASE_URL}/coa/${id}/balance`, { params }),
   getInventoryReconciliation: (params) => httpClient.get(`${BASE_URL}/reports/inventory-reconciliation`, { params }),
   getBankReconciliation: (params) => httpClient.get(`${BASE_URL}/reports/bank-reconciliation`, { params }),
 
@@ -80,6 +84,31 @@ const accountingService = {
   revalueAsset: (id, data) => httpClient.post(`${BASE_URL}/assets/${id}/revalue`, data),
   runDepreciation: (data) => httpClient.post(`${BASE_URL}/assets/depreciation`, data),
   disposeAsset: (id, data) => httpClient.post(`${BASE_URL}/assets/${id}/dispose`, data),
+
+  // Opname aset tetap (peralatan kantor) + rekonsiliasi 3 lapis.
+  getAssetOpnameSessions: (params) => httpClient.get(`${BASE_URL}/assets/opname`, { params }),
+  getAssetOpname: (id) => httpClient.get(`${BASE_URL}/assets/opname/${id}`),
+  createAssetOpname: (data) => httpClient.post(`${BASE_URL}/assets/opname`, data),
+  enterAssetOpnameCounts: (id, data) => httpClient.post(`${BASE_URL}/assets/opname/${id}/count`, data),
+  verifyAssetOpname: (id, data = {}) => httpClient.post(`${BASE_URL}/assets/opname/${id}/verify`, data),
+  decideAssetOpnameLine: (id, data) => httpClient.post(`${BASE_URL}/assets/opname/${id}/decide`, data),
+  approveAssetOpname: (id, data = {}) => httpClient.post(`${BASE_URL}/assets/opname/${id}/approve`, data),
+
+  // Opname perlengkapan (kartu stok berbasis qty)
+  getSuppliesItems: (params) => httpClient.get(`${BASE_URL}/supplies/items`, { params }),
+  createSuppliesItem: (data) => httpClient.post(`${BASE_URL}/supplies/items`, data),
+  updateSuppliesItem: (id, data) => httpClient.put(`${BASE_URL}/supplies/items/${id}`, data),
+  getSuppliesOpnameSessions: (params) => httpClient.get(`${BASE_URL}/supplies/opname`, { params }),
+  getSuppliesOpname: (id) => httpClient.get(`${BASE_URL}/supplies/opname/${id}`),
+  createSuppliesOpname: (data) => httpClient.post(`${BASE_URL}/supplies/opname`, data),
+  enterSuppliesOpnameCounts: (id, data) => httpClient.post(`${BASE_URL}/supplies/opname/${id}/count`, data),
+  verifySuppliesOpname: (id, data = {}) => httpClient.post(`${BASE_URL}/supplies/opname/${id}/verify`, data),
+  approveSuppliesOpname: (id, data = {}) => httpClient.post(`${BASE_URL}/supplies/opname/${id}/approve`, data),
+  getSuppliesStockCard: (params) => httpClient.get(`${BASE_URL}/supplies/stock-card`, { params }),
+  getSuppliesReconciliation: (params) => httpClient.get(`${BASE_URL}/supplies/reconciliation`, { params }),
+  getSuppliesDisclosure: (params) => httpClient.get(`${BASE_URL}/supplies/disclosure`, { params }),
+  writeDownSuppliesItem: (id, data) => httpClient.post(`${BASE_URL}/supplies/items/${id}/write-down`, data),
+  getAssetReconciliation: (params) => httpClient.get(`${BASE_URL}/assets/reconciliation`, { params }),
 
   // P2 — Tax Rules
   getTaxRules: (params = {}) => httpClient.get(`${BASE_URL}/tax-rules`, { params }),

@@ -44,6 +44,7 @@ export const MENU_URL_MAPPING = {
   'item-feedmil': '/master-data/item-feedmil',
   'item-ovk': '/master-data/item-ovk',
   'item-lain-lain': '/master-data/item-lain-lain',
+  'nama-item': '/master-data/nama-item',
   'klasifikasi-lain-lain': '/master-data/klasifikasi-lain-lain',
   'persetujuan-ho': '/master-data/persetujuan-ho',
   'persetujuan-rph': '/master-data/persetujuan-rph',

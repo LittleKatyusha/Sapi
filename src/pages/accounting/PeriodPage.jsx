@@ -87,6 +87,28 @@ export default function PeriodPage() {
     }
   };
 
+  const postClosingEntries = async (periodId) => {
+    const note = window.prompt('Catatan jurnal penutup tahun buku (opsional):');
+    if (note === null) return;
+
+    const confirmed = window.confirm(
+      'Posting jurnal penutup?\n\nSeluruh akun pendapatan & beban tahun buku ini akan dinolkan dan ' +
+      'laba/rugi neto dipindahkan ke Laba Ditahan. Jurnal tidak dapat dihapus (hanya bisa di-void).'
+    );
+    if (!confirmed) return;
+
+    try {
+      setSaving(true);
+      setError('');
+      await accountingService.postClosingEntries(periodId, { catatan: note.trim() || null });
+      await loadPeriods(selectedSettingId);
+    } catch (exception) {
+      setError(exception.message || 'Gagal memposting jurnal penutup.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const reopenPeriod = async (periodId) => {
     const reason = window.prompt('Alasan reopen periode (wajib):');
     if (!reason || !reason.trim()) return;
@@ -176,6 +198,11 @@ export default function PeriodPage() {
                     {period.status === 'open' && (
                       <button type="button" onClick={() => closePeriod(period.id)} disabled={saving}
                         className="text-xs font-medium text-red-600 hover:underline disabled:opacity-50">Tutup</button>
+                    )}
+                    {period.status === 'open' && (Number(period.bulan) === 12 || String(period.kode_periode ?? '').endsWith('12')) && (
+                      <button type="button" onClick={() => postClosingEntries(period.id)} disabled={saving}
+                        title="Nolkan akun pendapatan/beban tahun buku dan pindahkan laba ke Laba Ditahan"
+                        className="text-xs font-medium text-amber-700 hover:underline disabled:opacity-50">Jurnal Penutup</button>
                     )}
                     {period.status === 'closed' && (
                       <button type="button" onClick={() => reopenPeriod(period.id)} disabled={saving}

@@ -241,4 +241,64 @@ describe('TrialBalancePage', () => {
       expect(screen.queryByText('Transaksi Pembentuk Saldo')).not.toBeInTheDocument();
     });
   });
+
+  it('menampilkan kertas kerja sebelum/sesudah penyesuaian saat opsi dicentang', async () => {
+    accountingService.getTrialBalance.mockResolvedValue({
+      data: {
+        mode: 'worksheet',
+        adjustment_journal_types: ['ADJUSTMENT', 'DEPRECIATION'],
+        accounts: [
+          {
+            id: 101,
+            kode_akun: '1101',
+            nama_akun: 'Kas Utama',
+            normal_balance: 'D',
+            saldo_awal_debit: 2000000,
+            saldo_awal_credit: 0,
+            mutasi_debit: 50000000,
+            mutasi_credit: 0,
+            penyesuaian_debit: 0,
+            penyesuaian_credit: 1000000,
+            saldo_akhir_debit: 51000000,
+            saldo_akhir_credit: 0,
+          },
+        ],
+        totals: {
+          saldo_awal_debit: 2000000,
+          saldo_awal_credit: 0,
+          mutasi_debit: 50000000,
+          mutasi_credit: 0,
+          penyesuaian_debit: 0,
+          penyesuaian_credit: 1000000,
+          saldo_akhir_debit: 51000000,
+          saldo_akhir_credit: 0,
+        },
+        is_balanced: true,
+      },
+    });
+
+    render(<TrialBalancePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('PT Ternak Jaya (HO)')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: /Tampilkan/i }));
+
+    await waitFor(() => {
+      expect(accountingService.getTrialBalance).toHaveBeenCalledWith(
+        expect.objectContaining({ setting_id: 1, worksheet: true })
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Penyesuaian').length).toBeGreaterThan(0);
+    });
+
+    expect(screen.getAllByText('Saldo Awal').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Mutasi Transaksi').length).toBeGreaterThan(0);
+    expect(screen.getByText('Kas Utama')).toBeInTheDocument();
+    expect(screen.getAllByText('51.000.000').length).toBeGreaterThan(0);
+  });
 });
