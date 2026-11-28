@@ -36,6 +36,15 @@ const emptyForm = () => {
     harga_perolehan: '',
     nilai_residu: 0,
     umur_bulan: 48,
+    kode_inventaris: '',
+    lokasi: '',
+    unit_kerja: '',
+    penanggung_jawab: '',
+    kondisi: 'baik',
+    nomor_seri: '',
+    merek_tipe: '',
+    jumlah: 1,
+    tanggal_mulai_digunakan: '',
     keterangan: '',
   };
 };
@@ -182,6 +191,17 @@ export default function CreateAssetModal({
         payload.umur_bulan = Number(form.umur_bulan);
         payload.nilai_residu = Number(form.nilai_residu || 0);
       }
+
+      // Atribut fisik (dipakai modul opname aset)
+      payload.kode_inventaris = form.kode_inventaris?.trim() || null;
+      payload.lokasi = form.lokasi?.trim() || null;
+      payload.unit_kerja = form.unit_kerja?.trim() || null;
+      payload.penanggung_jawab = form.penanggung_jawab?.trim() || null;
+      payload.kondisi = form.kondisi || null;
+      payload.nomor_seri = form.nomor_seri?.trim() || null;
+      payload.merek_tipe = form.merek_tipe?.trim() || null;
+      payload.jumlah = Number(form.jumlah) > 0 ? Number(form.jumlah) : 1;
+      payload.tanggal_mulai_digunakan = form.tanggal_mulai_digunakan || null;
 
       await accountingService.createAsset(payload);
       if (onSuccess) onSuccess();
@@ -446,6 +466,65 @@ export default function CreateAssetModal({
 
             {/* Keterangan */}
             <div>
+              <div className="md:col-span-2">
+                <div className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-700">
+                  Data Fisik (untuk opname aset)
+                </div>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <label className="text-xs text-gray-700">
+                    Kode Inventaris
+                    <input value={form.kode_inventaris} onChange={(e) => setForm({ ...form, kode_inventaris: e.target.value })}
+                      placeholder="INV-2026-0001" className="mt-1 w-full rounded-lg border p-2 text-sm" />
+                  </label>
+                  <label className="text-xs text-gray-700">
+                    Lokasi Penempatan
+                    <input value={form.lokasi} onChange={(e) => setForm({ ...form, lokasi: e.target.value })}
+                      placeholder="Kantor Pusat - Lt 2" className="mt-1 w-full rounded-lg border p-2 text-sm" />
+                  </label>
+                  <label className="text-xs text-gray-700">
+                    Unit Kerja
+                    <input value={form.unit_kerja} onChange={(e) => setForm({ ...form, unit_kerja: e.target.value })}
+                      placeholder="Keuangan" className="mt-1 w-full rounded-lg border p-2 text-sm" />
+                  </label>
+                  <label className="text-xs text-gray-700">
+                    Penanggung Jawab
+                    <input value={form.penanggung_jawab} onChange={(e) => setForm({ ...form, penanggung_jawab: e.target.value })}
+                      placeholder="Nama PIC" className="mt-1 w-full rounded-lg border p-2 text-sm" />
+                  </label>
+                  <label className="text-xs text-gray-700">
+                    Kondisi
+                    <select value={form.kondisi} onChange={(e) => setForm({ ...form, kondisi: e.target.value })}
+                      className="mt-1 w-full rounded-lg border p-2 text-sm">
+                      <option value="baik">Baik</option>
+                      <option value="rusak_ringan">Rusak ringan</option>
+                      <option value="rusak_berat">Rusak berat</option>
+                      <option value="tidak_berfungsi">Tidak berfungsi</option>
+                    </select>
+                  </label>
+                  <label className="text-xs text-gray-700">
+                    Jumlah (unit)
+                    <input type="number" min="1" value={form.jumlah} onChange={(e) => setForm({ ...form, jumlah: e.target.value })}
+                      className="mt-1 w-full rounded-lg border p-2 text-sm" />
+                  </label>
+                  <label className="text-xs text-gray-700">
+                    Merek / Tipe
+                    <input value={form.merek_tipe} onChange={(e) => setForm({ ...form, merek_tipe: e.target.value })}
+                      placeholder="Lenovo ThinkPad T14" className="mt-1 w-full rounded-lg border p-2 text-sm" />
+                  </label>
+                  <label className="text-xs text-gray-700">
+                    Nomor Seri
+                    <input value={form.nomor_seri} onChange={(e) => setForm({ ...form, nomor_seri: e.target.value })}
+                      placeholder="SN-12345" className="mt-1 w-full rounded-lg border p-2 text-sm" />
+                  </label>
+                  <label className="text-xs text-gray-700">
+                    Tanggal Mulai Digunakan
+                    <input type="date" value={form.tanggal_mulai_digunakan}
+                      onChange={(e) => setForm({ ...form, tanggal_mulai_digunakan: e.target.value })}
+                      className="mt-1 w-full rounded-lg border p-2 text-sm" />
+                  </label>
+                </div>
+              </div>
+
               <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
                 Keterangan / Catatan
               </label>

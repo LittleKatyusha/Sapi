@@ -270,6 +270,11 @@ export default function FixedAssetPage() {
                 <tr>
                   <th className="p-3">Kode & Nama</th>
                   <th className="p-3">Kategori</th>
+                  <th className="p-3">Kode Inventaris</th>
+                  <th className="p-3">Lokasi</th>
+                  <th className="p-3">Penanggung Jawab</th>
+                  <th className="p-3 text-center">Kondisi</th>
+                  <th className="p-3 text-center">Jumlah</th>
                   <th className="p-3">Tipe Valuasi</th>
                   <th className="p-3 text-right">Harga Beli</th>
                   <th className="p-3 text-right">Akum. Susut</th>
@@ -303,6 +308,11 @@ export default function FixedAssetPage() {
                         </div>
                       </td>
                       <td className="p-3 capitalize text-gray-600">{a.kategori || 'Lainnya'}</td>
+                      <td className="p-3 font-mono text-xs">{a.kode_inventaris || '-'}</td>
+                      <td className="p-3 text-xs">{a.lokasi || '-'}</td>
+                      <td className="p-3 text-xs">{a.penanggung_jawab || '-'}</td>
+                      <td className="p-3 text-center text-xs capitalize">{a.kondisi ? String(a.kondisi).replace('_', ' ') : '-'}</td>
+                      <td className="p-3 text-center text-xs">{a.jumlah ?? 1}</td>
                       <td className="p-3">
                         {isSusut && (
                           a.umur_bulan && Number(a.umur_bulan) > 0 ? (

@@ -47,6 +47,15 @@ export default function EditAssetModal({
     coa_beban_id: '',
     umur_bulan: '',
     nilai_residu: 0,
+    kode_inventaris: '',
+    lokasi: '',
+    unit_kerja: '',
+    penanggung_jawab: '',
+    kondisi: 'baik',
+    nomor_seri: '',
+    merek_tipe: '',
+    jumlah: 1,
+    tanggal_mulai_digunakan: '',
     keterangan: '',
   });
 
@@ -65,6 +74,17 @@ export default function EditAssetModal({
         coa_beban_id: asset.coa_beban_id ? Number(asset.coa_beban_id) : '',
         umur_bulan: asset.umur_bulan && Number(asset.umur_bulan) > 0 ? Number(asset.umur_bulan) : '',
         nilai_residu: asset.nilai_residu ? Number(asset.nilai_residu) : 0,
+        kode_inventaris: asset.kode_inventaris || '',
+        lokasi: asset.lokasi || '',
+        unit_kerja: asset.unit_kerja || '',
+        penanggung_jawab: asset.penanggung_jawab || '',
+        kondisi: asset.kondisi || 'baik',
+        nomor_seri: asset.nomor_seri || '',
+        merek_tipe: asset.merek_tipe || '',
+        jumlah: asset.jumlah ? Number(asset.jumlah) : 1,
+        tanggal_mulai_digunakan: asset.tanggal_mulai_digunakan
+          ? String(asset.tanggal_mulai_digunakan).slice(0, 10)
+          : '',
         keterangan: asset.keterangan || '',
       });
     }
@@ -160,6 +180,16 @@ export default function EditAssetModal({
         tipe_valuasi: form.tipe_valuasi,
         coa_aset_id: Number(form.coa_aset_id),
         keterangan: form.keterangan || null,
+        // Atribut fisik (dipakai modul opname aset)
+        kode_inventaris: form.kode_inventaris?.trim() || null,
+        lokasi: form.lokasi?.trim() || null,
+        unit_kerja: form.unit_kerja?.trim() || null,
+        penanggung_jawab: form.penanggung_jawab?.trim() || null,
+        kondisi: form.kondisi || null,
+        nomor_seri: form.nomor_seri?.trim() || null,
+        merek_tipe: form.merek_tipe?.trim() || null,
+        jumlah: Number(form.jumlah) > 0 ? Number(form.jumlah) : 1,
+        tanggal_mulai_digunakan: form.tanggal_mulai_digunakan || null,
       };
 
       if (form.tipe_valuasi === 'depresiasi') {
@@ -241,6 +271,65 @@ export default function EditAssetModal({
             </div>
 
             {/* Nama & Kategori */}
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-700">
+                Data Fisik (untuk opname aset)
+              </div>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <label className="text-xs text-gray-700">
+                  Kode Inventaris
+                  <input value={form.kode_inventaris} onChange={(e) => setForm({ ...form, kode_inventaris: e.target.value })}
+                    className="mt-1 w-full rounded-lg border p-2 text-sm" />
+                </label>
+                <label className="text-xs text-gray-700">
+                  Lokasi Penempatan
+                  <input value={form.lokasi} onChange={(e) => setForm({ ...form, lokasi: e.target.value })}
+                    className="mt-1 w-full rounded-lg border p-2 text-sm" />
+                </label>
+                <label className="text-xs text-gray-700">
+                  Unit Kerja
+                  <input value={form.unit_kerja} onChange={(e) => setForm({ ...form, unit_kerja: e.target.value })}
+                    className="mt-1 w-full rounded-lg border p-2 text-sm" />
+                </label>
+                <label className="text-xs text-gray-700">
+                  Penanggung Jawab
+                  <input value={form.penanggung_jawab} onChange={(e) => setForm({ ...form, penanggung_jawab: e.target.value })}
+                    className="mt-1 w-full rounded-lg border p-2 text-sm" />
+                </label>
+                <label className="text-xs text-gray-700">
+                  Kondisi
+                  <select value={form.kondisi} onChange={(e) => setForm({ ...form, kondisi: e.target.value })}
+                    className="mt-1 w-full rounded-lg border p-2 text-sm">
+                    <option value="baik">Baik</option>
+                    <option value="rusak_ringan">Rusak ringan</option>
+                    <option value="rusak_berat">Rusak berat</option>
+                    <option value="tidak_berfungsi">Tidak berfungsi</option>
+                  </select>
+                </label>
+                <label className="text-xs text-gray-700">
+                  Jumlah (unit)
+                  <input type="number" min="1" value={form.jumlah} onChange={(e) => setForm({ ...form, jumlah: e.target.value })}
+                    className="mt-1 w-full rounded-lg border p-2 text-sm" />
+                </label>
+                <label className="text-xs text-gray-700">
+                  Merek / Tipe
+                  <input value={form.merek_tipe} onChange={(e) => setForm({ ...form, merek_tipe: e.target.value })}
+                    className="mt-1 w-full rounded-lg border p-2 text-sm" />
+                </label>
+                <label className="text-xs text-gray-700">
+                  Nomor Seri
+                  <input value={form.nomor_seri} onChange={(e) => setForm({ ...form, nomor_seri: e.target.value })}
+                    className="mt-1 w-full rounded-lg border p-2 text-sm" />
+                </label>
+                <label className="text-xs text-gray-700">
+                  Tanggal Mulai Digunakan
+                  <input type="date" value={form.tanggal_mulai_digunakan}
+                    onChange={(e) => setForm({ ...form, tanggal_mulai_digunakan: e.target.value })}
+                    className="mt-1 w-full rounded-lg border p-2 text-sm" />
+                </label>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">

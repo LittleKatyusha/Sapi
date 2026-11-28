@@ -16,6 +16,7 @@ export const pageTitleMap = {
   '/master-data/item-feedmil': 'Data Master: Item Feedmil',
   '/master-data/item-ovk': 'Data Master: Item OVK',
   '/master-data/item-lain-lain': 'Data Master: Item Lain-Lain',
+  '/master-data/nama-item': 'Data Master: Nama Item',
   '/master-data/supplier': 'Data Master: Supplier',
   '/master-data/pelanggan': 'Data Master: Pelanggan',
   '/master-data/outlet': 'Data Master: Outlet',
@@ -163,6 +164,10 @@ export const pageTitleMap = {
   '/akuntansi/setting': 'Pengaturan Akunting',
   '/akuntansi/periode': 'Periode Akunting',
   '/akuntansi/aset-tetap': 'Aset Tetap & Investasi',
+  '/akuntansi/opname-aset': 'Opname Aset Tetap',
+  '/akuntansi/opname-perlengkapan': 'Opname Perlengkapan',
+  '/akuntansi/kartu-stok-perlengkapan': 'Kartu Stok Perlengkapan',
+  '/akuntansi/rekonsiliasi-perlengkapan': 'Rekonsiliasi Perlengkapan',
   '/akuntansi/panduan': 'Petunjuk Penggunaan Akuntansi',
   '/akuntansi/petunjuk': 'Petunjuk Penggunaan Akuntansi',
   };

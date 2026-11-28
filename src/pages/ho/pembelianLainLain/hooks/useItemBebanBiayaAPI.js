@@ -66,6 +66,9 @@ const useItemBebanBiayaAPI = () => {
                 return {
                     id: item.id,
                     name: item.name || 'Item Lain-Lain',
+                    coa_id: item.coa_id ?? null,
+                    coa_kode: item.coa_kode ?? null,
+                    coa_nama: item.coa_nama ?? null,
                     // Keep original data for reference
                     originalData: item
                 };
@@ -87,12 +90,20 @@ const useItemBebanBiayaAPI = () => {
 
     // Format data for SearchableSelect component
     const itemBebanBiayaOptions = useMemo(() => {
-        const options = itemBebanBiaya.map(item => ({
-            value: item.id?.toString() || '',
-            label: item.name || 'Item Beban Biaya',
-            // Keep original data for reference
-            originalData: item
-        }));
+        const options = itemBebanBiaya.map(item => {
+            // Tampilkan COA pada label agar user tahu akun yang akan didebit
+            // (mis. "Pulpen — 1180 Perlengkapan" vs "Bensin — 6110 Beban BBM").
+            const coaLabel = [item.coa_kode, item.coa_nama].filter(Boolean).join(' ');
+
+            return {
+                value: item.id?.toString() || '',
+                label: coaLabel ? `${item.name} — ${coaLabel}` : item.name || 'Item Beban Biaya',
+                coa_kode: item.coa_kode,
+                coa_nama: item.coa_nama,
+                // Keep original data for reference
+                originalData: item
+            };
+        });
         
         if (options.length > 0) {
             console.log('📋 First Item Beban Biaya Option:', options[0]);
