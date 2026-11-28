@@ -339,7 +339,11 @@ export default function BalanceSheetPage() {
 
                  const subtotalLancar = lancarLines.reduce((s, r) => s + Number(r.amount || 0), 0);
                  const subtotalPanjang = panjangLines.reduce((s, r) => s + Number(r.amount || 0), 0);
-                const totalCalculatedEquity = Number(report.total_equity || 0) + Number(report.prior_earnings || 0) + Number(report.current_earnings || 0);
+                 const totalCalculatedEquity = Number(report.total_equity || 0) + Number(report.prior_earnings || 0) + Number(report.current_earnings || 0);
+                 const equityLines = fixedLines('equities', ['Modal Awal', 'Laba Ditahan', 'Prive', 'Laba Periode Berjalan'])
+                   .map((line) => line.label === 'Laba Periode Berjalan'
+                     ? { ...line, amount: Number(report.current_earnings || 0) }
+                     : line);
 
                 return (
                   <>
@@ -422,7 +426,7 @@ export default function BalanceSheetPage() {
                       <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">
                           <tbody className="divide-y">
-                             {fixedLineRows(fixedLines('equities', ['Modal Awal', 'Laba Ditahan', 'Prive', 'Laba Periode Berjalan'])).map((row) => (
+                             {fixedLineRows(equityLines).map((row) => (
                                <tr key={row.rowKey} className="hover:bg-gray-50">
                                  <td className="p-3 font-mono text-xs text-gray-600">{row.kode_akun}</td>
                                  <td className="p-3">{row.nama_akun}</td>
